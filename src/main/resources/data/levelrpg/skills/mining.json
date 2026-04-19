@@ -1,0 +1,5 @@
+{
+  "id": "levelrpg:mining",
+  "display": { "name": "Mining", "color": "#B0B0B0", "icon": "", "notes": "Excavation, ores, stonework" },
+  "xpCurve": "levelrpg:default"
+}

@@ -1,0 +1,5 @@
+{
+  "id": "levelrpg:vitality",
+  "display": { "name": "Vitality", "color": "#2ECC71", "icon": "", "notes": "Max HP, survivability, healing" },
+  "xpCurve": "levelrpg:default"
+}

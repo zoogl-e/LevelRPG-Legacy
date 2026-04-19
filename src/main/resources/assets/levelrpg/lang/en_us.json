@@ -1,0 +1,10 @@
+{
+  "key.categories.levelrpg": "LevelRPG",
+  "key.levelrpg.open": "Open Level Book",
+  "screen.levelrpg.level_book": "Level Book",
+  "screen.levelrpg.skill_tree": "Skill Tree",
+  "tooltip.levelrpg.locked": "Requires Lv %s in %s",
+  "msg.levelrpg.locked": "Locked: requires Lv %s in %s",
+  "msg.levelrpg.level_up": "%s leveled up to Lv %s!",
+  "hud.levelrpg.skill_xp": "%s XP: %s/%s (Lv %s)"
+}

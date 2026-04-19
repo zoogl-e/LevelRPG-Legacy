@@ -1,0 +1,5 @@
+{
+  "id": "levelrpg:thaumaturgy",
+  "display": { "name": "Thaumaturgy", "color": "#9B59B6", "icon": "", "notes": "Magic, enchantments, sorceries" },
+  "xpCurve": "levelrpg:default"
+}

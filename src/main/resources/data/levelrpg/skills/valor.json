@@ -1,0 +1,5 @@
+{
+  "id": "levelrpg:valor",
+  "display": { "name": "Valor", "color": "#E74C3C", "icon": "", "notes": "Swords, combat, damage" },
+  "xpCurve": "levelrpg:default"
+}

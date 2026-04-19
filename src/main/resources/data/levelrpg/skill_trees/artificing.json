@@ -1,0 +1,8 @@
+{
+  "skill": "levelrpg:artificing",
+  "minSkillLevel": 0,
+  "nodes": [
+    { "id": "tinkerer", "cost": 1 },
+    { "id": "mechanist", "cost": 2, "requires": ["tinkerer"] }
+  ]
+}

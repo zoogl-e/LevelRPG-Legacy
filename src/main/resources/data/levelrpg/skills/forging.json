@@ -1,0 +1,5 @@
+{
+  "id": "levelrpg:forging",
+  "display": { "name": "Forging", "color": "#C0A060", "icon": "", "notes": "Metalwork, toolmaking, reforging" },
+  "xpCurve": "levelrpg:default"
+}

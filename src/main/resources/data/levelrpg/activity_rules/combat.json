@@ -1,0 +1,8 @@
+{
+  "rules": [
+    { "type": "kill_entity", "entity_tag": "minecraft:skeletons",   "skill": "marksmanship", "xp": 8,  "weapon_tag": "levelrpg:archery_weapons" },
+    { "type": "kill_entity", "entity_tag": "minecraft:raiders",     "skill": "marksmanship", "xp": 8,  "weapon_tag": "levelrpg:archery_weapons" },
+    { "type": "kill_entity", "entity_tag": "minecraft:zombies",     "skill": "valor",  "xp": 8,  "weapon_tag": "levelrpg:combat_weapons" },
+    { "type": "kill_entity", "entity_tag": "minecraft:raiders",     "skill": "valor",  "xp": 10, "weapon_tag": "levelrpg:combat_weapons" }
+  ]
+}

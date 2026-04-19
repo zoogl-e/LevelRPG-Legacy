@@ -1,0 +1,5 @@
+{
+  "id": "levelrpg:marksmanship",
+  "display": { "name": "Marksmanship", "color": "#A67C52", "icon": "", "notes": "Shooting, bows, crossbows" },
+  "xpCurve": "levelrpg:default"
+}

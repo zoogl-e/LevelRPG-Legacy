@@ -1,0 +1,8 @@
+{
+  "rules": [
+    { "type": "craft_item", "item_tag": "minecraft:planks",        "skill": "artificing", "xp": 1 },
+    { "type": "smelt_item",  "item_tag": "minecraft:iron_ingots",  "skill": "artificing", "xp": 3 },
+    { "type": "smelt_item",  "item_tag": "minecraft:gold_ingots",  "skill": "artificing", "xp": 4 },
+    { "type": "smelt_item",  "item_tag": "minecraft:cooked_fishes", "skill": "culinary",    "xp": 2 }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "skill": "levelrpg:valor",
+  "minSkillLevel": 1,
+  "nodes": [
+    { "id": "blade_mastery", "cost": 1 },
+    { "id": "sword_expert", "cost": 2, "requires": ["blade_mastery"] }
+  ]
+}

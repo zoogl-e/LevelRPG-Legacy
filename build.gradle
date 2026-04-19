@@ -1,0 +1,259 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'idea'
+    id 'net.neoforged.moddev' version '2.0.107'
+}
+
+// Auto-bump minor version on each jar build
+version = mod_version
+group = mod_group_id
+
+repositories {
+    mavenLocal()
+    // NeoForged official
+    maven { url "https://maven.neoforged.net/releases" }
+    // GeckoLib official Cloudsmith Maven (hosts 4.x for NeoForge/Fabric/Forge)
+    maven {
+        url "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/"
+        content {
+            includeGroup "software.bernie.geckolib"
+        }
+    }
+}
+
+base {
+    archivesName = mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    // Specify the version of NeoForge to use.
+    version = project.neo_version
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    // This line is optional. Access Transformers are automatically detected
+    // accessTransformers.add('src/main/resources/META-INF/accesstransformer.cfg')
+
+    // Default run configurations.
+    // These can be tweaked, removed, or duplicated as needed.
+    runs {
+        client {
+            client()
+
+            // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        // This run config launches GameTestServer and runs all registered gametests, then exits.
+        // By default, the server will crash when no gametests are provided.
+        // The gametest system is also enabled by default for other run configs under the /test command.
+        gameTestServer {
+            type = "gameTestServer"
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        data {
+            data()
+
+            // example of overriding the workingDirectory set in configureEach above, uncomment if you want to use it
+            // gameDirectory = project.file('run-data')
+
+            // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
+            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+
+        // Custom run: start client in the latest save automatically (Quick Play)
+        clientLatestSave {
+            client()
+
+            // Resolve world name to quick-play
+            def desiredWorld = project.findProperty('quickplayWorld')
+            if (desiredWorld == null || desiredWorld.toString().trim().isEmpty()) {
+                desiredWorld = System.getenv('LEVELRPG_WORLD')
+            }
+            if (desiredWorld == null || desiredWorld.toString().trim().isEmpty()) {
+                File savesDir = project.file('run/saves')
+                if (savesDir.exists()) {
+                    def worlds = savesDir.listFiles()
+                            .findAll { it.isDirectory() && new File(it, 'level.dat').exists() }
+                    if (!worlds.isEmpty()) {
+                        worlds.sort { a, b -> new File(b, 'level.dat').lastModified() <=> new File(a, 'level.dat').lastModified() }
+                        desiredWorld = worlds.get(0).name
+                    }
+                }
+            }
+            if (desiredWorld != null && !desiredWorld.toString().trim().isEmpty()) {
+                println "[RunConfig] QuickPlay world: ${desiredWorld}"
+                programArguments.addAll '--quickPlaySingleplayer', desiredWorld.toString()
+            } else {
+                println "[RunConfig] No save found under ${project.file('run/saves').absolutePath}; starting at title screen."
+            }
+
+            // Enable helpful logging
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        // applies to all the run configs above
+        configureEach {
+            // Recommended logging data for a userdev environment
+            // The markers can be added/remove as needed separated by commas.
+            // "SCAN": For mods scan.
+            // "REGISTRIES": For firing of registry events.
+            // "REGISTRYDUMP": For getting the contents of all registries.
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+
+            // Recommended logging level for the console
+            // You can set various levels here.
+            // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+    }
+
+    mods {
+        // define mod <-> source bindings
+        // these are used to tell the game which sources are for which mod
+        // mostly optional in a single mod project
+        // but multi mod projects should define one per mod
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+// Include resources generated by data generators.
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+
+dependencies {
+    // Example mod dependency with JEI
+    // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
+    // compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"
+    // compileOnly "mezz.jei:jei-${mc_version}-forge-api:${jei_version}"
+    // runtimeOnly "mezz.jei:jei-${mc_version}-forge:${jei_version}"
+
+    // Example mod dependency using a mod jar from ./libs with a flat dir repository
+    // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
+    // The group id is ignored when searching -- in this case, it is "blank"
+    // implementation "blank:coolmod-${mc_version}:${coolmod_version}"
+
+    // Example mod dependency using a file as dependency
+    // implementation files("libs/coolmod-${mc_version}-${coolmod_version}.jar")
+
+    // Example project dependency using a sister or child project:
+    // implementation project(":myproject")
+
+    // For more info:
+    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
+    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+
+    // GeckoLib (animation runtime)
+    implementation "software.bernie.geckolib:geckolib-neoforge-1.21.1:4.6.6"
+}
+
+// This block of code expands all declared replace properties in the specified resource targets.
+// A missing property will result in an error. Properties are expanded using ${} Groovy notation.
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [minecraft_version      : minecraft_version,
+                             minecraft_version_range: minecraft_version_range,
+                             neo_version            : neo_version,
+                             neo_version_range      : neo_version_range,
+                             loader_version_range   : loader_version_range,
+                             mod_id                 : mod_id,
+                             mod_name               : mod_name,
+                             mod_license            : mod_license,
+                             mod_version            : mod_version,
+                             mod_authors            : mod_authors,
+                             mod_description        : mod_description]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
+}
+
+// Include the output of "generateModMetadata" as an input directory for the build
+// this works with both building through Gradle and the IDE.
+sourceSets.main.resources.srcDir generateModMetadata
+// To avoid having to run "generateModMetadata" manually, make it run on every project reload
+neoForge.ideSyncTask generateModMetadata
+
+// Example configuration to allow publishing using the maven-publish plugin
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/repo"
+        }
+    }
+}
+
+// IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}
+
+// Bump minor version in gradle.properties before creating the jar
+// Version format expected: MAJOR.MINOR or MAJOR.MINOR.PATCH
+def bumpMinorVersion = { String ver ->
+    def parts = ver.tokenize('.')*.toInteger()
+    if (parts.size() == 0) return '0.1.0'
+    if (parts.size() == 1) parts << 0
+    if (parts.size() == 2) parts << 0
+    parts[1] = parts[1] + 1
+    parts[2] = 0
+    return parts.join('.')
+}
+
+tasks.register('bumpVersion') {
+    onlyIf {
+        // Only bump during an explicit jar or build that produces the jar
+        gradle.startParameter.taskNames.any { it.toLowerCase() in ['jar','build','assemble','publish','publishmavenjavapublicationtolocalmaven'] }
+    }
+    doLast {
+        File propsFile = file('gradle.properties')
+        if (!propsFile.exists()) return
+        def props = new Properties()
+        propsFile.withInputStream { props.load(it) }
+        def current = props.getProperty('mod_version') ?: project.findProperty('mod_version')?.toString() ?: project.version.toString()
+        def next = bumpMinorVersion(current)
+        // Write back to gradle.properties
+        def lines = propsFile.getText('UTF-8').readLines()
+        def updated = false
+        def newLines = lines.collect { line ->
+            if (line.trim().startsWith('mod_version=')) {
+                updated = true
+                return 'mod_version=' + next
+            }
+            return line
+        }
+        if (!updated) {
+            newLines << ('mod_version=' + next)
+        }
+        propsFile.setText(newLines.join(System.lineSeparator()), 'UTF-8')
+        // Also update project version for current build
+        project.ext.set('mod_version', next)
+        project.version = next
+        println "[AutoVersion] Bumped mod_version from ${current} to ${next}"
+    }
+}
+
+// Ensure version is bumped before jar is actually created
+tasks.named('jar') { dependsOn 'bumpVersion' }

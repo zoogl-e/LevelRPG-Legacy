@@ -1,0 +1,6 @@
+{
+  "minecraft:diamond_sword": { "skill": "levelrpg:valor", "minLevel": 5 },
+  "minecraft:diamond_pickaxe": { "skill": "levelrpg:mining", "minLevel": 7 },
+  "minecraft:diamond_axe": { "skill": "levelrpg:artificing", "minLevel": 6 },
+  "#minecraft:chest_armor": { "skill": "levelrpg:fortitude", "minLevel": 3 }
+}

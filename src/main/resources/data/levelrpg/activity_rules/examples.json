@@ -1,0 +1,8 @@
+{
+  "rules": [
+    { "type": "break_block", "block_tag": "minecraft:logs", "skill": "artificing", "xp": 3 },
+    { "type": "kill_entity", "entity_tag": "minecraft:skeletons", "skill": "marksmanship", "xp": 10, "weapon_tag": "levelrpg:archery_weapons" },
+    { "type": "craft_item", "item_tag": "minecraft:planks", "skill": "artificing", "xp": 1 },
+    { "type": "smelt_item", "item_tag": "minecraft:iron_ingots", "skill": "artificing", "xp": 2 }
+  ]
+}
