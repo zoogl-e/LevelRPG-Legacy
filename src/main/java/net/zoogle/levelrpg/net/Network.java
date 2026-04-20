@@ -8,6 +8,7 @@ import net.zoogle.levelrpg.client.data.ClientProfileCache;
 import net.zoogle.levelrpg.net.payload.SyncLevelDeltaPayload;
 import net.zoogle.levelrpg.net.payload.SyncLevelProfilePayload;
 import net.zoogle.levelrpg.profile.LevelProfile;
+import net.zoogle.levelrpg.profile.SkillState;
 
 public class Network {
     public static void init() {
@@ -24,9 +25,9 @@ public class Network {
                     // Apply on client thread
                     context.enqueueWork(() -> {
                         ClientProfileCache.set(
-                                payload.playerLevel(),
-                                payload.unspentSkillPoints(),
-                                payload.toMap()
+                                payload.toMap(),
+                                payload.toTreeSpentMap(),
+                                payload.toTreeUnlockedMap()
                         );
                     });
                 }
@@ -39,9 +40,7 @@ public class Network {
                         ClientProfileCache.applyDelta(
                                 payload.skillId(),
                                 payload.level(),
-                                payload.xp(),
-                                payload.playerLevel(),
-                                payload.unspentSkillPoints()
+                                payload.xp()
                         );
                     });
                 }
@@ -58,9 +57,9 @@ public class Network {
     // Send a delta (single skill + header values)
     public static void sendDelta(ServerPlayer target, LevelProfile profile, ResourceLocation skillId) {
         if (target == null || profile == null || skillId == null) return;
-        LevelProfile.SkillProgress sp = profile.skills.get(skillId);
+        SkillState sp = profile.skills.get(skillId);
         if (sp == null) return;
-        var payload = new SyncLevelDeltaPayload(skillId, sp.level, sp.xp, profile.playerLevel, profile.unspentSkillPoints);
+        var payload = new SyncLevelDeltaPayload(skillId, sp.level, sp.xp);
         target.connection.send(new ClientboundCustomPayloadPacket(payload));
     }
 }

@@ -3,11 +3,11 @@
   "minVersion": "0.8",
   "package": "net.zoogle.levelrpg.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": [
-    "AbstractContainerMenuMixin"
-  ],
+  "mixins": [],
   "client": [
-    "client.SlotMixin"
+    "client.RecipeBookComponentMixin",
+    "client.RecipeButtonMixin",
+    "client.OverlayRecipeButtonMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -1,19 +1,32 @@
 package net.zoogle.levelrpg.events;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.zoogle.levelrpg.data.ActivityRules;
 import net.zoogle.levelrpg.net.Network;
 import net.zoogle.levelrpg.profile.LevelProfile;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.tags.TagKey;
-import net.minecraft.core.registries.Registries;
+import net.zoogle.levelrpg.profile.SkillState;
+import net.zoogle.levelrpg.profile.SkillXpResult;
+import net.zoogle.levelrpg.progression.ArtificingXpRules;
+import net.zoogle.levelrpg.progression.CulinaryXpRules;
+import net.zoogle.levelrpg.progression.ForgingXpRules;
+import net.zoogle.levelrpg.progression.MagickXpRules;
+import net.zoogle.levelrpg.progression.MasteryNodeEffects;
+import net.zoogle.levelrpg.progression.MiningXpRules;
+import net.zoogle.levelrpg.progression.SkillXpRules;
+import net.zoogle.levelrpg.progression.VitalityXpRules;
+import net.zoogle.levelrpg.progression.ValorXpRules;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -24,20 +37,51 @@ import java.util.Set;
 public class ActivityEvents {
 
     @SubscribeEvent
+    public void onPlayerTick(PlayerTickEvent.Post event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+
+        LevelProfile profile = LevelProfile.get(sp);
+        SkillXpResult magickAward = SkillXpRules.awardMagickForOpenMenu(sp, profile);
+        if (magickAward != null) {
+            LevelProfile.save(sp, profile);
+            Network.sendDelta(sp, profile, magickAward.skillId());
+            sendXpBar(sp, profile, magickAward.skillId());
+            if (magickAward.leveledUp()) {
+                sendLevelUp(sp, profile, magickAward.skillId());
+            }
+        }
+
+        SkillXpResult explorationAward = SkillXpRules.awardExplorationForMovement(sp, profile);
+        if (explorationAward == null) return;
+
+        LevelProfile.save(sp, profile);
+        Network.sendDelta(sp, profile, explorationAward.skillId());
+        MasteryNodeEffects.afterExplorationAward(sp, profile, explorationAward);
+        sendXpBar(sp, profile, explorationAward.skillId());
+        if (explorationAward.leveledUp()) {
+            sendLevelUp(sp, profile, explorationAward.skillId());
+        }
+    }
+
+    @SubscribeEvent
     public void onBlockBreak(BlockEvent.BreakEvent event) {
         if (!(event.getPlayer() instanceof ServerPlayer sp)) return;
         var state = event.getState();
-        if (ActivityRules.breakBlockRules().isEmpty()) return; // no rules loaded
 
         LevelProfile profile = LevelProfile.get(sp);
         Set<ResourceLocation> changedSkills = new HashSet<>();
         Set<ResourceLocation> leveledUp = new HashSet<>();
+
+        SkillXpResult miningAward = SkillXpRules.awardMiningForBlockBreak(sp, profile, state);
+        collectCanonicalAward(miningAward, changedSkills, leveledUp);
+
+        if (ActivityRules.breakBlockRules().isEmpty() && changedSkills.isEmpty()) return;
+
         for (ActivityRules.BreakBlockRule rule : ActivityRules.breakBlockRules()) {
+            if (MiningXpRules.SKILL_ID.equals(rule.skill) || ArtificingXpRules.SKILL_ID.equals(rule.skill)) continue;
             TagKey<net.minecraft.world.level.block.Block> tag = rule.tagKey();
             if (state.is(tag)) {
-                LevelProfile.Delta d = profile.addSkillXp(rule.skill, rule.xp);
-                changedSkills.add(rule.skill);
-                if (d.levelDelta > 0) leveledUp.add(rule.skill);
+                collectCanonicalAward(profile.awardSkillXp(rule.skill, rule.xp), changedSkills, leveledUp);
             }
         }
         if (!changedSkills.isEmpty()) {
@@ -53,9 +97,38 @@ public class ActivityEvents {
     }
 
     @SubscribeEvent
+    public void onMobDamaged(LivingDamageEvent.Post event) {
+        if (event.getEntity() instanceof ServerPlayer spTarget) {
+            LevelProfile profile = LevelProfile.get(spTarget);
+            SkillXpResult vitalityAward = SkillXpRules.awardVitalityForDamageTaken(spTarget, profile, event.getSource(), event.getNewDamage());
+            if (vitalityAward != null) {
+                LevelProfile.save(spTarget, profile);
+                Network.sendDelta(spTarget, profile, vitalityAward.skillId());
+                sendXpBar(spTarget, profile, vitalityAward.skillId());
+                if (vitalityAward.leveledUp()) {
+                    sendLevelUp(spTarget, profile, vitalityAward.skillId());
+                }
+            }
+        }
+
+        if (!(event.getSource().getEntity() instanceof ServerPlayer sp)) return;
+        if (!(event.getEntity() instanceof net.minecraft.world.entity.LivingEntity target)) return;
+
+        LevelProfile profile = LevelProfile.get(sp);
+        SkillXpResult valorAward = SkillXpRules.awardValorForDamage(sp, profile, target, event.getNewDamage());
+        if (valorAward == null) return;
+
+        LevelProfile.save(sp, profile);
+        Network.sendDelta(sp, profile, valorAward.skillId());
+        sendXpBar(sp, profile, valorAward.skillId());
+        if (valorAward.leveledUp()) {
+            sendLevelUp(sp, profile, valorAward.skillId());
+        }
+    }
+
+    @SubscribeEvent
     public void onMobKilled(LivingDeathEvent event) {
         if (!(event.getSource().getEntity() instanceof ServerPlayer sp)) return;
-        if (ActivityRules.killEntityRules().isEmpty()) return;
         var victim = event.getEntity();
         var type = victim.getType();
         ItemStack held = sp.getMainHandItem();
@@ -63,15 +136,20 @@ public class ActivityEvents {
         LevelProfile profile = LevelProfile.get(sp);
         Set<ResourceLocation> changed = new HashSet<>();
         Set<ResourceLocation> leveledUp = new HashSet<>();
+
+        SkillXpResult valorAward = SkillXpRules.awardValorForKill(sp, profile, victim);
+        collectCanonicalAward(valorAward, changed, leveledUp);
+
+        if (ActivityRules.killEntityRules().isEmpty() && changed.isEmpty()) return;
+
         for (ActivityRules.KillEntityRule rule : ActivityRules.killEntityRules()) {
+            if (ValorXpRules.SKILL_ID.equals(rule.skill)) continue;
             if (!type.is(rule.entityTagKey())) continue;
             if (rule.weaponItemTag != null) {
                 TagKey<net.minecraft.world.item.Item> wTag = rule.weaponTagKey();
                 if (!held.is(wTag)) continue;
             }
-            LevelProfile.Delta d = profile.addSkillXp(rule.skill, rule.xp);
-            changed.add(rule.skill);
-            if (d.levelDelta > 0) leveledUp.add(rule.skill);
+            collectCanonicalAward(profile.awardSkillXp(rule.skill, rule.xp), changed, leveledUp);
         }
         if (!changed.isEmpty()) {
             LevelProfile.save(sp, profile);
@@ -88,19 +166,28 @@ public class ActivityEvents {
     @SubscribeEvent
     public void onItemCrafted(PlayerEvent.ItemCraftedEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-        if (ActivityRules.craftItemRules().isEmpty()) return;
         ItemStack result = event.getCrafting();
         if (result == null || result.isEmpty()) return;
 
         LevelProfile profile = LevelProfile.get(sp);
         Set<ResourceLocation> changed = new HashSet<>();
         Set<ResourceLocation> leveledUp = new HashSet<>();
+
+        collectCanonicalAward(SkillXpRules.awardArtificingForCraft(sp, profile, result), changed, leveledUp);
+        collectCanonicalAward(SkillXpRules.awardMagickForCraft(sp, profile, result), changed, leveledUp);
+        collectCanonicalAward(SkillXpRules.awardCulinaryForCraft(sp, profile, result), changed, leveledUp);
+        collectCanonicalAward(SkillXpRules.awardForgingForCraft(sp, profile, result), changed, leveledUp);
+
+        if (ActivityRules.craftItemRules().isEmpty() && changed.isEmpty()) return;
+
         for (ActivityRules.CraftItemRule rule : ActivityRules.craftItemRules()) {
+            if (ArtificingXpRules.SKILL_ID.equals(rule.skill)
+                    || MagickXpRules.SKILL_ID.equals(rule.skill)
+                    || CulinaryXpRules.SKILL_ID.equals(rule.skill)
+                    || ForgingXpRules.SKILL_ID.equals(rule.skill)) continue;
             if (result.is(rule.tagKey())) {
                 int totalXp = Math.max(1, rule.xp) * Math.max(1, result.getCount());
-                LevelProfile.Delta d = profile.addSkillXp(rule.skill, totalXp);
-                changed.add(rule.skill);
-                if (d.levelDelta > 0) leveledUp.add(rule.skill);
+                collectCanonicalAward(profile.awardSkillXp(rule.skill, totalXp), changed, leveledUp);
             }
         }
         if (!changed.isEmpty()) {
@@ -118,19 +205,25 @@ public class ActivityEvents {
     @SubscribeEvent
     public void onItemSmelted(PlayerEvent.ItemSmeltedEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-        if (ActivityRules.smeltItemRules().isEmpty()) return;
         ItemStack result = event.getSmelting();
         if (result == null || result.isEmpty()) return;
 
         LevelProfile profile = LevelProfile.get(sp);
         Set<ResourceLocation> changed = new HashSet<>();
         Set<ResourceLocation> leveledUp = new HashSet<>();
+
+        collectCanonicalAward(SkillXpRules.awardArtificingForSmelt(sp, profile, result), changed, leveledUp);
+        collectCanonicalAward(SkillXpRules.awardCulinaryForSmelt(sp, profile, result), changed, leveledUp);
+
+        if (ActivityRules.smeltItemRules().isEmpty() && changed.isEmpty()) return;
+
         for (ActivityRules.SmeltItemRule rule : ActivityRules.smeltItemRules()) {
+            if (ArtificingXpRules.SKILL_ID.equals(rule.skill)
+                    || CulinaryXpRules.SKILL_ID.equals(rule.skill)
+                    || ForgingXpRules.SKILL_ID.equals(rule.skill)) continue;
             if (result.is(rule.tagKey())) {
                 int totalXp = Math.max(1, rule.xp) * Math.max(1, result.getCount());
-                LevelProfile.Delta d = profile.addSkillXp(rule.skill, totalXp);
-                changed.add(rule.skill);
-                if (d.levelDelta > 0) leveledUp.add(rule.skill);
+                collectCanonicalAward(profile.awardSkillXp(rule.skill, totalXp), changed, leveledUp);
             }
         }
         if (!changed.isEmpty()) {
@@ -145,8 +238,16 @@ public class ActivityEvents {
         }
     }
 
+    private static void collectCanonicalAward(SkillXpResult result, Set<ResourceLocation> changedSkills, Set<ResourceLocation> leveledUp) {
+        if (result == null) return;
+        changedSkills.add(result.skillId());
+        if (result.leveledUp()) {
+            leveledUp.add(result.skillId());
+        }
+    }
+
     private static void sendXpBar(ServerPlayer sp, LevelProfile profile, ResourceLocation skillId) {
-        LevelProfile.SkillProgress spSkill = profile.skills.get(skillId);
+        SkillState spSkill = profile.skills.get(skillId);
         if (spSkill == null) return;
         long needed = LevelProfile.xpToNextLevel(skillId, spSkill.level);
         String name = displayNameForSkill(skillId);
@@ -158,7 +259,7 @@ public class ActivityEvents {
     }
 
     private static void sendLevelUp(ServerPlayer sp, LevelProfile profile, ResourceLocation skillId) {
-        LevelProfile.SkillProgress spSkill = profile.skills.get(skillId);
+        SkillState spSkill = profile.skills.get(skillId);
         if (spSkill == null) return;
         String name = displayNameForSkill(skillId);
         sp.sendSystemMessage(

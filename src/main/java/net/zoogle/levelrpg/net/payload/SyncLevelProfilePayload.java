@@ -7,13 +7,16 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.zoogle.levelrpg.LevelRPG;
 import net.zoogle.levelrpg.profile.LevelProfile;
+import net.zoogle.levelrpg.profile.SkillState;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-public record SyncLevelProfilePayload(int playerLevel, int unspentSkillPoints, List<Entry> skills)
+public record SyncLevelProfilePayload(List<Entry> skills, List<TreeEntry> trees)
         implements CustomPacketPayload {
 
     public static final Type<SyncLevelProfilePayload> TYPE = new Type<>(
@@ -21,9 +24,8 @@ public record SyncLevelProfilePayload(int playerLevel, int unspentSkillPoints, L
 
     public static final StreamCodec<RegistryFriendlyByteBuf, SyncLevelProfilePayload> STREAM_CODEC =
             StreamCodec.composite(
-                    ByteBufCodecs.VAR_INT, SyncLevelProfilePayload::playerLevel,
-                    ByteBufCodecs.VAR_INT, SyncLevelProfilePayload::unspentSkillPoints,
                     Entry.STREAM_CODEC.apply(ByteBufCodecs.list(64)), SyncLevelProfilePayload::skills,
+                    TreeEntry.STREAM_CODEC.apply(ByteBufCodecs.list(64)), SyncLevelProfilePayload::trees,
                     SyncLevelProfilePayload::new
             );
 
@@ -34,19 +36,43 @@ public record SyncLevelProfilePayload(int playerLevel, int unspentSkillPoints, L
 
     public static SyncLevelProfilePayload from(LevelProfile profile) {
         List<Entry> list = new ArrayList<>(profile.skills.size());
-        for (Map.Entry<ResourceLocation, LevelProfile.SkillProgress> e : profile.skills.entrySet()) {
+        for (Map.Entry<ResourceLocation, SkillState> e : profile.skills.entrySet()) {
             list.add(new Entry(e.getKey(), e.getValue().level, e.getValue().xp));
         }
-        return new SyncLevelProfilePayload(profile.playerLevel, profile.unspentSkillPoints, list);
+        List<TreeEntry> treeEntries = new ArrayList<>(profile.treePointsSpent.size());
+        LinkedHashSet<ResourceLocation> treeIds = new LinkedHashSet<>();
+        treeIds.addAll(profile.treePointsSpent.keySet());
+        treeIds.addAll(profile.treeUnlockedNodes.keySet());
+        for (ResourceLocation treeId : treeIds) {
+            Set<String> unlocked = profile.getUnlockedTreeNodes(treeId);
+            treeEntries.add(new TreeEntry(treeId, profile.getTreePointsSpent(treeId), List.copyOf(unlocked)));
+        }
+        return new SyncLevelProfilePayload(list, treeEntries);
     }
 
-    public Map<ResourceLocation, LevelProfile.SkillProgress> toMap() {
-        LinkedHashMap<ResourceLocation, LevelProfile.SkillProgress> map = new LinkedHashMap<>();
+    public Map<ResourceLocation, SkillState> toMap() {
+        LinkedHashMap<ResourceLocation, SkillState> map = new LinkedHashMap<>();
         for (Entry e : skills) {
-            LevelProfile.SkillProgress sp = new LevelProfile.SkillProgress();
+            SkillState sp = new SkillState();
             sp.level = e.level();
             sp.xp = e.xp();
             map.put(e.id(), sp);
+        }
+        return map;
+    }
+
+    public Map<ResourceLocation, Integer> toTreeSpentMap() {
+        LinkedHashMap<ResourceLocation, Integer> map = new LinkedHashMap<>();
+        for (TreeEntry tree : trees) {
+            map.put(tree.id(), Math.max(0, tree.spentPoints()));
+        }
+        return map;
+    }
+
+    public Map<ResourceLocation, Set<String>> toTreeUnlockedMap() {
+        LinkedHashMap<ResourceLocation, Set<String>> map = new LinkedHashMap<>();
+        for (TreeEntry tree : trees) {
+            map.put(tree.id(), Set.copyOf(tree.unlockedNodes()));
         }
         return map;
     }
@@ -58,6 +84,20 @@ public record SyncLevelProfilePayload(int playerLevel, int unspentSkillPoints, L
                         ByteBufCodecs.VAR_INT, Entry::level,
                         ByteBufCodecs.VAR_LONG, Entry::xp,
                         Entry::new
+                );
+    }
+
+    public record TreeEntry(ResourceLocation id, int spentPoints, List<String> unlockedNodes) {
+        public TreeEntry {
+            unlockedNodes = unlockedNodes == null ? List.of() : List.copyOf(unlockedNodes);
+        }
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, TreeEntry> STREAM_CODEC =
+                StreamCodec.composite(
+                        ResourceLocation.STREAM_CODEC, TreeEntry::id,
+                        ByteBufCodecs.VAR_INT, TreeEntry::spentPoints,
+                        ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list(64)), TreeEntry::unlockedNodes,
+                        TreeEntry::new
                 );
     }
 }

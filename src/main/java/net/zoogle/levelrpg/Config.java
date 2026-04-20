@@ -26,11 +26,6 @@ public class Config {
             .comment("Use GeckoLib for the Level Book GUI (requires geo assets).")
             .define("client.useGeckoLibBook", true);
 
-    // Player level computation: SUM(skillLevels)/divider
-    public static final ModConfigSpec.IntValue PLAYER_LEVEL_DIVIDER = BUILDER
-            .comment("Divider for computing player level from sum of all skill levels (playerLevel = sum / divider). Must be >= 1.")
-            .defineInRange("playerLevel.divider", 3, 1, Integer.MAX_VALUE);
-
     // Autocorrect settings
     public static final ModConfigSpec.IntValue AUTOCORRECT_MAX_DISTANCE = BUILDER
             .comment("Levenshtein distance threshold for skill name autocorrect in commands. 0 disables fuzzy matching.")
@@ -43,7 +38,6 @@ public class Config {
     public static boolean devEnableEditor;
     public static boolean enableLevelBookKeybind = true; // default on to match spec default
     public static boolean useGeckoLibBook = true;
-    public static int playerLevelDivider;
     public static int autocorrectMaxDistance;
 
     @SubscribeEvent
@@ -52,7 +46,6 @@ public class Config {
         devEnableEditor = DEV_ENABLE_EDITOR.get();
         enableLevelBookKeybind = ENABLE_LEVEL_BOOK_KEYBIND.get();
         useGeckoLibBook = USE_GECKOLIB_BOOK.get();
-        playerLevelDivider = Math.max(1, PLAYER_LEVEL_DIVIDER.get());
         autocorrectMaxDistance = Math.max(0, AUTOCORRECT_MAX_DISTANCE.get());
     }
 }

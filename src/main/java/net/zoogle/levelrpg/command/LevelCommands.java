@@ -16,6 +16,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.zoogle.levelrpg.profile.LevelProfile;
+import net.zoogle.levelrpg.profile.SkillState;
+import net.zoogle.levelrpg.profile.SkillXpResult;
 import net.zoogle.levelrpg.net.Network;
 
 import java.util.ArrayList;
@@ -82,7 +84,7 @@ public class LevelCommands {
         }
         int amount = IntegerArgumentType.getInteger(ctx, "amount");
         LevelProfile profile = LevelProfile.get(target);
-        LevelProfile.Delta delta = profile.addSkillXp(skill, amount);
+        SkillXpResult award = profile.awardSkillXp(skill, amount);
         LevelProfile.save(target, profile);
         Network.sendDelta(target, profile, skill);
 
@@ -90,7 +92,7 @@ public class LevelCommands {
         ctx.getSource().sendSuccess(() -> Component.literal("Gave " + amount + " XP to " + skill + " for " + target.getGameProfile().getName()), true);
 
         // Feedback to target: action bar with current/needed and level up message
-        LevelProfile.SkillProgress spSkill = profile.skills.get(skill);
+        SkillState spSkill = profile.skills.get(skill);
         if (spSkill != null) {
             long needed = LevelProfile.xpToNextLevel(skill, spSkill.level);
             String name = displayNameForSkill(skill);
@@ -99,13 +101,13 @@ public class LevelCommands {
                             .withStyle(ChatFormatting.GOLD),
                     true
             );
-            if (delta.levelDelta > 0) {
+            if (award.leveledUp()) {
                 target.sendSystemMessage(
                         Component.translatable("msg.levelrpg.level_up", name, spSkill.level).withStyle(ChatFormatting.GREEN)
                 );
             }
         }
-        return (int) Math.max(1, delta.levelDelta + delta.xpDelta);
+        return (int) Math.max(1L, award.xpAwarded());
     }
 
     private int setSkill(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
@@ -116,21 +118,15 @@ public class LevelCommands {
         // Support special key: all
         if ("all".equalsIgnoreCase(raw)) {
             int clamped = Math.max(0, level);
-            for (Map.Entry<ResourceLocation, LevelProfile.SkillProgress> e : profile.skills.entrySet()) {
-                LevelProfile.SkillProgress sp = e.getValue();
+            for (Map.Entry<ResourceLocation, SkillState> e : profile.skills.entrySet()) {
+                SkillState sp = e.getValue();
                 if (sp == null) {
-                    sp = new LevelProfile.SkillProgress();
+                    sp = new SkillState();
                     profile.skills.put(e.getKey(), sp);
                 }
                 sp.level = clamped;
                 sp.xp = 0L;
             }
-            // Recompute playerLevel (do not auto-adjust unspentSkillPoints here)
-            int sum = 0;
-            for (LevelProfile.SkillProgress sp : profile.skills.values()) sum += sp.level;
-            int divider = Math.max(1, net.zoogle.levelrpg.Config.playerLevelDivider);
-            profile.playerLevel = sum / divider;
-
             LevelProfile.save(target, profile);
             Network.sendSync(target, profile);
             ctx.getSource().sendSuccess(() -> Component.literal("Set ALL skills for " + target.getGameProfile().getName() + " to level " + clamped), true);
@@ -146,9 +142,9 @@ public class LevelCommands {
         if (resolved.correctedFrom() != null) {
             ctx.getSource().sendSuccess(() -> Component.literal("Autocorrected skill '" + raw + "' -> '" + skill + "'"), false);
         }
-        LevelProfile.SkillProgress sp = profile.skills.get(skill);
+        SkillState sp = profile.skills.get(skill);
         if (sp == null) {
-            sp = new LevelProfile.SkillProgress();
+            sp = new SkillState();
             profile.skills.put(skill, sp);
         }
         sp.level = Math.max(0, level);
@@ -161,9 +157,9 @@ public class LevelCommands {
 
     private int dump(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
         LevelProfile profile = LevelProfile.get(target);
-        ctx.getSource().sendSuccess(() -> Component.literal("Profile for " + target.getGameProfile().getName() + ": Lvl " + profile.playerLevel + ", Unspent " + profile.unspentSkillPoints), false);
-        for (Map.Entry<ResourceLocation, LevelProfile.SkillProgress> e : profile.skills.entrySet()) {
-            LevelProfile.SkillProgress sp = e.getValue();
+        ctx.getSource().sendSuccess(() -> Component.literal("Profile for " + target.getGameProfile().getName()), false);
+        for (Map.Entry<ResourceLocation, SkillState> e : profile.skills.entrySet()) {
+            SkillState sp = e.getValue();
             ctx.getSource().sendSuccess(() -> Component.literal(e.getKey() + " -> Lv " + sp.level + ", XP " + sp.xp), false);
         }
         return profile.skills.size();
@@ -181,7 +177,7 @@ public class LevelCommands {
         }
         ResourceLocation skill = resolved.id();
         LevelProfile profile = LevelProfile.get(target);
-        LevelProfile.SkillProgress sp = profile.skills.get(skill);
+        SkillState sp = profile.skills.get(skill);
         int level = sp != null ? sp.level : 0;
         long xp = sp != null ? sp.xp : 0L;
         long needed = LevelProfile.xpToNextLevel(skill, level);
@@ -290,13 +286,21 @@ public class LevelCommands {
         LevelProfile profile = LevelProfile.get(target);
         LevelProfile.UnlockResult res = profile.unlockNode(skill, nodeId);
         if (!res.success) {
-            ctx.getSource().sendFailure(Component.literal("Unlock failed: " + res.message));
+            String detail = "Unlock failed: " + res.message
+                    + " [level " + res.skillLevel
+                    + ", mastery " + res.availablePoints + "/" + res.earnedPoints + "]";
+            if (res.suggestedNextNodeId != null && !res.suggestedNextNodeId.isBlank()) {
+                detail += " Next: " + res.suggestedNextNodeId;
+            }
+            ctx.getSource().sendFailure(Component.literal(detail));
             return 0;
         }
         LevelProfile.save(target, profile);
         Network.sendSync(target, profile);
         String name = displayNameForSkill(skill);
-        ctx.getSource().sendSuccess(() -> Component.literal("Unlocked '" + nodeId + "' in " + name + " for " + target.getGameProfile().getName()), true);
+        String detail = "Unlocked '" + nodeId + "' in " + name + " for " + target.getGameProfile().getName()
+                + " [mastery " + res.availablePoints + "/" + res.earnedPoints + " remaining]";
+        ctx.getSource().sendSuccess(() -> Component.literal(detail), true);
         target.displayClientMessage(Component.literal("Unlocked '" + nodeId + "' in " + name), true);
         return 1;
     }

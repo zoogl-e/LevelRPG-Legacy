@@ -28,6 +28,28 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
+def enchiridionProjectDir = file('../Enchiridion_v2')
+def enchiridionIncludedBuild = gradle.includedBuilds.find { it.projectDir == enchiridionProjectDir }
+def enchiridionClassesDir = new File(enchiridionProjectDir, 'build/classes/java/main')
+def enchiridionResourcesDir = new File(enchiridionProjectDir, 'build/resources/main')
+def enchiridionAvailable = enchiridionProjectDir.exists()
+def enchiridionBuildTasksAvailable = enchiridionIncludedBuild != null
+def enchiridionClassesTask = enchiridionIncludedBuild?.task(':classes')
+def enchiridionResourcesTask = enchiridionIncludedBuild?.task(':processResources')
+
+if (enchiridionAvailable) {
+    def enchiridionRuntime = sourceSets.create('enchiridionRuntime')
+    enchiridionRuntime.java.setSrcDirs([])
+    enchiridionRuntime.resources.setSrcDirs([])
+    if (enchiridionBuildTasksAvailable) {
+        enchiridionRuntime.output.dir([builtBy: enchiridionClassesTask], enchiridionClassesDir)
+        enchiridionRuntime.output.dir([builtBy: enchiridionResourcesTask], enchiridionResourcesDir)
+    } else {
+        enchiridionRuntime.output.dir(enchiridionClassesDir)
+        enchiridionRuntime.output.dir(enchiridionResourcesDir)
+    }
+}
+
 neoForge {
     // Specify the version of NeoForge to use.
     version = project.neo_version
@@ -128,6 +150,12 @@ neoForge {
         // but multi mod projects should define one per mod
         "${mod_id}" {
             sourceSet(sourceSets.main)
+        }
+
+        if (enchiridionAvailable) {
+            enchiridion {
+                sourceSet(sourceSets.enchiridionRuntime)
+            }
         }
     }
 }
@@ -257,3 +285,12 @@ tasks.register('bumpVersion') {
 
 // Ensure version is bumped before jar is actually created
 tasks.named('jar') { dependsOn 'bumpVersion' }
+
+if (enchiridionBuildTasksAvailable) {
+    ['prepareClientRun', 'prepareClientLatestSaveRun', 'prepareServerRun', 'prepareGameTestServerRun', 'prepareDataRun'].each { taskName ->
+        tasks.named(taskName).configure {
+            dependsOn enchiridionClassesTask
+            dependsOn enchiridionResourcesTask
+        }
+    }
+}

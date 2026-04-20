@@ -55,14 +55,14 @@ public final class Keybinds {
                         }
                         continue;
                     }
-                    if (!(mc.screen instanceof net.zoogle.levelrpg.client.ui.LevelBookScreen)) {
+                    if (!EnchiridionJournalOpener.isCurrentJournalScreen(mc)) {
                         // Ensure world debug rendering is off before opening the GUI
                         try {
                             //net.zoogle.levelrpg.client.debug.BookOrbitDebug.enabled = false;
                             //net.zoogle.levelrpg.client.debug.BookOrbitDebug.renderBook = false;
                             //net.zoogle.levelrpg.client.debug.BookCrosshairRender.enabled = false;
                         } catch (Throwable ignored) {}
-                        mc.setScreen(new net.zoogle.levelrpg.client.ui.LevelBookScreen());
+                        EnchiridionJournalOpener.openLevelRpgJournal(mc);
                     }
                 }
             }

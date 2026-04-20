@@ -1,8 +1,20 @@
 {
   "skill": "levelrpg:valor",
+  "title": "Valor Mastery",
+  "summary": "Valor mastery splits between disciplined front-line pressure and lethal duel finishing. Thresholds convert combat growth into permanent specialization choices.",
   "minSkillLevel": 1,
+  "thresholds": [
+    { "id": "combat_awakening", "level": 1, "points": 1, "title": "Combat Awakening", "description": "Your first point establishes an opening style." },
+    { "id": "battle_hardened", "level": 6, "points": 1, "title": "Battle Hardened", "description": "Choose whether to deepen pressure or widen battlefield control." },
+    { "id": "veteran_edge", "level": 12, "points": 1, "title": "Veteran Edge", "description": "Mid-tree identity starts to lock in." },
+    { "id": "champions_bearing", "level": 20, "points": 1, "title": "Champion's Bearing", "description": "Late-game mastery supports a defining finish." }
+  ],
   "nodes": [
-    { "id": "blade_mastery", "cost": 1 },
-    { "id": "sword_expert", "cost": 2, "requires": ["blade_mastery"] }
+    { "id": "vanguard_stance", "title": "Vanguard Stance", "description": "A front-line path built around steady melee pressure.", "branch": "vanguard", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "duelist_footwork", "title": "Duelist Footwork", "description": "A technical path focused on committed single-target execution.", "branch": "duelist", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "shieldbreaker_drive", "title": "Shieldbreaker Drive", "description": "Deepens the vanguard branch into anti-defense pressure.", "branch": "vanguard", "cost": 1, "requiredSkillLevel": 6, "requires": ["vanguard_stance"] },
+    { "id": "execution_window", "title": "Execution Window", "description": "Deepens the duelist branch into punish-heavy finishing.", "branch": "duelist", "cost": 1, "requiredSkillLevel": 6, "requires": ["duelist_footwork"] },
+    { "id": "warlord_presence", "title": "Warlord Presence", "description": "Anchors the vanguard identity as a committed battlefield specialist.", "branch": "vanguard", "cost": 2, "requiredSkillLevel": 12, "requires": ["shieldbreaker_drive"] },
+    { "id": "finishing_chain", "title": "Finishing Chain", "description": "Anchors the duelist identity around lethal follow-through.", "branch": "duelist", "cost": 2, "requiredSkillLevel": 12, "requires": ["execution_window"] }
   ]
 }

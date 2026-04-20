@@ -1,0 +1,20 @@
+{
+  "skill": "levelrpg:magick",
+  "title": "Magick Mastery",
+  "summary": "Magick uses branching thresholds to separate ritual control from raw channeling, so canonical magical progression can later drive more guided unlock presentation.",
+  "minSkillLevel": 1,
+  "thresholds": [
+    { "id": "arcane_awareness", "level": 1, "points": 1, "title": "Arcane Awareness", "description": "Choose how you interact with the arcane." },
+    { "id": "ether_practice", "level": 6, "points": 1, "title": "Ether Practice", "description": "Your approach to magic becomes more stable." },
+    { "id": "spellcraft_focus", "level": 12, "points": 1, "title": "Spellcraft Focus", "description": "Mid-tree magical identity solidifies." },
+    { "id": "archmage_path", "level": 20, "points": 1, "title": "Archmage Path", "description": "Late thresholds support committed magical specialization." }
+  ],
+  "nodes": [
+    { "id": "ritual_geometry", "title": "Ritual Geometry", "description": "Favors careful control, setup, and magical stability.", "branch": "ritual", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "wild_channeling", "title": "Wild Channeling", "description": "Favors raw throughput and forceful spell shaping.", "branch": "channeling", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "sigil_memory", "title": "Sigil Memory", "description": "Deepens ritual magic into layered preparation.", "branch": "ritual", "cost": 1, "requiredSkillLevel": 6, "requires": ["ritual_geometry"] },
+    { "id": "surging_current", "title": "Surging Current", "description": "Deepens channeling into more forceful arcane commitment.", "branch": "channeling", "cost": 1, "requiredSkillLevel": 6, "requires": ["wild_channeling"] },
+    { "id": "sealed_circuit", "title": "Sealed Circuit", "description": "Commits to disciplined ritual control.", "branch": "ritual", "cost": 2, "requiredSkillLevel": 12, "requires": ["sigil_memory"] },
+    { "id": "stormcasting", "title": "Stormcasting", "description": "Commits to forceful, high-output spellwork.", "branch": "channeling", "cost": 2, "requiredSkillLevel": 12, "requires": ["surging_current"] }
+  ]
+}

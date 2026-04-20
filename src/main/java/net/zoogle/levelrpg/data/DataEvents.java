@@ -9,7 +9,7 @@ public class DataEvents {
         event.addListener(new SkillLoader());
         event.addListener(new XpCurves());
         event.addListener(new ActivityRules());
-        event.addListener(new GateRules());
+        event.addListener(new RecipeUnlockLoader());
         event.addListener(new SkillTreeLoader());
     }
 }

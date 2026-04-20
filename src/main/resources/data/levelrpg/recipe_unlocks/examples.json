@@ -1,0 +1,8 @@
+{
+  "disabled": true,
+  "recipe": "minecraft:diamond_pickaxe",
+  "requirements": [
+    { "skill": "levelrpg:mining", "minLevel": 7 },
+    { "skill": "levelrpg:forging", "minLevel": 3 }
+  ]
+}

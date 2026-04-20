@@ -4,29 +4,47 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.zoogle.levelrpg.LevelRPG;
+import net.zoogle.levelrpg.progression.SkillTreeProgression;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
- * Minimal, server-authoritative player profile for the leveling framework.
- * Stores per-skill level/xp and a couple of player-level fields.
- * Persisted in the player's persistent data under key "levelrpg:profile".
+ * Server-authoritative player progression profile.
+ *
+ * The rewrite keeps persistence and sync responsibilities here, but no longer
+ * treats summed player level or generic unspent points as core progression.
+ * Those legacy fields remain only as migration state for older saves.
  */
 public class LevelProfile {
     public static final String NBT_KEY = LevelRPG.MODID + ":profile";
 
-
+    /**
+     * Legacy compatibility field. The rewrite does not derive a global player
+     * level from summed skill levels anymore.
+     */
+    @Deprecated
     public int playerLevel = 0;
+
+    /**
+     * Legacy compatibility field. Generic unspent points are no longer a core
+     * progression concept, but some existing tree code still references it.
+     */
+    @Deprecated
     public int unspentSkillPoints = 0;
-    public final LinkedHashMap<ResourceLocation, SkillProgress> skills = new LinkedHashMap<>();
-    // Skill tree state: total points spent per skill and unlocked node ids per skill
+
+    public final ArchetypeState archetype = new ArchetypeState();
+    public final LinkedHashMap<ResourceLocation, SkillState> skills = new LinkedHashMap<>();
+    // Legacy tree state retained for compile-safe compatibility with old systems.
     public final LinkedHashMap<ResourceLocation, Integer> treePointsSpent = new LinkedHashMap<>();
     public final LinkedHashMap<ResourceLocation, java.util.HashSet<String>> treeUnlockedNodes = new LinkedHashMap<>();
 
     public LevelProfile() {
-        // Start empty; skills will be created on demand for registered ids only.
+        ensureCanonicalSkills();
     }
 
     public static LevelProfile get(ServerPlayer player) {
@@ -53,73 +71,154 @@ public class LevelProfile {
         }
     }
 
-    public Delta addSkillXp(ResourceLocation skillId, int amount) {
+    public SkillState getSkill(ResourceLocation skillId) {
         Objects.requireNonNull(skillId, "skillId");
-        // Only award XP to registered skills; ignore unknown ids to keep framework clean
-        if (net.zoogle.levelrpg.data.SkillRegistry.get(skillId) == null) {
-            Delta zero = new Delta();
-            zero.skillId = skillId;
-            zero.xpDelta = 0;
-            zero.levelDelta = 0;
-            return zero;
+        return skills.computeIfAbsent(skillId, id -> new SkillState());
+    }
+
+    public SkillState getSkill(ProgressionSkill skill) {
+        Objects.requireNonNull(skill, "skill");
+        return getSkill(skill.id());
+    }
+
+    public Map<ResourceLocation, SkillState> canonicalSkillsView() {
+        LinkedHashMap<ResourceLocation, SkillState> ordered = new LinkedHashMap<>();
+        for (ProgressionSkill skill : ProgressionSkill.values()) {
+            ordered.put(skill.id(), getSkill(skill));
         }
-        SkillProgress sp = skills.get(skillId);
-        if (sp == null) {
-            sp = new SkillProgress();
-            skills.put(skillId, sp);
+        return java.util.Collections.unmodifiableMap(ordered);
+    }
+
+    public int getTreePointsSpent(ResourceLocation skillId) {
+        return Math.max(0, treePointsSpent.getOrDefault(skillId, 0));
+    }
+
+    public Set<String> getUnlockedTreeNodes(ResourceLocation skillId) {
+        java.util.HashSet<String> unlocked = treeUnlockedNodes.get(skillId);
+        if (unlocked == null || unlocked.isEmpty()) {
+            return Set.of();
         }
-        int beforeLevel = sp.level;
-        long beforeXp = sp.xp;
-        sp.xp = Math.max(0, sp.xp + amount);
-        // Use per-skill curve to determine required XP for next levels
-        long needed;
-        while (sp.xp >= (needed = xpToNextLevel(skillId, sp.level))) {
-            sp.xp -= needed;
-            sp.level += 1;
+        return Collections.unmodifiableSet(new LinkedHashSet<>(unlocked));
+    }
+
+    public Map<ResourceLocation, Integer> treePointsSpentView() {
+        return Collections.unmodifiableMap(new LinkedHashMap<>(treePointsSpent));
+    }
+
+    public Map<ResourceLocation, Set<String>> treeUnlockedNodesView() {
+        LinkedHashMap<ResourceLocation, Set<String>> copy = new LinkedHashMap<>();
+        for (Map.Entry<ResourceLocation, java.util.HashSet<String>> entry : treeUnlockedNodes.entrySet()) {
+            copy.put(entry.getKey(), Collections.unmodifiableSet(new LinkedHashSet<>(entry.getValue())));
         }
-        // If any level was gained, recompute playerLevel and award unspent points accordingly
-        int gained = sp.level - beforeLevel;
-        if (gained > 0) {
-            int old = this.playerLevel;
-            int sum = 0;
-            for (SkillProgress value : skills.values()) {
-                sum += value.level;
+        return Collections.unmodifiableMap(copy);
+    }
+
+    public void ensureCanonicalSkills() {
+        for (ProgressionSkill skill : ProgressionSkill.values()) {
+            skills.putIfAbsent(skill.id(), new SkillState());
+        }
+    }
+
+    public void setArchetype(ResourceLocation archetypeId, boolean startingDistributionApplied) {
+        this.archetype.id = archetypeId;
+        this.archetype.startingDistributionApplied = startingDistributionApplied;
+    }
+
+    public ArchetypeDefinition getSelectedArchetype() {
+        if (archetype.id == null) {
+            return null;
+        }
+        return ArchetypeRegistry.get(archetype.id);
+    }
+
+    public boolean hasAppliedStartingArchetype() {
+        return archetype.startingDistributionApplied;
+    }
+
+    public ArchetypeApplyResult selectArchetype(ResourceLocation archetypeId) {
+        ArchetypeDefinition definition = ArchetypeRegistry.get(archetypeId);
+        if (definition == null) {
+            return ArchetypeApplyResult.failure("Unknown archetype");
+        }
+        if (archetype.startingDistributionApplied) {
+            if (definition.id().equals(archetype.id)) {
+                return ArchetypeApplyResult.alreadyApplied(definition.id());
             }
-            int divider = Math.max(1, net.zoogle.levelrpg.Config.playerLevelDivider);
-            this.playerLevel = sum / divider;
-            if (this.playerLevel > old) {
-                this.unspentSkillPoints += (this.playerLevel - old);
-            }
+            return ArchetypeApplyResult.failure("Archetype already locked in");
         }
-        Delta d = new Delta();
-        d.skillId = skillId;
-        d.xpDelta = sp.xp - beforeXp; // remaining delta after looping
-        d.levelDelta = sp.level - beforeLevel;
-        return d;
+        this.archetype.id = definition.id();
+        this.archetype.startingDistributionApplied = false;
+        return ArchetypeApplyResult.selected(definition.id());
+    }
+
+    public ArchetypeApplyResult ensureDefaultArchetypeSelected() {
+        if (archetype.id != null) {
+            return ArchetypeApplyResult.selected(archetype.id);
+        }
+        ArchetypeDefinition definition = ArchetypeRegistry.defaultArchetype();
+        if (definition == null) {
+            return ArchetypeApplyResult.failure("No default archetype is registered");
+        }
+        this.archetype.id = definition.id();
+        this.archetype.startingDistributionApplied = false;
+        return ArchetypeApplyResult.selected(definition.id());
+    }
+
+    public ArchetypeApplyResult applySelectedArchetypeIfNeeded() {
+        if (archetype.startingDistributionApplied) {
+            return ArchetypeApplyResult.alreadyApplied(archetype.id);
+        }
+        ArchetypeDefinition definition = getSelectedArchetype();
+        if (definition == null) {
+            return ArchetypeApplyResult.failure("No archetype selected");
+        }
+        applyArchetypeLevels(definition);
+        archetype.id = definition.id();
+        archetype.startingDistributionApplied = true;
+        return ArchetypeApplyResult.applied(definition.id());
+    }
+
+    public ArchetypeApplyResult selectAndApplyArchetype(ResourceLocation archetypeId) {
+        ArchetypeApplyResult selection = selectArchetype(archetypeId);
+        if (!selection.success) {
+            return selection;
+        }
+        return applySelectedArchetypeIfNeeded();
+    }
+
+    private void applyArchetypeLevels(ArchetypeDefinition definition) {
+        ensureCanonicalSkills();
+        for (Map.Entry<ProgressionSkill, Integer> entry : definition.startingLevels().entrySet()) {
+            SkillState state = getSkill(entry.getKey());
+            state.level = Math.max(state.level, entry.getValue());
+            state.xp = Math.max(0L, state.xp);
+        }
+    }
+
+    /**
+     * Canonical XP grant path for per-skill progression.
+     */
+    public SkillXpResult awardSkillXp(ResourceLocation skillId, long amount) {
+        Objects.requireNonNull(skillId, "skillId");
+        return SkillXpAwardService.award(this, skillId, amount);
     }
 
     public static long xpToNextLevel(ResourceLocation skillId, int level) {
-        // Look up curve id from registry; fallback to default behavior if missing
-        ResourceLocation curveId = null;
-        var def = net.zoogle.levelrpg.data.SkillRegistry.get(skillId);
-        if (def != null && def.xpCurve() != null) {
-            curveId = def.xpCurve();
-        }
-        return net.zoogle.levelrpg.data.XpCurves.computeNeeded(curveId, level);
+        return SkillLeveling.xpToNextLevel(skillId, level);
     }
 
     public static long xpToNextLevel(int level) {
-        // Legacy/default behavior delegates to computeNeeded with no specific curve (uses default curve)
-        return net.zoogle.levelrpg.data.XpCurves.computeNeeded(null, level);
+        return SkillLeveling.xpToNextLevel(level);
     }
 
     public CompoundTag serialize() {
         CompoundTag tag = new CompoundTag();
-        tag.putInt("schema", 2);
+        tag.putInt("schema", 3);
         tag.putInt("playerLevel", playerLevel);
         tag.putInt("unspentSkillPoints", unspentSkillPoints);
+        tag.put("archetype", archetype.serialize());
         CompoundTag skillsTag = new CompoundTag();
-        for (Map.Entry<ResourceLocation, SkillProgress> e : skills.entrySet()) {
+        for (Map.Entry<ResourceLocation, SkillState> e : skills.entrySet()) {
             skillsTag.put(e.getKey().toString(), e.getValue().serialize());
         }
         tag.put("skills", skillsTag);
@@ -146,13 +245,22 @@ public class LevelProfile {
     public void deserialize(CompoundTag tag) {
         this.playerLevel = tag.getInt("playerLevel");
         this.unspentSkillPoints = tag.getInt("unspentSkillPoints");
+        if (tag.contains("archetype")) {
+            this.archetype.deserialize(tag.getCompound("archetype"));
+        } else {
+            this.archetype.id = null;
+            this.archetype.startingDistributionApplied = false;
+        }
         this.skills.clear();
         CompoundTag skillsTag = tag.getCompound("skills");
         for (String key : skillsTag.getAllKeys()) {
-            ResourceLocation id = ResourceLocation.parse(key);
-            SkillProgress sp = new SkillProgress();
-            sp.deserialize(skillsTag.getCompound(key));
-            this.skills.put(id, sp);
+            try {
+                ResourceLocation id = ResourceLocation.parse(key);
+                SkillState sp = new SkillState();
+                sp.deserialize(skillsTag.getCompound(key));
+                this.skills.put(id, sp);
+            } catch (Exception ignored) {
+            }
         }
         // trees
         this.treePointsSpent.clear();
@@ -183,49 +291,70 @@ public class LevelProfile {
                 }
             }
         }
-        // Prune any unknown skills not present in registry to enforce data-defined set only
-        if (net.zoogle.levelrpg.data.SkillRegistry.size() > 0) {
-            java.util.Iterator<ResourceLocation> it = new java.util.LinkedList<>(this.skills.keySet()).iterator();
-            while (it.hasNext()) {
-                ResourceLocation id = it.next();
-                if (net.zoogle.levelrpg.data.SkillRegistry.get(id) == null) {
-                    this.skills.remove(id);
-                }
-            }
-            // Ensure all data-driven skills exist (no hardcoded defaults)
-            for (ResourceLocation id : net.zoogle.levelrpg.data.SkillRegistry.ids()) {
-                this.skills.putIfAbsent(id, new SkillProgress());
-            }
+        ensureCanonicalSkills();
+
+        // Preserve any known data-driven skills for compatibility while the
+        // broader rewrite is still in flight. The canonical skill set is the
+        // new source of truth; extra entries are tolerated for old systems.
+        LinkedHashSet<ResourceLocation> dataSkills = new LinkedHashSet<>();
+        for (ResourceLocation id : net.zoogle.levelrpg.data.SkillRegistry.ids()) {
+            dataSkills.add(id);
+        }
+        for (ResourceLocation id : dataSkills) {
+            this.skills.putIfAbsent(id, new SkillState());
         }
     }
 
+    public static class ArchetypeApplyResult {
+        public boolean success;
+        public boolean applied;
+        public ResourceLocation archetypeId;
+        public String message;
 
-    public static class SkillProgress {
-        public int level = 0;
-        public long xp = 0L;
-
-        public CompoundTag serialize() {
-            CompoundTag t = new CompoundTag();
-            t.putInt("level", level);
-            t.putLong("xp", xp);
-            return t;
+        public static ArchetypeApplyResult selected(ResourceLocation archetypeId) {
+            ArchetypeApplyResult result = new ArchetypeApplyResult();
+            result.success = true;
+            result.applied = false;
+            result.archetypeId = archetypeId;
+            result.message = "Archetype selected";
+            return result;
         }
 
-        public void deserialize(CompoundTag t) {
-            this.level = t.getInt("level");
-            this.xp = t.getLong("xp");
+        public static ArchetypeApplyResult applied(ResourceLocation archetypeId) {
+            ArchetypeApplyResult result = new ArchetypeApplyResult();
+            result.success = true;
+            result.applied = true;
+            result.archetypeId = archetypeId;
+            result.message = "Archetype starting distribution applied";
+            return result;
         }
-    }
 
-    public static class Delta {
-        public ResourceLocation skillId;
-        public int levelDelta;
-        public long xpDelta;
+        public static ArchetypeApplyResult alreadyApplied(ResourceLocation archetypeId) {
+            ArchetypeApplyResult result = new ArchetypeApplyResult();
+            result.success = true;
+            result.applied = false;
+            result.archetypeId = archetypeId;
+            result.message = "Archetype starting distribution already applied";
+            return result;
+        }
+
+        public static ArchetypeApplyResult failure(String message) {
+            ArchetypeApplyResult result = new ArchetypeApplyResult();
+            result.success = false;
+            result.applied = false;
+            result.message = message;
+            return result;
+        }
     }
 
     public static class UnlockResult {
         public boolean success;
         public String message;
+        public int earnedPoints;
+        public int spentPoints;
+        public int availablePoints;
+        public int skillLevel;
+        public String suggestedNextNodeId;
     }
 
     public UnlockResult unlockNode(ResourceLocation skillId, String nodeId) {
@@ -247,47 +376,64 @@ public class LevelProfile {
             res.message = "Unknown node";
             return res;
         }
-        // Ensure skill exists in profile
-        SkillProgress sp = skills.get(skillId);
-        if (sp == null) {
-            sp = new SkillProgress();
-            skills.put(skillId, sp);
-        }
-        if (sp.level < Math.max(0, tree.minSkillLevel())) {
+        SkillTreeProgression.TreeSnapshot snapshot = SkillTreeProgression.snapshot(this, skillId);
+        res.skillLevel = snapshot.skillLevel();
+        res.earnedPoints = snapshot.earnedPoints();
+        res.spentPoints = snapshot.spentPoints();
+        res.availablePoints = snapshot.availablePoints();
+        res.suggestedNextNodeId = snapshot.suggestedNextNode().map(nodeSnapshot -> nodeSnapshot.node().id()).orElse(null);
+
+        SkillTreeProgression.NodeSnapshot nodeSnapshot = snapshot.nodes().stream()
+                .filter(candidate -> candidate.node().id().equals(nodeId))
+                .findFirst()
+                .orElse(null);
+        if (nodeSnapshot == null) {
             res.success = false;
-            res.message = "Skill level too low";
+            res.message = "Unknown node";
             return res;
         }
-        // Already unlocked?
-        java.util.HashSet<String> unlocked = treeUnlockedNodes.computeIfAbsent(skillId, k -> new java.util.HashSet<>());
-        if (unlocked.contains(nodeId)) {
-            res.success = false;
-            res.message = "Already unlocked";
-            return res;
-        }
-        // Check requirements
-        if (node.requires() != null) {
-            for (String req : node.requires()) {
-                if (!unlocked.contains(req)) {
-                    res.success = false;
-                    res.message = "Missing prerequisite: " + req;
-                    return res;
-                }
+
+        switch (nodeSnapshot.status()) {
+            case UNLOCKED -> {
+                res.success = false;
+                res.message = "Already unlocked";
+                return res;
+            }
+            case LOCKED_SKILL_LEVEL -> {
+                int requiredLevel = SkillTreeProgression.requiredLevelFor(tree, nodeSnapshot.node());
+                res.success = false;
+                res.message = "Requires " + skillId.getPath() + " level " + requiredLevel;
+                return res;
+            }
+            case LOCKED_PREREQUISITE -> {
+                res.success = false;
+                res.message = "Missing prerequisite: " + String.join(", ", nodeSnapshot.missingRequirements());
+                return res;
+            }
+            case LOCKED_MASTERY_POINTS -> {
+                res.success = false;
+                res.message = "Not enough mastery points";
+                return res;
+            }
+            case AVAILABLE -> {
+                int cost = nodeSnapshot.node().normalizedCost();
+                java.util.HashSet<String> unlocked = treeUnlockedNodes.computeIfAbsent(skillId, key -> new java.util.HashSet<>());
+                unlocked.add(nodeId);
+                this.treePointsSpent.put(skillId, snapshot.spentPoints() + cost);
+                res.success = true;
+                res.spentPoints = snapshot.spentPoints() + cost;
+                res.availablePoints = Math.max(0, snapshot.earnedPoints() - res.spentPoints);
+                res.message = "Unlocked";
+                res.suggestedNextNodeId = SkillTreeProgression.snapshot(this, skillId)
+                        .suggestedNextNode()
+                        .map(next -> next.node().id())
+                        .orElse(null);
+                return res;
             }
         }
-        int cost = Math.max(1, node.cost());
-        if (this.unspentSkillPoints < cost) {
-            res.success = false;
-            res.message = "Not enough points";
-            return res;
-        }
-        // Spend and unlock
-        this.unspentSkillPoints -= cost;
-        int spent = this.treePointsSpent.getOrDefault(skillId, 0);
-        this.treePointsSpent.put(skillId, spent + cost);
-        unlocked.add(nodeId);
-        res.success = true;
-        res.message = "Unlocked";
+
+        res.success = false;
+        res.message = "Unlock failed";
         return res;
     }
 }

@@ -3,8 +3,11 @@
   "key.levelrpg.open": "Open Level Book",
   "screen.levelrpg.level_book": "Level Book",
   "screen.levelrpg.skill_tree": "Skill Tree",
-  "tooltip.levelrpg.locked": "Requires Lv %s in %s",
-  "msg.levelrpg.locked": "Locked: requires Lv %s in %s",
+  "tooltip.levelrpg.recipe_locked": "Recipe locked",
+  "tooltip.levelrpg.recipe_locked.requires": "Requires: %s",
+  "msg.levelrpg.recipe_locked": "Recipe locked. Requires %s",
+  "msg.levelrpg.recipe_locked.requirement": "%s %s/%s",
+  "msg.levelrpg.recipe_locked.separator": ", ",
   "msg.levelrpg.level_up": "%s leveled up to Lv %s!",
   "hud.levelrpg.skill_xp": "%s XP: %s/%s (Lv %s)"
 }

@@ -1,0 +1,5 @@
+{
+  "id": "levelrpg:magick",
+  "display": { "name": "Magick", "color": "#6FA8FF", "icon": "", "notes": "Arcane growth, spellwork, ritual control" },
+  "xpCurve": "levelrpg:default"
+}
