@@ -7,6 +7,7 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.zoogle.levelrpg.Config;
 import net.zoogle.levelrpg.net.Network;
 import net.zoogle.levelrpg.profile.LevelProfile;
+import net.zoogle.levelrpg.progression.PassiveSkillScalingService;
 
 /**
  * Instance-based event listeners registered on NeoForge.EVENT_BUS.
@@ -18,6 +19,7 @@ public class ProfileEvents {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         // Ensure profile exists and is saved; optionally ping the player once
         LevelProfile p = LevelProfile.get(sp);
+        PassiveSkillScalingService.forceApply(sp, p);
         LevelProfile.save(sp, p);
         Network.sendSync(sp, p);
         if (Config.feedbackLoginMessage) {
@@ -36,6 +38,7 @@ public class ProfileEvents {
     @SubscribeEvent
     public void onRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        PassiveSkillScalingService.forceApply(sp, LevelProfile.get(sp));
         // After respawn, ensure client has fresh profile snapshot
         Network.sendSync(sp, LevelProfile.get(sp));
     }
@@ -43,6 +46,7 @@ public class ProfileEvents {
     @SubscribeEvent
     public void onChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        PassiveSkillScalingService.forceApply(sp, LevelProfile.get(sp));
         Network.sendSync(sp, LevelProfile.get(sp));
     }
 }

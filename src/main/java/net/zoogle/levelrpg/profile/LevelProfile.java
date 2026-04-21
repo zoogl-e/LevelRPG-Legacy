@@ -4,6 +4,10 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.zoogle.levelrpg.LevelRPG;
+import net.zoogle.levelrpg.progression.MasteryLeveling;
+import net.zoogle.levelrpg.progression.MasteryProgressionService;
+import net.zoogle.levelrpg.progression.SpecializationProgression;
+import net.zoogle.levelrpg.progression.SkillPointProgression;
 import net.zoogle.levelrpg.progression.SkillTreeProgression;
 
 import java.util.Collections;
@@ -36,6 +40,9 @@ public class LevelProfile {
      */
     @Deprecated
     public int unspentSkillPoints = 0;
+
+    public int availableSkillPoints = 0;
+    public int spentSkillPoints = 0;
 
     public final ArchetypeState archetype = new ArchetypeState();
     public final LinkedHashMap<ResourceLocation, SkillState> skills = new LinkedHashMap<>();
@@ -79,6 +86,46 @@ public class LevelProfile {
     public SkillState getSkill(ProgressionSkill skill) {
         Objects.requireNonNull(skill, "skill");
         return getSkill(skill.id());
+    }
+
+    public int investedSkillLevel(ResourceLocation skillId) {
+        return Math.max(0, getSkill(skillId).level);
+    }
+
+    public int masteryLevel(ResourceLocation skillId) {
+        return Math.max(0, getSkill(skillId).masteryLevel);
+    }
+
+    public long masteryProgress(ResourceLocation skillId) {
+        return Math.max(0L, getSkill(skillId).masteryXp);
+    }
+
+    public long masteryRequiredForNextLevel(ResourceLocation skillId) {
+        return MasteryLeveling.xpToNextLevel(skillId, masteryLevel(skillId));
+    }
+
+    public SkillProgressView skillProgress(ResourceLocation skillId) {
+        return new SkillProgressView(
+                skillId,
+                investedSkillLevel(skillId),
+                masteryLevel(skillId),
+                masteryProgress(skillId),
+                masteryRequiredForNextLevel(skillId),
+                SkillPointProgression.canSpendPoint(this, skillId)
+        );
+    }
+
+    public SkillProgressView skillProgress(ProgressionSkill skill) {
+        Objects.requireNonNull(skill, "skill");
+        return skillProgress(skill.id());
+    }
+
+    public int availableSkillPoints() {
+        return SkillPointProgression.availablePoints(this);
+    }
+
+    public int spentSkillPoints() {
+        return SkillPointProgression.spentPoints(this);
     }
 
     public Map<ResourceLocation, SkillState> canonicalSkillsView() {
@@ -191,31 +238,51 @@ public class LevelProfile {
         for (Map.Entry<ProgressionSkill, Integer> entry : definition.startingLevels().entrySet()) {
             SkillState state = getSkill(entry.getKey());
             state.level = Math.max(state.level, entry.getValue());
-            state.xp = Math.max(0L, state.xp);
+            state.masteryXp = Math.max(0L, state.masteryXp);
         }
     }
 
     /**
-     * Canonical XP grant path for per-skill progression.
+     * Canonical mastery grant path for per-skill practice progression.
      */
-    public SkillXpResult awardSkillXp(ResourceLocation skillId, long amount) {
+    public MasteryAwardResult awardMastery(ResourceLocation skillId, long amount) {
         Objects.requireNonNull(skillId, "skillId");
-        return SkillXpAwardService.award(this, skillId, amount);
+        return MasteryProgressionService.award(this, skillId, amount);
     }
 
+    /**
+     * Legacy compatibility alias for older XP-named award code.
+     */
+    @Deprecated
+    public SkillXpResult awardSkillXp(ResourceLocation skillId, long amount) {
+        return SkillXpResult.from(awardMastery(skillId, amount));
+    }
+
+    public SkillPointProgression.SkillPointSpendResult spendSkillPoint(ResourceLocation skillId) {
+        return SkillPointProgression.spendPoint(this, skillId);
+    }
+
+    /**
+     * Legacy skill-threshold helper retained while older systems still refer to
+     * skill-level curves. New earned progression should use {@link MasteryLeveling}.
+     */
+    @Deprecated
     public static long xpToNextLevel(ResourceLocation skillId, int level) {
         return SkillLeveling.xpToNextLevel(skillId, level);
     }
 
+    @Deprecated
     public static long xpToNextLevel(int level) {
         return SkillLeveling.xpToNextLevel(level);
     }
 
     public CompoundTag serialize() {
         CompoundTag tag = new CompoundTag();
-        tag.putInt("schema", 3);
+        tag.putInt("schema", 4);
         tag.putInt("playerLevel", playerLevel);
         tag.putInt("unspentSkillPoints", unspentSkillPoints);
+        tag.putInt("availableSkillPoints", availableSkillPoints);
+        tag.putInt("spentSkillPoints", spentSkillPoints);
         tag.put("archetype", archetype.serialize());
         CompoundTag skillsTag = new CompoundTag();
         for (Map.Entry<ResourceLocation, SkillState> e : skills.entrySet()) {
@@ -245,6 +312,8 @@ public class LevelProfile {
     public void deserialize(CompoundTag tag) {
         this.playerLevel = tag.getInt("playerLevel");
         this.unspentSkillPoints = tag.getInt("unspentSkillPoints");
+        this.availableSkillPoints = Math.max(0, tag.getInt("availableSkillPoints"));
+        this.spentSkillPoints = Math.max(0, tag.getInt("spentSkillPoints"));
         if (tag.contains("archetype")) {
             this.archetype.deserialize(tag.getCompound("archetype"));
         } else {
@@ -256,6 +325,9 @@ public class LevelProfile {
         for (String key : skillsTag.getAllKeys()) {
             try {
                 ResourceLocation id = ResourceLocation.parse(key);
+                if (!ProgressionSkill.isCanonicalId(id)) {
+                    continue;
+                }
                 SkillState sp = new SkillState();
                 sp.deserialize(skillsTag.getCompound(key));
                 this.skills.put(id, sp);
@@ -272,6 +344,9 @@ public class LevelProfile {
                 for (String key : spent.getAllKeys()) {
                     try {
                         ResourceLocation id = ResourceLocation.parse(key);
+                        if (!ProgressionSkill.isCanonicalId(id)) {
+                            continue;
+                        }
                         this.treePointsSpent.put(id, spent.getInt(key));
                     } catch (Exception ignored) {}
                 }
@@ -281,6 +356,9 @@ public class LevelProfile {
                 for (String key : unlocked.getAllKeys()) {
                     try {
                         ResourceLocation id = ResourceLocation.parse(key);
+                        if (!ProgressionSkill.isCanonicalId(id)) {
+                            continue;
+                        }
                         var list = unlocked.getList(key, net.minecraft.nbt.Tag.TAG_STRING);
                         java.util.HashSet<String> set = new java.util.HashSet<>();
                         for (int i = 0; i < list.size(); i++) {
@@ -292,16 +370,8 @@ public class LevelProfile {
             }
         }
         ensureCanonicalSkills();
-
-        // Preserve any known data-driven skills for compatibility while the
-        // broader rewrite is still in flight. The canonical skill set is the
-        // new source of truth; extra entries are tolerated for old systems.
-        LinkedHashSet<ResourceLocation> dataSkills = new LinkedHashSet<>();
-        for (ResourceLocation id : net.zoogle.levelrpg.data.SkillRegistry.ids()) {
-            dataSkills.add(id);
-        }
-        for (ResourceLocation id : dataSkills) {
-            this.skills.putIfAbsent(id, new SkillState());
+        if (!tag.contains("availableSkillPoints") && unspentSkillPoints > 0) {
+            this.availableSkillPoints = Math.max(this.availableSkillPoints, unspentSkillPoints);
         }
     }
 
@@ -364,6 +434,11 @@ public class LevelProfile {
             res.message = "Invalid skill or node id";
             return res;
         }
+        if (!ProgressionSkill.isCanonicalId(skillId)) {
+            res.success = false;
+            res.message = "Unknown canonical skill";
+            return res;
+        }
         var tree = net.zoogle.levelrpg.data.SkillTreeRegistry.get(skillId);
         if (tree == null) {
             res.success = false;
@@ -412,17 +487,17 @@ public class LevelProfile {
             }
             case LOCKED_MASTERY_POINTS -> {
                 res.success = false;
-                res.message = "Not enough mastery points";
+                res.message = "Not enough specialization points";
                 return res;
             }
             case AVAILABLE -> {
                 int cost = nodeSnapshot.node().normalizedCost();
                 java.util.HashSet<String> unlocked = treeUnlockedNodes.computeIfAbsent(skillId, key -> new java.util.HashSet<>());
                 unlocked.add(nodeId);
-                this.treePointsSpent.put(skillId, snapshot.spentPoints() + cost);
+                this.treePointsSpent.put(skillId, getTreePointsSpent(skillId) + cost);
                 res.success = true;
-                res.spentPoints = snapshot.spentPoints() + cost;
-                res.availablePoints = Math.max(0, snapshot.earnedPoints() - res.spentPoints);
+                res.spentPoints = SpecializationProgression.spentPoints(this);
+                res.availablePoints = SpecializationProgression.availablePoints(this);
                 res.message = "Unlocked";
                 res.suggestedNextNodeId = SkillTreeProgression.snapshot(this, skillId)
                         .suggestedNextNode()

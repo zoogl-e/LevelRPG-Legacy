@@ -1,5 +1,0 @@
-{
-  "id": "levelrpg:fortune",
-  "display": { "name": "Fortune", "color": "#F1C40F", "icon": "", "notes": "Fishing, luck, treasure" },
-  "xpCurve": "levelrpg:default"
-}

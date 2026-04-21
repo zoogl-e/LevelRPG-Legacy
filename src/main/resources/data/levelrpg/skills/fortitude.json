@@ -1,5 +1,0 @@
-{
-  "id": "levelrpg:fortitude",
-  "display": { "name": "Fortitude", "color": "#34495E", "icon": "", "notes": "Defense, armor, shields" },
-  "xpCurve": "levelrpg:default"
-}

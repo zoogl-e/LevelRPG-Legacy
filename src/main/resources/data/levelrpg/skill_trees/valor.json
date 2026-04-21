@@ -1,20 +1,20 @@
 {
   "skill": "levelrpg:valor",
   "title": "Valor Mastery",
-  "summary": "Valor mastery splits between disciplined front-line pressure and lethal duel finishing. Thresholds convert combat growth into permanent specialization choices.",
+  "summary": "Valor mastery splits between a weapon-heavy vanguard and a relentless duelist. Practice opens the tiers, but your specialization commits you to either battlefield pressure or lethal finishing chains.",
   "minSkillLevel": 1,
   "thresholds": [
-    { "id": "combat_awakening", "level": 1, "points": 1, "title": "Combat Awakening", "description": "Your first point establishes an opening style." },
-    { "id": "battle_hardened", "level": 6, "points": 1, "title": "Battle Hardened", "description": "Choose whether to deepen pressure or widen battlefield control." },
-    { "id": "veteran_edge", "level": 12, "points": 1, "title": "Veteran Edge", "description": "Mid-tree identity starts to lock in." },
-    { "id": "champions_bearing", "level": 20, "points": 1, "title": "Champion's Bearing", "description": "Late-game mastery supports a defining finish." }
+    { "id": "combat_awakening", "level": 1, "points": 1, "title": "Combat Awakening", "description": "Claim either the vanguard's crushing line or the duelist's finishing rhythm." },
+    { "id": "battle_hardened", "level": 6, "points": 1, "title": "Battle Hardened", "description": "Your chosen style sharpens into a recognisable combat doctrine." },
+    { "id": "veteran_edge", "level": 12, "points": 1, "title": "Veteran Edge", "description": "A deeper commitment turns your branch into a real battlefield identity." },
+    { "id": "champions_bearing", "level": 20, "points": 1, "title": "Champion's Bearing", "description": "Late mastery cements how you control the flow of a fight." }
   ],
   "nodes": [
-    { "id": "vanguard_stance", "title": "Vanguard Stance", "description": "A front-line path built around steady melee pressure.", "branch": "vanguard", "cost": 1, "requiredSkillLevel": 1 },
-    { "id": "duelist_footwork", "title": "Duelist Footwork", "description": "A technical path focused on committed single-target execution.", "branch": "duelist", "cost": 1, "requiredSkillLevel": 1 },
-    { "id": "shieldbreaker_drive", "title": "Shieldbreaker Drive", "description": "Deepens the vanguard branch into anti-defense pressure.", "branch": "vanguard", "cost": 1, "requiredSkillLevel": 6, "requires": ["vanguard_stance"] },
-    { "id": "execution_window", "title": "Execution Window", "description": "Deepens the duelist branch into punish-heavy finishing.", "branch": "duelist", "cost": 1, "requiredSkillLevel": 6, "requires": ["duelist_footwork"] },
-    { "id": "warlord_presence", "title": "Warlord Presence", "description": "Anchors the vanguard identity as a committed battlefield specialist.", "branch": "vanguard", "cost": 2, "requiredSkillLevel": 12, "requires": ["shieldbreaker_drive"] },
-    { "id": "finishing_chain", "title": "Finishing Chain", "description": "Anchors the duelist identity around lethal follow-through.", "branch": "duelist", "cost": 2, "requiredSkillLevel": 12, "requires": ["execution_window"] }
+    { "id": "vanguard_stance", "title": "Vanguard Stance", "description": "Axes and maces become line-breaking weapons that hit harder and root you in place.", "branch": "vanguard", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "duelist_footwork", "title": "Duelist Footwork", "description": "Swords reward constant motion, letting you reposition and keep pressure on a single foe.", "branch": "duelist", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "shieldbreaker_drive", "title": "Shieldbreaker Drive", "description": "Your heavy strikes punish guarded targets, breaking their defense and slowing their response.", "branch": "vanguard", "cost": 1, "requiredSkillLevel": 6, "requires": ["vanguard_stance"] },
+    { "id": "execution_window", "title": "Execution Window", "description": "Once a foe starts to fold, your duelist route turns that weakness into a kill window.", "branch": "duelist", "cost": 1, "requiredSkillLevel": 6, "requires": ["duelist_footwork"] },
+    { "id": "warlord_presence", "title": "Warlord Presence", "description": "When the fight crowds around you, the vanguard path hardens into a true front-line anchor.", "branch": "vanguard", "cost": 2, "requiredSkillLevel": 12, "requires": ["shieldbreaker_drive"] },
+    { "id": "finishing_chain", "title": "Finishing Chain", "description": "Sword kills feed your tempo, turning a clean execution into momentum for the next target.", "branch": "duelist", "cost": 2, "requiredSkillLevel": 12, "requires": ["execution_window"] }
   ]
 }

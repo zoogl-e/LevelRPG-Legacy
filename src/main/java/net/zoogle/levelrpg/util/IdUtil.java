@@ -68,12 +68,7 @@ public final class IdUtil {
             return new ResolveResult(best, raw);
         }
 
-        // Fallback to our namespace even if unknown
-        try {
-            return new ResolveResult(ResourceLocation.fromNamespaceAndPath(LevelRPG.MODID, raw), raw);
-        } catch (Exception e) {
-            return null;
-        }
+        return null;
     }
 
     public static ResourceLocation parseWithDefaultNamespace(String input, String defaultNs) {

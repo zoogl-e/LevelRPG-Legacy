@@ -10,6 +10,7 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.zoogle.levelrpg.LevelRPG;
+import net.zoogle.levelrpg.profile.ProgressionSkill;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -52,6 +53,10 @@ public class RecipeUnlockLoader extends SimpleJsonResourceReloadListener {
                         : (fileId.getNamespace() + ":" + fileId.getPath());
                 ResourceLocation recipeId = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(recipeStr, LevelRPG.MODID);
                 List<RecipeSkillRequirement> requirements = parseRequirements(root);
+                if (requirements.isEmpty()) {
+                    System.out.println("[LevelRPG] Ignoring recipe unlock json with no canonical requirements " + fileId + " -> " + recipeId);
+                    continue;
+                }
                 loaded.put(recipeId, new RecipeUnlockDefinition(recipeId, requirements));
             } catch (Exception ex) {
                 System.err.println("[LevelRPG] Failed to parse recipe unlock json " + fileId + ": " + ex);
@@ -78,6 +83,10 @@ public class RecipeUnlockLoader extends SimpleJsonResourceReloadListener {
                 continue;
             }
             ResourceLocation skillId = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(req.get("skill").getAsString(), LevelRPG.MODID);
+            if (!ProgressionSkill.isCanonicalId(skillId)) {
+                System.out.println("[LevelRPG] Ignoring legacy/non-canonical recipe unlock requirement for skill " + skillId);
+                continue;
+            }
             int minLevel = req.has("minLevel") ? Math.max(0, req.get("minLevel").getAsInt()) : 0;
             requirements.add(new RecipeSkillRequirement(skillId, minLevel));
         }

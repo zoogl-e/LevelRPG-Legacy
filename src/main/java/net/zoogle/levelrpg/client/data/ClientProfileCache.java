@@ -2,6 +2,7 @@ package net.zoogle.levelrpg.client.data;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
+import net.zoogle.levelrpg.profile.ProgressionSkill;
 import net.zoogle.levelrpg.profile.SkillState;
 import org.slf4j.Logger;
 
@@ -19,6 +20,8 @@ public final class ClientProfileCache {
     private static final LinkedHashMap<ResourceLocation, SkillState> skills = new LinkedHashMap<>();
     private static final LinkedHashMap<ResourceLocation, Integer> treePointsSpent = new LinkedHashMap<>();
     private static final LinkedHashMap<ResourceLocation, Set<String>> treeUnlockedNodes = new LinkedHashMap<>();
+    private static int availableSkillPoints;
+    private static int spentSkillPoints;
     private static long lastUpdatedMs;
     private static ResourceLocation lastSkillId; // last skill that received a delta
     private static boolean ready; // true once we have received profile/delta from server
@@ -29,16 +32,31 @@ public final class ClientProfileCache {
     public static void set(
             Map<ResourceLocation, SkillState> map,
             Map<ResourceLocation, Integer> spentMap,
-            Map<ResourceLocation, Set<String>> unlockedMap
+            Map<ResourceLocation, Set<String>> unlockedMap,
+            int availablePoints,
+            int spentPoints
     ) {
         skills.clear();
-        skills.putAll(map);
-        treePointsSpent.clear();
-        treePointsSpent.putAll(spentMap);
-        treeUnlockedNodes.clear();
-        for (Map.Entry<ResourceLocation, Set<String>> entry : unlockedMap.entrySet()) {
-            treeUnlockedNodes.put(entry.getKey(), Set.copyOf(entry.getValue()));
+        for (ProgressionSkill skill : ProgressionSkill.values()) {
+            SkillState incoming = map.get(skill.id());
+            SkillState state = new SkillState();
+            if (incoming != null) {
+                state.level = incoming.level;
+                state.masteryLevel = incoming.masteryLevel;
+                state.masteryXp = incoming.masteryXp;
+            }
+            skills.put(skill.id(), state);
         }
+        treePointsSpent.clear();
+        for (ProgressionSkill skill : ProgressionSkill.values()) {
+            treePointsSpent.put(skill.id(), Math.max(0, spentMap.getOrDefault(skill.id(), 0)));
+        }
+        treeUnlockedNodes.clear();
+        for (ProgressionSkill skill : ProgressionSkill.values()) {
+            treeUnlockedNodes.put(skill.id(), Set.copyOf(unlockedMap.getOrDefault(skill.id(), Set.of())));
+        }
+        availableSkillPoints = Math.max(0, availablePoints);
+        spentSkillPoints = Math.max(0, spentPoints);
         lastUpdatedMs = System.currentTimeMillis();
         lastSkillId = null;
         ready = true;
@@ -52,14 +70,21 @@ public final class ClientProfileCache {
         );
     }
 
-    public static void applyDelta(ResourceLocation skillId, int level, long xp) {
+    public static void applyDelta(ResourceLocation skillId, int level, int masteryLevel, long masteryXp, int availablePoints, int spentPoints) {
+        if (!ProgressionSkill.isCanonicalId(skillId)) {
+            LOGGER.warn("Ignoring non-canonical LevelRPG client profile delta for {}", skillId);
+            return;
+        }
         SkillState sp = skills.get(skillId);
         if (sp == null) {
             sp = new SkillState();
             skills.put(skillId, sp);
         }
         sp.level = level;
-        sp.xp = xp;
+        sp.masteryLevel = masteryLevel;
+        sp.masteryXp = masteryXp;
+        availableSkillPoints = Math.max(0, availablePoints);
+        spentSkillPoints = Math.max(0, spentPoints);
         lastUpdatedMs = System.currentTimeMillis();
         lastSkillId = skillId;
         ready = true;
@@ -67,7 +92,7 @@ public final class ClientProfileCache {
                 "LevelRPG client profile delta applied: {} -> level {}, xp {}, canonicalReady={}",
                 skillId,
                 level,
-                xp,
+                masteryXp,
                 hasCanonicalProfileData()
         );
     }
@@ -79,4 +104,6 @@ public final class ClientProfileCache {
     public static ResourceLocation getLastSkillId() { return lastSkillId; }
     public static boolean isReady() { return ready; }
     public static boolean hasCanonicalProfileData() { return fullProfileSynced && !skills.isEmpty(); }
+    public static int getAvailableSkillPoints() { return availableSkillPoints; }
+    public static int getSpentSkillPoints() { return spentSkillPoints; }
 }

@@ -10,6 +10,7 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.zoogle.levelrpg.LevelRPG;
+import net.zoogle.levelrpg.profile.ProgressionSkill;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,6 +34,10 @@ public class SkillTreeLoader extends SimpleJsonResourceReloadListener {
 
                 String skillStr = root.has("skill") ? root.get("skill").getAsString() : (LevelRPG.MODID + ":" + fileId.getPath());
                 ResourceLocation skillId = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(skillStr, LevelRPG.MODID);
+                if (!ProgressionSkill.isCanonicalId(skillId)) {
+                    System.out.println("[LevelRPG] Ignoring legacy/non-canonical skill tree json " + fileId + " -> " + skillId);
+                    continue;
+                }
 
                 int minSkillLevel = root.has("minSkillLevel") ? root.get("minSkillLevel").getAsInt() : 0;
                 String title = root.has("title") ? root.get("title").getAsString() : "";
@@ -101,6 +106,6 @@ public class SkillTreeLoader extends SimpleJsonResourceReloadListener {
             }
         }
         SkillTreeRegistry.clearAndPutAll(loaded);
-        System.out.println("[LevelRPG] Loaded " + loaded.size() + " skill trees from datapacks.");
+        System.out.println("[LevelRPG] Loaded canonical skill trees: " + loaded.size() + ".");
     }
 }

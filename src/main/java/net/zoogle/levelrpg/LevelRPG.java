@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import net.zoogle.levelrpg.events.ProfileEvents;
 import net.zoogle.levelrpg.events.ActivityEvents;
 import net.zoogle.levelrpg.events.MasteryEvents;
+import net.zoogle.levelrpg.events.PassiveSkillEvents;
 import net.zoogle.levelrpg.command.LevelCommands;
 import net.zoogle.levelrpg.net.Network;
 
@@ -26,6 +27,7 @@ public class LevelRPG {
 
         NeoForge.EVENT_BUS.register(new ProfileEvents());
         NeoForge.EVENT_BUS.register(new ActivityEvents());
+        NeoForge.EVENT_BUS.register(new PassiveSkillEvents());
         NeoForge.EVENT_BUS.register(new MasteryEvents());
         NeoForge.EVENT_BUS.register(new LevelCommands());
         NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.data.DataEvents());

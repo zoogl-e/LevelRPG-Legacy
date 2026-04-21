@@ -1,5 +1,0 @@
-{
-  "id": "levelrpg:husbandry",
-  "display": { "name": "Husbandry", "color": "#8BC34A", "icon": "", "notes": "Breeding, animals, farming" },
-  "xpCurve": "levelrpg:default"
-}

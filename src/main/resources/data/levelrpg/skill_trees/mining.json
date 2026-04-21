@@ -1,20 +1,20 @@
 {
   "skill": "levelrpg:mining",
   "title": "Mining Mastery",
-  "summary": "Mining now branches between efficient extraction and deep prospecting, so level growth feeds into recognizable gathering priorities.",
+  "summary": "Mining mastery now splits between a quarry runner who tears through stone and ore, and a deep delver who turns dangerous depths into profitable ground.",
   "minSkillLevel": 1,
   "thresholds": [
-    { "id": "first_strike", "level": 1, "points": 1, "title": "First Strike", "description": "Choose your mining style." },
-    { "id": "steady_excavation", "level": 5, "points": 1, "title": "Steady Excavation", "description": "Your gathering practice becomes more intentional." },
-    { "id": "ore_sense", "level": 10, "points": 1, "title": "Ore Sense", "description": "Specialization starts paying off in stronger routes." },
-    { "id": "deep_delver", "level": 18, "points": 1, "title": "Deep Delver", "description": "Late thresholds support a fully committed mining identity." }
+    { "id": "first_strike", "level": 1, "points": 1, "title": "First Strike", "description": "Choose whether your mining favors relentless extraction or deeper prospecting." },
+    { "id": "steady_excavation", "level": 5, "points": 1, "title": "Steady Excavation", "description": "Your chosen route starts changing the pace and safety of a run." },
+    { "id": "ore_sense", "level": 10, "points": 1, "title": "Ore Sense", "description": "A committed specialist now feels distinct in the tunnel." },
+    { "id": "deep_delver", "level": 18, "points": 1, "title": "Deep Delver", "description": "Late mastery turns your branch into a full mining identity." }
   ],
   "nodes": [
-    { "id": "clean_cuts", "title": "Clean Cuts", "description": "Favors controlled extraction and reliable material flow.", "branch": "extraction", "cost": 1, "requiredSkillLevel": 1 },
-    { "id": "prospectors_eye", "title": "Prospector's Eye", "description": "Favors route planning and rare find awareness.", "branch": "prospecting", "cost": 1, "requiredSkillLevel": 1 },
-    { "id": "vein_following", "title": "Vein Following", "description": "Deepens the extraction path into efficient harvest chains.", "branch": "extraction", "cost": 1, "requiredSkillLevel": 5, "requires": ["clean_cuts"] },
-    { "id": "deep_scan", "title": "Deep Scan", "description": "Deepens the prospecting path into better long-run discovery decisions.", "branch": "prospecting", "cost": 1, "requiredSkillLevel": 5, "requires": ["prospectors_eye"] },
-    { "id": "quarry_discipline", "title": "Quarry Discipline", "description": "Commits to extraction as a primary identity.", "branch": "extraction", "cost": 2, "requiredSkillLevel": 10, "requires": ["vein_following"] },
-    { "id": "voidward_prospecting", "title": "Voidward Prospecting", "description": "Commits to deeper and more selective resource hunting.", "branch": "prospecting", "cost": 2, "requiredSkillLevel": 10, "requires": ["deep_scan"] }
+    { "id": "clean_cuts", "title": "Clean Cuts", "description": "The quarry route tears through stone and deepslate with ruthless efficiency.", "branch": "extraction", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "prospectors_eye", "title": "Prospector's Eye", "description": "The prospecting route closes faster on ore and favors targeted extraction.", "branch": "prospecting", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "vein_following", "title": "Vein Following", "description": "Each ore pocket can feed a burst of speed, letting a quarry runner chain deposits together.", "branch": "extraction", "cost": 1, "requiredSkillLevel": 5, "requires": ["clean_cuts"] },
+    { "id": "deep_scan", "title": "Deep Scan", "description": "A deep delver learns to see in poor light and read the dark more confidently.", "branch": "prospecting", "cost": 1, "requiredSkillLevel": 5, "requires": ["prospectors_eye"] },
+    { "id": "quarry_discipline", "title": "Quarry Discipline", "description": "Stone breaks feed your tempo, turning tunnel work into an uninterrupted rush.", "branch": "extraction", "cost": 2, "requiredSkillLevel": 10, "requires": ["vein_following"] },
+    { "id": "voidward_prospecting", "title": "Voidward Prospecting", "description": "The deepest runs become survivable, letting a prospecting specialist stay in hostile ground longer.", "branch": "prospecting", "cost": 2, "requiredSkillLevel": 10, "requires": ["deep_scan"] }
   ]
 }

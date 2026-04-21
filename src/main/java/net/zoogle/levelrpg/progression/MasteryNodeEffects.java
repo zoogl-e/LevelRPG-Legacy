@@ -20,8 +20,8 @@ import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.zoogle.levelrpg.LevelRPG;
 import net.zoogle.levelrpg.profile.LevelProfile;
+import net.zoogle.levelrpg.profile.MasteryAwardResult;
 import net.zoogle.levelrpg.profile.ProgressionSkill;
-import net.zoogle.levelrpg.profile.SkillXpResult;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -46,7 +46,15 @@ public final class MasteryNodeEffects {
     private static final ResourceLocation MODIFIER_VITALITY_IRON_RESERVE = id("iron_reserve_health");
 
     private static final int VEIN_FOLLOWING_HASTE_TICKS = 80;
+    private static final int VEIN_FOLLOWING_HASTE_AMPLIFIER = 1;
+    private static final int QUARRY_DISCIPLINE_HASTE_TICKS = 50;
+    private static final int QUARRY_DISCIPLINE_HASTE_AMPLIFIER = 0;
     private static final int DEEP_SCAN_NIGHT_VISION_TICKS = 220;
+    private static final int VOIDWARD_FIRE_RESISTANCE_TICKS = 120;
+    private static final int WARLORD_PRESENCE_RESISTANCE_TICKS = 80;
+    private static final double WARLORD_PRESENCE_RADIUS = 5.0D;
+    private static final int WARLORD_PRESENCE_MIN_HOSTILES = 3;
+    private static final int FINISHING_CHAIN_BUFF_TICKS = 140;
     private static final int EXPLORATION_NIGHT_VISION_TICKS = 220;
     private static final int EXPLORATION_HIDDEN_WAYPOINTS_SPEED_TICKS = 90;
     private static final int EXPLORATION_FRONTIER_SENSE_NIGHT_VISION_TICKS = 140;
@@ -94,12 +102,13 @@ public final class MasteryNodeEffects {
         LevelProfile profile = LevelProfile.get(player);
 
         if (hasNode(profile, ProgressionSkill.VALOR, "shieldbreaker_drive") && target.isBlocking()) {
-            damage *= 1.2F;
+            damage *= 1.35F;
+            target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 40, 0, true, false, true));
         }
         if (hasNode(profile, ProgressionSkill.VALOR, "execution_window")
                 && target.getMaxHealth() > 0.0F
-                && target.getHealth() <= target.getMaxHealth() * 0.35F) {
-            damage *= 1.25F;
+                && target.getHealth() <= target.getMaxHealth() * 0.50F) {
+            damage *= 1.35F;
         }
         if (hasNode(profile, ProgressionSkill.MAGICK, "stormcasting") && hasBeneficialEffect(player)) {
             damage *= 1.15F;
@@ -128,13 +137,13 @@ public final class MasteryNodeEffects {
         LevelProfile profile = LevelProfile.get(player);
         float speedMultiplier = 1.0F;
         if (MiningXpRules.isStoneLike(state) && hasNode(profile, ProgressionSkill.MINING, "clean_cuts")) {
-            speedMultiplier += 0.20F;
+            speedMultiplier += 0.30F;
         }
         if (MiningXpRules.isOre(state) && hasNode(profile, ProgressionSkill.MINING, "prospectors_eye")) {
-            speedMultiplier += 0.20F;
+            speedMultiplier += 0.30F;
         }
         if (MiningXpRules.isStoneLike(state) && hasNode(profile, ProgressionSkill.MINING, "quarry_discipline")) {
-            speedMultiplier += 0.15F;
+            speedMultiplier += 0.25F;
         }
 
         if (speedMultiplier > 1.0F) {
@@ -143,15 +152,32 @@ public final class MasteryNodeEffects {
     }
 
     public static void afterMiningBlockBreak(ServerPlayer player, LevelProfile profile, BlockState state) {
-        if (state == null || !MiningXpRules.isOre(state)) {
+        if (state == null) {
             return;
         }
         if (!player.getMainHandItem().is(ItemTags.PICKAXES)) {
             return;
         }
-        if (hasNode(profile, ProgressionSkill.MINING, "vein_following")) {
-            player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, VEIN_FOLLOWING_HASTE_TICKS, 0, true, false, true));
+        if (MiningXpRules.isOre(state) && hasNode(profile, ProgressionSkill.MINING, "vein_following")) {
+            player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, VEIN_FOLLOWING_HASTE_TICKS, VEIN_FOLLOWING_HASTE_AMPLIFIER, true, false, true));
         }
+        if (MiningXpRules.isStoneLike(state) && hasNode(profile, ProgressionSkill.MINING, "quarry_discipline")) {
+            player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, QUARRY_DISCIPLINE_HASTE_TICKS, QUARRY_DISCIPLINE_HASTE_AMPLIFIER, true, false, true));
+        }
+    }
+
+    public static void afterValorKill(ServerPlayer player, LevelProfile profile, LivingEntity victim) {
+        if (player == null || profile == null || victim == null) {
+            return;
+        }
+        if (!hasNode(profile, ProgressionSkill.VALOR, "finishing_chain")) {
+            return;
+        }
+        if (!player.getMainHandItem().is(ItemTags.SWORDS)) {
+            return;
+        }
+        player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, FINISHING_CHAIN_BUFF_TICKS, 0, true, false, true));
+        player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, FINISHING_CHAIN_BUFF_TICKS, 0, true, false, true));
     }
 
     public static void afterCraft(ServerPlayer player, LevelProfile profile, ItemStack result, Container craftMatrix) {
@@ -217,7 +243,7 @@ public final class MasteryNodeEffects {
         LAST_DAMAGE_TICK.put(player.getUUID(), player.level().getGameTime());
     }
 
-    public static void afterExplorationAward(ServerPlayer player, LevelProfile profile, SkillXpResult result) {
+    public static void afterExplorationAward(ServerPlayer player, LevelProfile profile, MasteryAwardResult result) {
         if (player == null || profile == null || result == null || !ProgressionSkill.EXPLORATION.id().equals(result.skillId())) {
             return;
         }
@@ -260,6 +286,15 @@ public final class MasteryNodeEffects {
                 AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL, duelistActive && hasNode(profile, ProgressionSkill.VALOR, "duelist_footwork"));
         updateModifier(player, Attributes.ATTACK_SPEED, MODIFIER_DUELIST_ATTACK_SPEED, 0.10D,
                 AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL, duelistActive && hasNode(profile, ProgressionSkill.VALOR, "finishing_chain"));
+
+        boolean surrounded = player.level().getEntitiesOfClass(
+                Monster.class,
+                player.getBoundingBox().inflate(WARLORD_PRESENCE_RADIUS),
+                monster -> monster.isAlive() && !monster.isAlliedTo(player)
+        ).size() >= WARLORD_PRESENCE_MIN_HOSTILES;
+        if (vanguardActive && surrounded && hasNode(profile, ProgressionSkill.VALOR, "warlord_presence")) {
+            player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, WARLORD_PRESENCE_RESISTANCE_TICKS, 0, true, false, true));
+        }
     }
 
     private static void applyMiningPassives(ServerPlayer player, LevelProfile profile) {
@@ -268,6 +303,7 @@ public final class MasteryNodeEffects {
                 && player.blockPosition().getY() <= 0;
         if (deepScanActive) {
             player.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, DEEP_SCAN_NIGHT_VISION_TICKS, 0, true, false, true));
+            player.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, VOIDWARD_FIRE_RESISTANCE_TICKS, 0, true, false, true));
         }
     }
 

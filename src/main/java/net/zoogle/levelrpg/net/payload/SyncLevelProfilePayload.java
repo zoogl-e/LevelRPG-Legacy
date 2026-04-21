@@ -7,16 +7,16 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.zoogle.levelrpg.LevelRPG;
 import net.zoogle.levelrpg.profile.LevelProfile;
+import net.zoogle.levelrpg.profile.ProgressionSkill;
 import net.zoogle.levelrpg.profile.SkillState;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public record SyncLevelProfilePayload(List<Entry> skills, List<TreeEntry> trees)
+public record SyncLevelProfilePayload(List<Entry> skills, List<TreeEntry> trees, int availableSkillPoints, int spentSkillPoints)
         implements CustomPacketPayload {
 
     public static final Type<SyncLevelProfilePayload> TYPE = new Type<>(
@@ -26,6 +26,8 @@ public record SyncLevelProfilePayload(List<Entry> skills, List<TreeEntry> trees)
             StreamCodec.composite(
                     Entry.STREAM_CODEC.apply(ByteBufCodecs.list(64)), SyncLevelProfilePayload::skills,
                     TreeEntry.STREAM_CODEC.apply(ByteBufCodecs.list(64)), SyncLevelProfilePayload::trees,
+                    ByteBufCodecs.VAR_INT, SyncLevelProfilePayload::availableSkillPoints,
+                    ByteBufCodecs.VAR_INT, SyncLevelProfilePayload::spentSkillPoints,
                     SyncLevelProfilePayload::new
             );
 
@@ -35,19 +37,17 @@ public record SyncLevelProfilePayload(List<Entry> skills, List<TreeEntry> trees)
     }
 
     public static SyncLevelProfilePayload from(LevelProfile profile) {
-        List<Entry> list = new ArrayList<>(profile.skills.size());
-        for (Map.Entry<ResourceLocation, SkillState> e : profile.skills.entrySet()) {
-            list.add(new Entry(e.getKey(), e.getValue().level, e.getValue().xp));
+        List<Entry> list = new ArrayList<>(ProgressionSkill.values().length);
+        for (Map.Entry<ResourceLocation, SkillState> e : profile.canonicalSkillsView().entrySet()) {
+            list.add(new Entry(e.getKey(), e.getValue().level, e.getValue().masteryLevel, e.getValue().masteryXp));
         }
-        List<TreeEntry> treeEntries = new ArrayList<>(profile.treePointsSpent.size());
-        LinkedHashSet<ResourceLocation> treeIds = new LinkedHashSet<>();
-        treeIds.addAll(profile.treePointsSpent.keySet());
-        treeIds.addAll(profile.treeUnlockedNodes.keySet());
-        for (ResourceLocation treeId : treeIds) {
+        List<TreeEntry> treeEntries = new ArrayList<>(ProgressionSkill.values().length);
+        for (ProgressionSkill skill : ProgressionSkill.values()) {
+            ResourceLocation treeId = skill.id();
             Set<String> unlocked = profile.getUnlockedTreeNodes(treeId);
             treeEntries.add(new TreeEntry(treeId, profile.getTreePointsSpent(treeId), List.copyOf(unlocked)));
         }
-        return new SyncLevelProfilePayload(list, treeEntries);
+        return new SyncLevelProfilePayload(list, treeEntries, profile.availableSkillPoints, profile.spentSkillPoints);
     }
 
     public Map<ResourceLocation, SkillState> toMap() {
@@ -55,7 +55,8 @@ public record SyncLevelProfilePayload(List<Entry> skills, List<TreeEntry> trees)
         for (Entry e : skills) {
             SkillState sp = new SkillState();
             sp.level = e.level();
-            sp.xp = e.xp();
+            sp.masteryLevel = e.masteryLevel();
+            sp.masteryXp = e.masteryXp();
             map.put(e.id(), sp);
         }
         return map;
@@ -77,12 +78,13 @@ public record SyncLevelProfilePayload(List<Entry> skills, List<TreeEntry> trees)
         return map;
     }
 
-    public record Entry(ResourceLocation id, int level, long xp) {
+    public record Entry(ResourceLocation id, int level, int masteryLevel, long masteryXp) {
         public static final StreamCodec<RegistryFriendlyByteBuf, Entry> STREAM_CODEC =
                 StreamCodec.composite(
                         ResourceLocation.STREAM_CODEC, Entry::id,
                         ByteBufCodecs.VAR_INT, Entry::level,
-                        ByteBufCodecs.VAR_LONG, Entry::xp,
+                        ByteBufCodecs.VAR_INT, Entry::masteryLevel,
+                        ByteBufCodecs.VAR_LONG, Entry::masteryXp,
                         Entry::new
                 );
     }

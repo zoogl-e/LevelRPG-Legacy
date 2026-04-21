@@ -1,6 +1,0 @@
-{
-  "disabled": true,
-  "id": "levelrpg:finesse",
-  "display": { "name": "Finesse", "color": "#1ABC9C", "icon": "", "notes": "Agility, speed, light weapons" },
-  "xpCurve": "levelrpg:default"
-}

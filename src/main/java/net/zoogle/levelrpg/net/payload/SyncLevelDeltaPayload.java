@@ -7,7 +7,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.zoogle.levelrpg.LevelRPG;
 
-public record SyncLevelDeltaPayload(ResourceLocation skillId, int level, long xp)
+public record SyncLevelDeltaPayload(ResourceLocation skillId, int level, int masteryLevel, long masteryXp, int availableSkillPoints, int spentSkillPoints)
         implements CustomPacketPayload {
 
     public static final Type<SyncLevelDeltaPayload> TYPE = new Type<>(
@@ -17,7 +17,10 @@ public record SyncLevelDeltaPayload(ResourceLocation skillId, int level, long xp
             StreamCodec.composite(
                     ResourceLocation.STREAM_CODEC, SyncLevelDeltaPayload::skillId,
                     ByteBufCodecs.VAR_INT, SyncLevelDeltaPayload::level,
-                    ByteBufCodecs.VAR_LONG, SyncLevelDeltaPayload::xp,
+                    ByteBufCodecs.VAR_INT, SyncLevelDeltaPayload::masteryLevel,
+                    ByteBufCodecs.VAR_LONG, SyncLevelDeltaPayload::masteryXp,
+                    ByteBufCodecs.VAR_INT, SyncLevelDeltaPayload::availableSkillPoints,
+                    ByteBufCodecs.VAR_INT, SyncLevelDeltaPayload::spentSkillPoints,
                     SyncLevelDeltaPayload::new
             );
 

@@ -3,8 +3,11 @@ package net.zoogle.levelrpg.profile;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * Canonical result object for per-skill XP awards.
+ * Deprecated compatibility result for older XP-named award code.
+ *
+ * New code should consume {@link MasteryAwardResult} instead.
  */
+@Deprecated
 public record SkillXpResult(
         ResourceLocation skillId,
         long xpAwarded,
@@ -13,6 +16,17 @@ public record SkillXpResult(
         long resultingXp,
         long xpToNextLevel
 ) {
+    public static SkillXpResult from(MasteryAwardResult result) {
+        return new SkillXpResult(
+                result.skillId(),
+                result.masteryAwarded(),
+                result.masteryLevelsGained(),
+                result.resultingMasteryLevel(),
+                result.resultingMasteryProgress(),
+                result.masteryRequiredForNextLevel()
+        );
+    }
+
     public boolean leveledUp() {
         return levelsGained > 0;
     }

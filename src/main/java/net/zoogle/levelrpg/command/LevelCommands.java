@@ -16,9 +16,12 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.zoogle.levelrpg.profile.LevelProfile;
+import net.zoogle.levelrpg.profile.MasteryAwardResult;
 import net.zoogle.levelrpg.profile.SkillState;
-import net.zoogle.levelrpg.profile.SkillXpResult;
 import net.zoogle.levelrpg.net.Network;
+import net.zoogle.levelrpg.progression.PassiveSkillScalingService;
+import net.zoogle.levelrpg.progression.MasteryLeveling;
+import net.zoogle.levelrpg.progression.SkillPointProgression;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -34,13 +37,20 @@ public class LevelCommands {
         dispatcher.register(
                 Commands.literal("levelrpg")
                         .requires(src -> src.hasPermission(2))
+                        .then(Commands.literal("givemastery")
+                                .then(Commands.argument("skill", StringArgumentType.word())
+                                        .suggests(LevelCommands::suggestSkills)
+                                        .then(Commands.argument("amount", IntegerArgumentType.integer(1))
+                                                .executes(ctx -> giveMastery(ctx, getCallingPlayer(ctx)))
+                                                .then(Commands.argument("player", EntityArgument.player())
+                                                        .executes(ctx -> giveMastery(ctx, EntityArgument.getPlayer(ctx, "player")))))))
                         .then(Commands.literal("givexp")
                                 .then(Commands.argument("skill", StringArgumentType.word())
                                         .suggests(LevelCommands::suggestSkills)
                                         .then(Commands.argument("amount", IntegerArgumentType.integer(1))
-                                                .executes(ctx -> giveXp(ctx, getCallingPlayer(ctx)))
+                                                .executes(ctx -> giveMastery(ctx, getCallingPlayer(ctx)))
                                                 .then(Commands.argument("player", EntityArgument.player())
-                                                        .executes(ctx -> giveXp(ctx, EntityArgument.getPlayer(ctx, "player")))))))
+                                                        .executes(ctx -> giveMastery(ctx, EntityArgument.getPlayer(ctx, "player")))))))
                         .then(Commands.literal("set")
                                 .then(Commands.argument("skill", StringArgumentType.word())
                                         .suggests(LevelCommands::suggestSkills)
@@ -54,6 +64,12 @@ public class LevelCommands {
                                         .executes(ctx -> getSkill(ctx, getCallingPlayer(ctx)))
                                         .then(Commands.argument("player", EntityArgument.player())
                                                 .executes(ctx -> getSkill(ctx, EntityArgument.getPlayer(ctx, "player"))))))
+                        .then(Commands.literal("spend")
+                                .then(Commands.argument("skill", StringArgumentType.word())
+                                        .suggests(LevelCommands::suggestSkills)
+                                        .executes(ctx -> spendPoint(ctx, getCallingPlayer(ctx)))
+                                        .then(Commands.argument("player", EntityArgument.player())
+                                                .executes(ctx -> spendPoint(ctx, EntityArgument.getPlayer(ctx, "player"))))))
                         .then(Commands.literal("unlock")
                                 .then(Commands.argument("skill", StringArgumentType.word())
                                         .suggests(LevelCommands::suggestTreeSkills)
@@ -71,7 +87,7 @@ public class LevelCommands {
         );
     }
 
-    private int giveXp(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+    private int giveMastery(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
         String raw = StringArgumentType.getString(ctx, "skill");
         var resolved = net.zoogle.levelrpg.util.IdUtil.resolveSkill(raw);
         if (resolved == null) {
@@ -84,30 +100,29 @@ public class LevelCommands {
         }
         int amount = IntegerArgumentType.getInteger(ctx, "amount");
         LevelProfile profile = LevelProfile.get(target);
-        SkillXpResult award = profile.awardSkillXp(skill, amount);
+        MasteryAwardResult award = profile.awardMastery(skill, amount);
+        PassiveSkillScalingService.applyIfChanged(target, profile);
         LevelProfile.save(target, profile);
         Network.sendDelta(target, profile, skill);
 
         // Feedback to command source
-        ctx.getSource().sendSuccess(() -> Component.literal("Gave " + amount + " XP to " + skill + " for " + target.getGameProfile().getName()), true);
+        ctx.getSource().sendSuccess(() -> Component.literal("Granted " + amount + " mastery to " + displayNameForSkill(skill) + " for " + target.getGameProfile().getName()), true);
 
         // Feedback to target: action bar with current/needed and level up message
         SkillState spSkill = profile.skills.get(skill);
         if (spSkill != null) {
-            long needed = LevelProfile.xpToNextLevel(skill, spSkill.level);
+            long needed = MasteryLeveling.xpToNextLevel(skill, spSkill.masteryLevel);
             String name = displayNameForSkill(skill);
-            target.displayClientMessage(
-                    Component.translatable("hud.levelrpg.skill_xp", name, spSkill.xp, needed, spSkill.level)
-                            .withStyle(ChatFormatting.GOLD),
-                    true
-            );
+            target.displayClientMessage(Component.literal(
+                    name + " mastery " + spSkill.masteryXp + "/" + needed + " (M" + spSkill.masteryLevel + ")"
+            ).withStyle(ChatFormatting.GOLD), true);
             if (award.leveledUp()) {
-                target.sendSystemMessage(
-                        Component.translatable("msg.levelrpg.level_up", name, spSkill.level).withStyle(ChatFormatting.GREEN)
-                );
+                target.sendSystemMessage(Component.literal(
+                    name + " mastery reached " + spSkill.masteryLevel + ". Earned 1 Skill Point."
+                ).withStyle(ChatFormatting.GREEN));
             }
         }
-        return (int) Math.max(1L, award.xpAwarded());
+        return (int) Math.max(1L, award.masteryAwarded());
     }
 
     private int setSkill(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
@@ -125,8 +140,8 @@ public class LevelCommands {
                     profile.skills.put(e.getKey(), sp);
                 }
                 sp.level = clamped;
-                sp.xp = 0L;
             }
+            PassiveSkillScalingService.applyIfChanged(target, profile);
             LevelProfile.save(target, profile);
             Network.sendSync(target, profile);
             ctx.getSource().sendSuccess(() -> Component.literal("Set ALL skills for " + target.getGameProfile().getName() + " to level " + clamped), true);
@@ -148,7 +163,7 @@ public class LevelCommands {
             profile.skills.put(skill, sp);
         }
         sp.level = Math.max(0, level);
-        sp.xp = 0L;
+        PassiveSkillScalingService.applyIfChanged(target, profile);
         LevelProfile.save(target, profile);
         Network.sendDelta(target, profile, skill);
         ctx.getSource().sendSuccess(() -> Component.literal("Set " + target.getGameProfile().getName() + " " + skill + " to level " + level), true);
@@ -160,7 +175,13 @@ public class LevelCommands {
         ctx.getSource().sendSuccess(() -> Component.literal("Profile for " + target.getGameProfile().getName()), false);
         for (Map.Entry<ResourceLocation, SkillState> e : profile.skills.entrySet()) {
             SkillState sp = e.getValue();
-            ctx.getSource().sendSuccess(() -> Component.literal(e.getKey() + " -> Lv " + sp.level + ", XP " + sp.xp), false);
+            ctx.getSource().sendSuccess(() -> Component.literal(
+                    displayNameForSkill(e.getKey())
+                            + " -> Skill Level " + sp.level
+                            + ", Mastery " + sp.masteryLevel
+                            + " (" + sp.masteryXp + "/" + MasteryLeveling.xpToNextLevel(e.getKey(), sp.masteryLevel) + ")"
+                            + ", Available Skill Points " + profile.availableSkillPoints()
+            ), false);
         }
         return profile.skills.size();
     }
@@ -179,11 +200,43 @@ public class LevelCommands {
         LevelProfile profile = LevelProfile.get(target);
         SkillState sp = profile.skills.get(skill);
         int level = sp != null ? sp.level : 0;
-        long xp = sp != null ? sp.xp : 0L;
-        long needed = LevelProfile.xpToNextLevel(skill, level);
+        int masteryLevel = sp != null ? sp.masteryLevel : 0;
+        long masteryXp = sp != null ? sp.masteryXp : 0L;
+        long needed = MasteryLeveling.xpToNextLevel(skill, masteryLevel);
         String name = displayNameForSkill(skill);
         String who = target.getGameProfile().getName();
-        ctx.getSource().sendSuccess(() -> Component.literal(who + " " + name + ": Lv " + level + " (" + xp + "/" + needed + " XP)"), false);
+        ctx.getSource().sendSuccess(() -> Component.literal(
+                who + " " + name
+                        + ": Skill Level " + level
+                        + ", Mastery " + masteryLevel
+                        + " (" + masteryXp + "/" + needed + ")"
+                        + ", Available Skill Points " + profile.availableSkillPoints()
+        ), false);
+        return 1;
+    }
+
+    private int spendPoint(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+        String raw = StringArgumentType.getString(ctx, "skill");
+        var resolved = net.zoogle.levelrpg.util.IdUtil.resolveSkill(raw);
+        if (resolved == null) {
+            ctx.getSource().sendFailure(Component.literal("Unknown skill: " + raw));
+            return 0;
+        }
+        ResourceLocation skill = resolved.id();
+        LevelProfile profile = LevelProfile.get(target);
+        SkillPointProgression.SkillPointSpendResult result = profile.spendSkillPoint(skill);
+        if (!result.success()) {
+            ctx.getSource().sendFailure(Component.literal(result.message()));
+            return 0;
+        }
+        PassiveSkillScalingService.applyIfChanged(target, profile);
+        LevelProfile.save(target, profile);
+        Network.sendDelta(target, profile, skill);
+        ctx.getSource().sendSuccess(() -> Component.literal(
+                "Spent 1 Skill Point into " + displayNameForSkill(skill) + " for " + target.getGameProfile().getName()
+                        + " -> Skill " + result.resultingSkillLevel()
+                        + ", " + result.availablePoints() + " Skill Point(s) remaining"
+        ), true);
         return 1;
     }
 

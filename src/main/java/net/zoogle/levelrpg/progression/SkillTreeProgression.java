@@ -32,6 +32,7 @@ public final class SkillTreeProgression {
                     0,
                     0,
                     0,
+                    0,
                     unlockedNodes,
                     Optional.empty(),
                     List.of(),
@@ -40,8 +41,9 @@ public final class SkillTreeProgression {
             );
         }
 
-        int earnedPoints = tree.masteryPointsForLevel(skillProgress.level);
-        int spentPoints = profile.getTreePointsSpent(skillId);
+        int unlockedTiers = unlockedTierCount(tree, skillProgress.level);
+        int earnedPoints = SpecializationProgression.earnedPoints(profile);
+        int spentPoints = SpecializationProgression.spentPoints(profile);
         int availablePoints = Math.max(0, earnedPoints - spentPoints);
         Optional<SkillTreeDefinition.Threshold> nextThreshold = tree.nextThreshold(skillProgress.level);
 
@@ -69,6 +71,7 @@ public final class SkillTreeProgression {
                 skillId,
                 tree,
                 skillProgress.level,
+                unlockedTiers,
                 earnedPoints,
                 spentPoints,
                 availablePoints,
@@ -129,6 +132,7 @@ public final class SkillTreeProgression {
             ResourceLocation skillId,
             SkillTreeDefinition tree,
             int skillLevel,
+            int unlockedTiers,
             int earnedPoints,
             int spentPoints,
             int availablePoints,
@@ -145,5 +149,18 @@ public final class SkillTreeProgression {
             suggestedAvailableNode = suggestedAvailableNode == null ? Optional.empty() : suggestedAvailableNode;
             suggestedNextNode = suggestedNextNode == null ? Optional.empty() : suggestedNextNode;
         }
+    }
+
+    private static int unlockedTierCount(SkillTreeDefinition tree, int skillLevel) {
+        if (tree == null) {
+            return 0;
+        }
+        int unlocked = 0;
+        for (SkillTreeDefinition.Threshold threshold : tree.thresholds()) {
+            if (skillLevel >= Math.max(0, threshold.level())) {
+                unlocked++;
+            }
+        }
+        return unlocked;
     }
 }

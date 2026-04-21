@@ -7,11 +7,12 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.profiling.ProfilerFiller;
+import net.zoogle.levelrpg.profile.ProgressionSkill;
 
 import java.util.*;
 
 /**
- * Loads activity rules from datapacks to award XP based on events.
+ * Loads activity rules from datapacks to award mastery based on events.
  * Folder: data/<ns>/activity_rules/*.json
  * Schema supports either an object with a "rules" array, or a single rule object per file.
  *
@@ -132,22 +133,26 @@ public class ActivityRules extends SimpleJsonResourceReloadListener {
         String type = obj.has("type") ? obj.get("type").getAsString() : "";
         if ("break_block".equalsIgnoreCase(type)) {
             ResourceLocation skill = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(obj.get("skill").getAsString(), net.zoogle.levelrpg.LevelRPG.MODID);
+            if (!ProgressionSkill.isCanonicalId(skill)) return;
             int xp = obj.get("xp").getAsInt();
             ResourceLocation blockTag = ResourceLocation.parse(obj.get("block_tag").getAsString());
             BREAK_BLOCK_RULES.add(new BreakBlockRule(skill, xp, blockTag));
         } else if ("kill_entity".equalsIgnoreCase(type)) {
             ResourceLocation skill = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(obj.get("skill").getAsString(), net.zoogle.levelrpg.LevelRPG.MODID);
+            if (!ProgressionSkill.isCanonicalId(skill)) return;
             int xp = obj.get("xp").getAsInt();
             ResourceLocation entityTag = ResourceLocation.parse(obj.get("entity_tag").getAsString());
             ResourceLocation weapon = obj.has("weapon_tag") ? ResourceLocation.parse(obj.get("weapon_tag").getAsString()) : null;
             KILL_ENTITY_RULES.add(new KillEntityRule(skill, xp, entityTag, weapon));
         } else if ("craft_item".equalsIgnoreCase(type)) {
             ResourceLocation skill = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(obj.get("skill").getAsString(), net.zoogle.levelrpg.LevelRPG.MODID);
+            if (!ProgressionSkill.isCanonicalId(skill)) return;
             int xp = obj.get("xp").getAsInt();
             ResourceLocation itemTag = ResourceLocation.parse(obj.get("item_tag").getAsString());
             CRAFT_ITEM_RULES.add(new CraftItemRule(skill, xp, itemTag));
         } else if ("smelt_item".equalsIgnoreCase(type)) {
             ResourceLocation skill = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(obj.get("skill").getAsString(), net.zoogle.levelrpg.LevelRPG.MODID);
+            if (!ProgressionSkill.isCanonicalId(skill)) return;
             int xp = obj.get("xp").getAsInt();
             ResourceLocation itemTag = ResourceLocation.parse(obj.get("item_tag").getAsString());
             SMELT_ITEM_RULES.add(new SmeltItemRule(skill, xp, itemTag));

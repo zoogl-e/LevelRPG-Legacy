@@ -33,6 +33,11 @@ public enum ProgressionSkill {
         return id;
     }
 
+    public String displayName() {
+        String path = id.getPath();
+        return Character.toUpperCase(path.charAt(0)) + path.substring(1);
+    }
+
     public static Optional<ProgressionSkill> fromId(ResourceLocation id) {
         if (id == null) {
             return Optional.empty();
@@ -62,5 +67,9 @@ public enum ProgressionSkill {
         LinkedHashSet<ResourceLocation> ids = new LinkedHashSet<>();
         Arrays.stream(values()).map(ProgressionSkill::id).forEach(ids::add);
         return ids;
+    }
+
+    public static boolean isCanonicalId(ResourceLocation id) {
+        return fromId(id).isPresent();
     }
 }
