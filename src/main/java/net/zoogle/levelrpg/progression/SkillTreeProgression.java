@@ -24,16 +24,34 @@ public final class SkillTreeProgression {
         SkillTreeDefinition tree = SkillTreeRegistry.get(skillId);
         SkillState skillProgress = profile.getSkill(skillId);
         Set<String> unlockedNodes = profile.getUnlockedTreeNodes(skillId);
+        int earnedPoints = SpecializationProgression.earnedPoints(profile);
+        int spentPoints = SpecializationProgression.spentPoints(profile);
+        return snapshot(skillId, tree, skillProgress.level, unlockedNodes, earnedPoints, spentPoints);
+    }
+
+    /**
+     * Builds the same {@link TreeSnapshot} as {@link #snapshot(LevelProfile, ResourceLocation)} using explicit
+     * specialization totals (for example from {@link net.zoogle.levelrpg.client.data.ClientProfileCache} on the client).
+     */
+    public static TreeSnapshot snapshot(
+            ResourceLocation skillId,
+            SkillTreeDefinition tree,
+            int investedSkillLevel,
+            Set<String> unlockedNodesForSkill,
+            int specializationEarnedGlobal,
+            int specializationSpentGlobal
+    ) {
+        int availablePoints = Math.max(0, specializationEarnedGlobal - specializationSpentGlobal);
         if (tree == null) {
             return new TreeSnapshot(
                     skillId,
                     null,
-                    skillProgress.level,
+                    investedSkillLevel,
                     0,
-                    0,
-                    0,
-                    0,
-                    unlockedNodes,
+                    specializationEarnedGlobal,
+                    specializationSpentGlobal,
+                    availablePoints,
+                    unlockedNodesForSkill,
                     Optional.empty(),
                     List.of(),
                     Optional.empty(),
@@ -41,11 +59,8 @@ public final class SkillTreeProgression {
             );
         }
 
-        int unlockedTiers = unlockedTierCount(tree, skillProgress.level);
-        int earnedPoints = SpecializationProgression.earnedPoints(profile);
-        int spentPoints = SpecializationProgression.spentPoints(profile);
-        int availablePoints = Math.max(0, earnedPoints - spentPoints);
-        Optional<SkillTreeDefinition.Threshold> nextThreshold = tree.nextThreshold(skillProgress.level);
+        int unlockedTiers = unlockedTierCount(tree, investedSkillLevel);
+        Optional<SkillTreeDefinition.Threshold> nextThreshold = tree.nextThreshold(investedSkillLevel);
 
         ArrayList<NodeSnapshot> nodeSnapshots = new ArrayList<>();
         for (String nodeId : tree.orderedNodeIds()) {
@@ -53,8 +68,8 @@ public final class SkillTreeProgression {
             if (node == null) {
                 continue;
             }
-            List<String> missingRequirements = tree.missingRequirements(nodeId, unlockedNodes);
-            NodeStatus status = resolveStatus(tree, node, skillProgress.level, availablePoints, unlockedNodes, missingRequirements);
+            List<String> missingRequirements = tree.missingRequirements(nodeId, unlockedNodesForSkill);
+            NodeStatus status = resolveStatus(tree, node, investedSkillLevel, availablePoints, unlockedNodesForSkill, missingRequirements);
             nodeSnapshots.add(new NodeSnapshot(node, status, missingRequirements));
         }
 
@@ -70,12 +85,12 @@ public final class SkillTreeProgression {
         return new TreeSnapshot(
                 skillId,
                 tree,
-                skillProgress.level,
+                investedSkillLevel,
                 unlockedTiers,
-                earnedPoints,
-                spentPoints,
+                specializationEarnedGlobal,
+                specializationSpentGlobal,
                 availablePoints,
-                unlockedNodes,
+                unlockedNodesForSkill,
                 nextThreshold,
                 List.copyOf(nodeSnapshots),
                 suggestedAvailable,

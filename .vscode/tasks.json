@@ -1,0 +1,23 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "gradle",
+			"id": "c:\\Users\\Zayne-PC\\Desktop\\Minecraft Modding\\_IDEA (2025)\\LevelRPGrunClientLevelRPG",
+			"script": "runClient",
+			"description": "Runs the client Minecraft run configuration.",
+			"group": "mod development",
+			"project": "LevelRPG",
+			"buildFile": "C:\\Users\\Zayne-PC\\Desktop\\Minecraft Modding\\_IDEA (2025)\\LevelRPG\\build.gradle",
+			"rootProject": "LevelRPG",
+			"projectFolder": "c:\\Users\\Zayne-PC\\Desktop\\Minecraft Modding\\_IDEA (2025)\\LevelRPG",
+			"workspaceFolder": "c:\\Users\\Zayne-PC\\Desktop\\Minecraft Modding\\_IDEA (2025)\\LevelRPG",
+			"args": "",
+			"javaDebug": false,
+			"problemMatcher": [
+				"$gradle"
+			],
+			"label": "gradle: runClient"
+		}
+	]
+}

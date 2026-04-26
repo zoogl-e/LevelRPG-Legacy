@@ -1,5 +1,0 @@
-{
-  "id": "levelrpg:exploration",
-  "display": { "name": "Exploration", "color": "#6BBF7A", "icon": "", "notes": "Travel, discovery, world knowledge" },
-  "xpCurve": "levelrpg:default"
-}

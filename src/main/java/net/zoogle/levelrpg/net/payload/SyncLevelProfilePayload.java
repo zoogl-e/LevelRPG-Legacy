@@ -6,6 +6,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.zoogle.levelrpg.LevelRPG;
+import org.jetbrains.annotations.Nullable;
 import net.zoogle.levelrpg.profile.LevelProfile;
 import net.zoogle.levelrpg.profile.ProgressionSkill;
 import net.zoogle.levelrpg.profile.SkillState;
@@ -16,7 +17,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public record SyncLevelProfilePayload(List<Entry> skills, List<TreeEntry> trees, int availableSkillPoints, int spentSkillPoints)
+public record SyncLevelProfilePayload(
+        List<Entry> skills,
+        List<TreeEntry> trees,
+        int availableSkillPoints,
+        int spentSkillPoints,
+        @Nullable ResourceLocation archetypeId,
+        boolean archetypeApplied
+)
         implements CustomPacketPayload {
 
     public static final Type<SyncLevelProfilePayload> TYPE = new Type<>(
@@ -28,7 +36,10 @@ public record SyncLevelProfilePayload(List<Entry> skills, List<TreeEntry> trees,
                     TreeEntry.STREAM_CODEC.apply(ByteBufCodecs.list(64)), SyncLevelProfilePayload::trees,
                     ByteBufCodecs.VAR_INT, SyncLevelProfilePayload::availableSkillPoints,
                     ByteBufCodecs.VAR_INT, SyncLevelProfilePayload::spentSkillPoints,
-                    SyncLevelProfilePayload::new
+                    ByteBufCodecs.optional(ResourceLocation.STREAM_CODEC), payload -> java.util.Optional.ofNullable(payload.archetypeId()),
+                    ByteBufCodecs.BOOL, SyncLevelProfilePayload::archetypeApplied,
+                    (skills, trees, availablePoints, spentPoints, archetypeId, archetypeApplied) ->
+                            new SyncLevelProfilePayload(skills, trees, availablePoints, spentPoints, archetypeId.orElse(null), archetypeApplied)
             );
 
     @Override
@@ -47,7 +58,14 @@ public record SyncLevelProfilePayload(List<Entry> skills, List<TreeEntry> trees,
             Set<String> unlocked = profile.getUnlockedTreeNodes(treeId);
             treeEntries.add(new TreeEntry(treeId, profile.getTreePointsSpent(treeId), List.copyOf(unlocked)));
         }
-        return new SyncLevelProfilePayload(list, treeEntries, profile.availableSkillPoints, profile.spentSkillPoints);
+        return new SyncLevelProfilePayload(
+                list,
+                treeEntries,
+                profile.availableSkillPoints,
+                profile.spentSkillPoints,
+                profile.archetype.id,
+                profile.hasAppliedStartingArchetype()
+        );
     }
 
     public Map<ResourceLocation, SkillState> toMap() {

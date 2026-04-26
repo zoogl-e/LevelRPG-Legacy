@@ -1,0 +1,20 @@
+{
+  "skill": "levelrpg:forging",
+  "title": "Forging Mastery",
+  "summary": "Forging now branches between durable practical craft and high-performance smith work, making progression choices legible for future recipe unlock presentation.",
+  "minSkillLevel": 1,
+  "thresholds": [
+    { "id": "forge_spark", "level": 1, "points": 1, "title": "Forge Spark", "description": "Choose your approach to metalwork." },
+    { "id": "tempered_hands", "level": 6, "points": 1, "title": "Tempered Hands", "description": "Your metalwork becomes more specialized." },
+    { "id": "anvil_focus", "level": 12, "points": 1, "title": "Anvil Focus", "description": "Mid-tree commitments become available." },
+    { "id": "grandmaster_forge", "level": 20, "points": 1, "title": "Grandmaster Forge", "description": "Late thresholds support a defining smithing identity." }
+  ],
+  "nodes": [
+    { "id": "utility_metals", "title": "Utility Metals", "description": "Favors reliable everyday tools and practical outputs.", "branch": "utility", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "martial_tempering", "title": "Martial Tempering", "description": "Favors combat-oriented precision and performance.", "branch": "martial", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "reinforced_patterning", "title": "Reinforced Patterning", "description": "Deepens utility craft into more dependable production.", "branch": "utility", "cost": 1, "requiredSkillLevel": 6, "requires": ["utility_metals"] },
+    { "id": "keen_edge_work", "title": "Keen Edge Work", "description": "Deepens martial smithing into higher-performance gear.", "branch": "martial", "cost": 1, "requiredSkillLevel": 6, "requires": ["martial_tempering"] },
+    { "id": "master_foundry", "title": "Master Foundry", "description": "Commits to broad practical smithing output.", "branch": "utility", "cost": 2, "requiredSkillLevel": 12, "requires": ["reinforced_patterning"] },
+    { "id": "warsteel_discipline", "title": "Warsteel Discipline", "description": "Commits to elite combat-focused forging.", "branch": "martial", "cost": 2, "requiredSkillLevel": 12, "requires": ["keen_edge_work"] }
+  ]
+}

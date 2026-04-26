@@ -22,6 +22,8 @@ public final class ClientProfileCache {
     private static final LinkedHashMap<ResourceLocation, Set<String>> treeUnlockedNodes = new LinkedHashMap<>();
     private static int availableSkillPoints;
     private static int spentSkillPoints;
+    private static ResourceLocation archetypeId;
+    private static boolean archetypeApplied;
     private static long lastUpdatedMs;
     private static ResourceLocation lastSkillId; // last skill that received a delta
     private static boolean ready; // true once we have received profile/delta from server
@@ -34,7 +36,9 @@ public final class ClientProfileCache {
             Map<ResourceLocation, Integer> spentMap,
             Map<ResourceLocation, Set<String>> unlockedMap,
             int availablePoints,
-            int spentPoints
+            int spentPoints,
+            ResourceLocation selectedArchetypeId,
+            boolean selectedArchetypeApplied
     ) {
         skills.clear();
         for (ProgressionSkill skill : ProgressionSkill.values()) {
@@ -57,6 +61,8 @@ public final class ClientProfileCache {
         }
         availableSkillPoints = Math.max(0, availablePoints);
         spentSkillPoints = Math.max(0, spentPoints);
+        archetypeId = selectedArchetypeId;
+        archetypeApplied = selectedArchetypeApplied;
         lastUpdatedMs = System.currentTimeMillis();
         lastSkillId = null;
         ready = true;
@@ -106,4 +112,24 @@ public final class ClientProfileCache {
     public static boolean hasCanonicalProfileData() { return fullProfileSynced && !skills.isEmpty(); }
     public static int getAvailableSkillPoints() { return availableSkillPoints; }
     public static int getSpentSkillPoints() { return spentSkillPoints; }
+    public static ResourceLocation getArchetypeId() { return archetypeId; }
+    public static boolean isArchetypeApplied() { return archetypeApplied; }
+
+    /** Sum of invested skill levels across all canonical skills (specialization thresholds use this). */
+    public static int totalInvestedLevelsAcrossSkills() {
+        int total = 0;
+        for (SkillState state : skills.values()) {
+            total += Math.max(0, state.level);
+        }
+        return total;
+    }
+
+    /** Sum of mastery-tree points spent in every discipline. */
+    public static int totalSpecializationSpentAcrossTrees() {
+        int spent = 0;
+        for (int v : treePointsSpent.values()) {
+            spent += Math.max(0, v);
+        }
+        return spent;
+    }
 }

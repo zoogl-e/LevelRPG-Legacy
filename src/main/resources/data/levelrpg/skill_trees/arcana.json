@@ -1,0 +1,20 @@
+{
+  "skill": "levelrpg:arcana",
+  "title": "Arcana Mastery",
+  "summary": "Arcana separates ritual control from raw channeling. It is a multiplier across other skills — not a standalone damage class. Each unlock teaches the underlying magical framework through play.",
+  "minSkillLevel": 1,
+  "thresholds": [
+    { "id": "arcane_awareness", "level": 1, "points": 1, "title": "Arcane Awareness", "description": "Choose how you approach hidden forces." },
+    { "id": "ether_practice", "level": 6, "points": 1, "title": "Ether Practice", "description": "Your arcane approach becomes more stable." },
+    { "id": "spellcraft_focus", "level": 12, "points": 1, "title": "Spellcraft Focus", "description": "A mid-tree scholarly identity solidifies." },
+    { "id": "archmage_path", "level": 20, "points": 1, "title": "Archmage Path", "description": "Late thresholds support committed cross-skill arcane specialization." }
+  ],
+  "nodes": [
+    { "id": "ritual_geometry", "title": "Ritual Geometry", "description": "Favors careful control, setup, and magical stability.", "branch": "ritual", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "wild_channeling", "title": "Wild Channeling", "description": "Favors raw throughput and forceful arcane output.", "branch": "channeling", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "sigil_memory", "title": "Sigil Memory", "description": "Deepens ritual magic into layered preparation and magical craft bonuses.", "branch": "ritual", "cost": 1, "requiredSkillLevel": 6, "requires": ["ritual_geometry"] },
+    { "id": "surging_current", "title": "Surging Current", "description": "Deepens channeling into more forceful arcane commitment.", "branch": "channeling", "cost": 1, "requiredSkillLevel": 6, "requires": ["wild_channeling"] },
+    { "id": "sealed_circuit", "title": "Sealed Circuit", "description": "Commits to disciplined ritual control, reducing magical damage taken.", "branch": "ritual", "cost": 2, "requiredSkillLevel": 12, "requires": ["sigil_memory"] },
+    { "id": "stormcasting", "title": "Stormcasting", "description": "Commits to forceful channeling — heightened output when empowered.", "branch": "channeling", "cost": 2, "requiredSkillLevel": 12, "requires": ["surging_current"] }
+  ]
+}

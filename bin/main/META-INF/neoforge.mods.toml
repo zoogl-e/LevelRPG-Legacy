@@ -1,0 +1,27 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "MIT"
+
+[[mods]]
+modId = "levelrpg"
+version = "1.0"
+displayName = "LevelRPG"
+authors = "_zoogle"
+description = '''Skills and Levels in Minecraft'''
+
+[[mixins]]
+config = "levelrpg.mixins.json"
+
+[[dependencies."levelrpg"]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."levelrpg"]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1,1.22)"
+ordering = "NONE"
+side = "BOTH"

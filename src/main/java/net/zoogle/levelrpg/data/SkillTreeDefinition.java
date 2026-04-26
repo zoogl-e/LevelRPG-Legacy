@@ -79,7 +79,17 @@ public record SkillTreeDefinition(
             int requiredSkillLevel,
             String branch,
             String title,
-            String description
+            String description,
+            /** Graph X in pixels; {@link SkillTreeGraphLayout#AUTO} for automatic placement. */
+            int layoutX,
+            /** Graph Y in pixels; {@link SkillTreeGraphLayout#AUTO} for automatic placement. */
+            int layoutY,
+            /**
+             * Item id (e.g. {@code minecraft:iron_sword}) or a full texture path containing {@code textures/}
+             * for a 16×16 blit. Empty = default book icon.
+             */
+            String iconKey,
+            SkillTreeNodeVisibility visibility
     ) {
         public Node {
             id = normalize(id);
@@ -87,6 +97,8 @@ public record SkillTreeDefinition(
             branch = branch == null ? "" : branch;
             title = title == null ? "" : title;
             description = description == null ? "" : description;
+            iconKey = iconKey == null ? "" : iconKey.trim();
+            visibility = visibility == null ? SkillTreeNodeVisibility.NORMAL : visibility;
         }
 
         public int normalizedCost() {

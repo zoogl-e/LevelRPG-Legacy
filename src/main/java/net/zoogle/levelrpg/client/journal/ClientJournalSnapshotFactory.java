@@ -36,6 +36,7 @@ public final class ClientJournalSnapshotFactory {
         }
         profile.availableSkillPoints = ClientProfileCache.getAvailableSkillPoints();
         profile.spentSkillPoints = ClientProfileCache.getSpentSkillPoints();
+        profile.setArchetype(ClientProfileCache.getArchetypeId(), ClientProfileCache.isArchetypeApplied());
         return LevelRpgJournalSnapshotFactory.create(profile);
     }
 

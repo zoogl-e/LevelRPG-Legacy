@@ -26,7 +26,6 @@ import net.zoogle.levelrpg.progression.MasteryNodeEffects;
 import net.zoogle.levelrpg.progression.MiningXpRules;
 import net.zoogle.levelrpg.progression.PassiveSkillScalingService;
 import net.zoogle.levelrpg.progression.SkillMasteryRules;
-import net.zoogle.levelrpg.progression.VitalityXpRules;
 import net.zoogle.levelrpg.progression.ValorXpRules;
 
 import java.util.HashSet;
@@ -42,27 +41,27 @@ public class ActivityEvents {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
 
         LevelProfile profile = LevelProfile.get(sp);
-        MasteryAwardResult magickAward = SkillMasteryRules.awardMagickForOpenMenu(sp, profile);
-        if (magickAward != null) {
+        MasteryAwardResult arcanaAward = SkillMasteryRules.awardArcanaForOpenMenu(sp, profile);
+        if (arcanaAward != null) {
             PassiveSkillScalingService.applyIfChanged(sp, profile);
             LevelProfile.save(sp, profile);
-            Network.sendDelta(sp, profile, magickAward.skillId());
-            sendXpBar(sp, profile, magickAward.skillId());
-            if (magickAward.leveledUp()) {
-                sendLevelUp(sp, profile, magickAward.skillId());
+            Network.sendDelta(sp, profile, arcanaAward.skillId());
+            sendXpBar(sp, profile, arcanaAward.skillId());
+            if (arcanaAward.leveledUp()) {
+                sendLevelUp(sp, profile, arcanaAward.skillId());
             }
         }
 
-        MasteryAwardResult explorationAward = SkillMasteryRules.awardExplorationForMovement(sp, profile);
-        if (explorationAward == null) return;
+        MasteryAwardResult finesseAward = SkillMasteryRules.awardFinesseForMovement(sp, profile);
+        if (finesseAward == null) return;
 
         PassiveSkillScalingService.applyIfChanged(sp, profile);
         LevelProfile.save(sp, profile);
-        Network.sendDelta(sp, profile, explorationAward.skillId());
-        MasteryNodeEffects.afterExplorationAward(sp, profile, explorationAward);
-        sendXpBar(sp, profile, explorationAward.skillId());
-        if (explorationAward.leveledUp()) {
-            sendLevelUp(sp, profile, explorationAward.skillId());
+        Network.sendDelta(sp, profile, finesseAward.skillId());
+        MasteryNodeEffects.afterFinesseAward(sp, profile, finesseAward);
+        sendXpBar(sp, profile, finesseAward.skillId());
+        if (finesseAward.leveledUp()) {
+            sendLevelUp(sp, profile, finesseAward.skillId());
         }
     }
 
@@ -75,8 +74,8 @@ public class ActivityEvents {
         Set<ResourceLocation> changedSkills = new HashSet<>();
         Set<ResourceLocation> leveledUp = new HashSet<>();
 
-        MasteryAwardResult miningAward = SkillMasteryRules.awardMiningForBlockBreak(sp, profile, state);
-        collectCanonicalAward(miningAward, changedSkills, leveledUp);
+        MasteryAwardResult delvingAward = SkillMasteryRules.awardDelvingForBlockBreak(sp, profile, state);
+        collectCanonicalAward(delvingAward, changedSkills, leveledUp);
 
         if (ActivityRules.breakBlockRules().isEmpty() && changedSkills.isEmpty()) return;
 
@@ -104,16 +103,16 @@ public class ActivityEvents {
     public void onMobDamaged(LivingDamageEvent.Post event) {
         if (event.getEntity() instanceof ServerPlayer spTarget) {
             LevelProfile profile = LevelProfile.get(spTarget);
-        MasteryAwardResult vitalityAward = SkillMasteryRules.awardVitalityForDamageTaken(spTarget, profile, event.getSource(), event.getNewDamage());
-        if (vitalityAward != null) {
+        MasteryAwardResult valorGritAward = SkillMasteryRules.awardValorGritForDamageTaken(spTarget, profile, event.getSource(), event.getNewDamage());
+        if (valorGritAward != null) {
             PassiveSkillScalingService.applyIfChanged(spTarget, profile);
             LevelProfile.save(spTarget, profile);
-            Network.sendDelta(spTarget, profile, vitalityAward.skillId());
-            sendXpBar(spTarget, profile, vitalityAward.skillId());
-                if (vitalityAward.leveledUp()) {
-                    sendLevelUp(spTarget, profile, vitalityAward.skillId());
-                }
+            Network.sendDelta(spTarget, profile, valorGritAward.skillId());
+            sendXpBar(spTarget, profile, valorGritAward.skillId());
+            if (valorGritAward.leveledUp()) {
+                sendLevelUp(spTarget, profile, valorGritAward.skillId());
             }
+        }
         }
 
         if (!(event.getSource().getEntity() instanceof ServerPlayer sp)) return;
@@ -182,8 +181,8 @@ public class ActivityEvents {
         Set<ResourceLocation> leveledUp = new HashSet<>();
 
         collectCanonicalAward(SkillMasteryRules.awardArtificingForCraft(sp, profile, result), changed, leveledUp);
-        collectCanonicalAward(SkillMasteryRules.awardMagickForCraft(sp, profile, result), changed, leveledUp);
-        collectCanonicalAward(SkillMasteryRules.awardCulinaryForCraft(sp, profile, result), changed, leveledUp);
+        collectCanonicalAward(SkillMasteryRules.awardArcanaForCraft(sp, profile, result), changed, leveledUp);
+        collectCanonicalAward(SkillMasteryRules.awardHearthForCraft(sp, profile, result), changed, leveledUp);
         collectCanonicalAward(SkillMasteryRules.awardForgingForCraft(sp, profile, result), changed, leveledUp);
 
         if (ActivityRules.craftItemRules().isEmpty() && changed.isEmpty()) return;
@@ -222,7 +221,7 @@ public class ActivityEvents {
         Set<ResourceLocation> leveledUp = new HashSet<>();
 
         collectCanonicalAward(SkillMasteryRules.awardArtificingForSmelt(sp, profile, result), changed, leveledUp);
-        collectCanonicalAward(SkillMasteryRules.awardCulinaryForSmelt(sp, profile, result), changed, leveledUp);
+        collectCanonicalAward(SkillMasteryRules.awardHearthForSmelt(sp, profile, result), changed, leveledUp);
 
         if (ActivityRules.smeltItemRules().isEmpty() && changed.isEmpty()) return;
 

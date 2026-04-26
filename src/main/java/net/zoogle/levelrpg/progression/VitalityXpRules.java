@@ -11,11 +11,12 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Canonical Vitality rules. Keep the first pass focused on surviving
- * meaningful incoming danger rather than farmable environmental chip damage.
+ * Valor Grit XP rules. Valor absorbs the former Vitality skill — surviving
+ * meaningful incoming danger develops the Grit branch alongside Offense.
+ * Kept as a separate rule class so the XP logic remains easy to tune.
  */
 public final class VitalityXpRules {
-    public static final ResourceLocation SKILL_ID = ProgressionSkill.VITALITY.id();
+    public static final ResourceLocation SKILL_ID = ProgressionSkill.VALOR.id();
 
     private static final float MIN_MEANINGFUL_DAMAGE = 2.0F;
     private static final float LOW_HEALTH_THRESHOLD = 6.0F;

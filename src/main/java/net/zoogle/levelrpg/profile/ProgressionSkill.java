@@ -10,18 +10,17 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Canonical skills for the rewrite. These are the stable identifiers the
- * progression profile should be shaped around even while legacy systems remain.
+ * Canonical skills. Seven distinct archetypes — Valor absorbs the former
+ * Vitality skill as its Grit branch.
  */
 public enum ProgressionSkill {
     VALOR("valor"),
-    VITALITY("vitality"),
-    MINING("mining"),
-    CULINARY("culinary"),
+    FINESSE("finesse"),
+    ARCANA("arcana"),
+    DELVING("delving"),
     FORGING("forging"),
     ARTIFICING("artificing"),
-    MAGICK("magick"),
-    EXPLORATION("exploration");
+    HEARTH("hearth");
 
     private final ResourceLocation id;
 

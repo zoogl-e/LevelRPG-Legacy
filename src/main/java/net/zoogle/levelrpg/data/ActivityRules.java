@@ -1,6 +1,7 @@
 package net.zoogle.levelrpg.data;
 
 import com.google.gson.*;
+import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -8,6 +9,7 @@ import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.zoogle.levelrpg.profile.ProgressionSkill;
+import org.slf4j.Logger;
 
 import java.util.*;
 
@@ -24,6 +26,7 @@ import java.util.*;
  */
 public class ActivityRules extends SimpleJsonResourceReloadListener {
     private static final Gson GSON = new GsonBuilder().create();
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     public ActivityRules() {
         super(GSON, "activity_rules");
@@ -119,14 +122,17 @@ public class ActivityRules extends SimpleJsonResourceReloadListener {
                     }
                 }
             } catch (Exception ex) {
-                System.err.println("[LevelRPG] Failed to parse activity rule json " + entry.getKey() + ": " + ex);
+                LOGGER.warn("Failed to parse activity rule json {}", entry.getKey(), ex);
             }
         }
-        System.out.println("[LevelRPG] Loaded activity rules: break_block=" + BREAK_BLOCK_RULES.size()
-                + ", kill_entity=" + KILL_ENTITY_RULES.size()
-                + ", craft_item=" + CRAFT_ITEM_RULES.size()
-                + ", smelt_item=" + SMELT_ITEM_RULES.size()
-                + ", total=" + total);
+        LOGGER.info(
+                "Loaded activity rules: break_block={}, kill_entity={}, craft_item={}, smelt_item={}, total={}",
+                BREAK_BLOCK_RULES.size(),
+                KILL_ENTITY_RULES.size(),
+                CRAFT_ITEM_RULES.size(),
+                SMELT_ITEM_RULES.size(),
+                total
+        );
     }
 
     private static void parseRule(JsonObject obj) {

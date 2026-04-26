@@ -5,12 +5,14 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.zoogle.levelrpg.LevelRPG;
 import net.zoogle.levelrpg.profile.ProgressionSkill;
+import org.slf4j.Logger;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,6 +20,7 @@ import java.util.Map;
 
 public class SkillTreeLoader extends SimpleJsonResourceReloadListener {
     private static final Gson GSON = new GsonBuilder().create();
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     public SkillTreeLoader() {
         super(GSON, "skill_trees");
@@ -35,7 +38,7 @@ public class SkillTreeLoader extends SimpleJsonResourceReloadListener {
                 String skillStr = root.has("skill") ? root.get("skill").getAsString() : (LevelRPG.MODID + ":" + fileId.getPath());
                 ResourceLocation skillId = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(skillStr, LevelRPG.MODID);
                 if (!ProgressionSkill.isCanonicalId(skillId)) {
-                    System.out.println("[LevelRPG] Ignoring legacy/non-canonical skill tree json " + fileId + " -> " + skillId);
+                    LOGGER.warn("Ignoring legacy/non-canonical skill tree json {} -> {}", fileId, skillId);
                     continue;
                 }
 
@@ -79,6 +82,12 @@ public class SkillTreeLoader extends SimpleJsonResourceReloadListener {
                         String branch = n.has("branch") ? n.get("branch").getAsString() : "";
                         String nodeTitle = n.has("title") ? n.get("title").getAsString() : "";
                         String description = n.has("description") ? n.get("description").getAsString() : "";
+                        int layoutX = n.has("layoutX") ? n.get("layoutX").getAsInt() : SkillTreeGraphLayout.AUTO;
+                        int layoutY = n.has("layoutY") ? n.get("layoutY").getAsInt() : SkillTreeGraphLayout.AUTO;
+                        String iconKey = n.has("icon") ? n.get("icon").getAsString() : "";
+                        SkillTreeNodeVisibility visibility = SkillTreeNodeVisibility.fromJson(
+                                n.has("visibility") ? n.get("visibility").getAsString() : null
+                        );
                         SkillTreeDefinition.Node node = new SkillTreeDefinition.Node(
                                 id,
                                 cost,
@@ -86,7 +95,11 @@ public class SkillTreeLoader extends SimpleJsonResourceReloadListener {
                                 requiredSkillLevel,
                                 branch,
                                 nodeTitle,
-                                description
+                                description,
+                                layoutX,
+                                layoutY,
+                                iconKey,
+                                visibility
                         );
                         nodes.put(id, node);
                     }
@@ -102,10 +115,10 @@ public class SkillTreeLoader extends SimpleJsonResourceReloadListener {
                 );
                 loaded.put(skillId, def);
             } catch (Exception ex) {
-                System.err.println("[LevelRPG] Failed to parse skill tree json " + fileId + ": " + ex);
+                LOGGER.warn("Failed to parse skill tree json {}", fileId, ex);
             }
         }
         SkillTreeRegistry.clearAndPutAll(loaded);
-        System.out.println("[LevelRPG] Loaded canonical skill trees: " + loaded.size() + ".");
+        LOGGER.info("Loaded canonical skill trees: {}.", loaded.size());
     }
 }

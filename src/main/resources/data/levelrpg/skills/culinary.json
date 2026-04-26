@@ -1,5 +1,0 @@
-{
-  "id": "levelrpg:culinary",
-  "display": { "name": "Culinary", "color": "#FFAA00", "icon": "", "notes": "Cooking, food, saturation" },
-  "xpCurve": "levelrpg:default"
-}

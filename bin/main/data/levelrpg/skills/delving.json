@@ -1,0 +1,5 @@
+{
+  "id": "levelrpg:delving",
+  "display": { "name": "Delving", "color": "#F39C12", "icon": "", "notes": "Underground caves, ores, underwater ruins, hidden places" },
+  "xpCurve": "levelrpg:default"
+}

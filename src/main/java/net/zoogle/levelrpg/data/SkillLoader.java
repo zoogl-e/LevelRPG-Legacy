@@ -4,18 +4,21 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.zoogle.levelrpg.LevelRPG;
 import net.zoogle.levelrpg.profile.ProgressionSkill;
+import org.slf4j.Logger;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class SkillLoader extends SimpleJsonResourceReloadListener {
     private static final Gson GSON = new GsonBuilder().create();
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     public SkillLoader() {
         super(GSON, "skills");
@@ -35,7 +38,7 @@ public class SkillLoader extends SimpleJsonResourceReloadListener {
                 String idStr = root.has("id") ? root.get("id").getAsString() : (LevelRPG.MODID + ":" + fileId.getPath());
                 ResourceLocation skillId = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(idStr, LevelRPG.MODID);
                 if (!ProgressionSkill.isCanonicalId(skillId)) {
-                    System.out.println("[LevelRPG] Ignoring legacy/non-canonical skill json " + fileId + " -> " + skillId);
+                    LOGGER.warn("Ignoring legacy/non-canonical skill json {} -> {}", fileId, skillId);
                     continue;
                 }
 
@@ -58,7 +61,7 @@ public class SkillLoader extends SimpleJsonResourceReloadListener {
                 parsed.put(skillId, def);
             } catch (Exception ex) {
                 // Log and skip invalid entries
-                System.err.println("[LevelRPG] Failed to parse skill json " + fileId + ": " + ex);
+                LOGGER.warn("Failed to parse skill json {}", fileId, ex);
             }
         }
 
@@ -71,11 +74,11 @@ public class SkillLoader extends SimpleJsonResourceReloadListener {
                         new SkillDefinition.Display(skill.displayName(), null, null, "Fallback canonical skill definition."),
                         ResourceLocation.fromNamespaceAndPath(LevelRPG.MODID, "default")
                 );
-                System.out.println("[LevelRPG] Missing datapack skill definition for canonical skill " + skill.id() + "; using fallback definition.");
+                LOGGER.warn("Missing datapack skill definition for canonical skill {}; using fallback definition.", skill.id());
             }
             loaded.put(skill.id(), definition);
         }
         SkillRegistry.clearAndPutAll(loaded);
-        System.out.println("[LevelRPG] Loaded canonical skill catalog: " + loaded.size() + " skills.");
+        LOGGER.info("Loaded canonical skill catalog: {} skills.", loaded.size());
     }
 }

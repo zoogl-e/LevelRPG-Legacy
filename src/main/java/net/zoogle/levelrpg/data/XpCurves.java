@@ -4,17 +4,20 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.zoogle.levelrpg.LevelRPG;
+import org.slf4j.Logger;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class XpCurves extends SimpleJsonResourceReloadListener {
     private static final Gson GSON = new GsonBuilder().create();
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static final LinkedHashMap<ResourceLocation, XpCurveDefinition> REGISTRY = new LinkedHashMap<>();
 
     public XpCurves() {
@@ -60,7 +63,7 @@ public class XpCurves extends SimpleJsonResourceReloadListener {
                 double c = root.has("c") ? root.get("c").getAsDouble() : 28.0;
                 loaded.put(id, new XpCurveDefinition(id, type, b, c));
             } catch (Exception ex) {
-                System.err.println("[LevelRPG] Failed to parse xp curve json " + fileId + ": " + ex);
+                LOGGER.warn("Failed to parse xp curve json {}", fileId, ex);
             }
         }
         REGISTRY.clear();
@@ -68,6 +71,6 @@ public class XpCurves extends SimpleJsonResourceReloadListener {
         // Ensure a sensible default exists
         ResourceLocation defId = ResourceLocation.fromNamespaceAndPath(LevelRPG.MODID, "default");
         REGISTRY.putIfAbsent(defId, new XpCurveDefinition(defId, "poly", 12.0, 28.0));
-        System.out.println("[LevelRPG] Loaded " + REGISTRY.size() + " XP curves from datapacks (including defaults).");
+        LOGGER.info("Loaded {} XP curves from datapacks (including defaults).", REGISTRY.size());
     }
 }

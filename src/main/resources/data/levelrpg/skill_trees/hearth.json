@@ -1,0 +1,20 @@
+{
+  "skill": "levelrpg:hearth",
+  "title": "Hearth Mastery",
+  "summary": "Hearth separates efficient provisioning from refined cuisine. The caretaker skill — the most powerful combat players quietly depend on the Hearth specialist for their best food, potions, and buffs.",
+  "minSkillLevel": 1,
+  "thresholds": [
+    { "id": "kitchen_foundation", "level": 1, "points": 1, "title": "Kitchen Foundation", "description": "Pick a cooking philosophy." },
+    { "id": "trusted_recipes", "level": 5, "points": 1, "title": "Trusted Recipes", "description": "Your meals start reflecting your chosen focus." },
+    { "id": "seasoned_hand", "level": 10, "points": 1, "title": "Seasoned Hand", "description": "Mid-game unlocks deepen your craft." },
+    { "id": "feastwright", "level": 18, "points": 1, "title": "Feastwright", "description": "Late thresholds support signature Hearth specialization." }
+  ],
+  "nodes": [
+    { "id": "trail_rations", "title": "Trail Rations", "description": "Favors efficient nourishment and steady adventuring support.", "branch": "provisioning", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "refined_plating", "title": "Refined Plating", "description": "Favors crafted meals with stronger identity and payoff.", "branch": "gourmet", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "campfire_efficiency", "title": "Campfire Efficiency", "description": "Deepens provisioning into reliable output for long trips.", "branch": "provisioning", "cost": 1, "requiredSkillLevel": 5, "requires": ["trail_rations"] },
+    { "id": "signature_spices", "title": "Signature Spices", "description": "Deepens gourmet cooking into distinctive prepared dishes.", "branch": "gourmet", "cost": 1, "requiredSkillLevel": 5, "requires": ["refined_plating"] },
+    { "id": "expedition_cookery", "title": "Expedition Cookery", "description": "Commits to efficient field provisioning.", "branch": "provisioning", "cost": 2, "requiredSkillLevel": 10, "requires": ["campfire_efficiency"] },
+    { "id": "banquet_craft", "title": "Banquet Craft", "description": "Commits to refined and high-impact cuisine.", "branch": "gourmet", "cost": 2, "requiredSkillLevel": 10, "requires": ["signature_spices"] }
+  ]
+}

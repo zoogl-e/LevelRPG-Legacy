@@ -30,7 +30,12 @@ public final class SpecializationProgression {
     }
 
     public static int earnedPoints(LevelProfile profile) {
-        int totalLevels = totalCanonicalLevels(profile);
+        return earnedPointsForTotalLevels(totalCanonicalLevels(profile));
+    }
+
+    /** Same thresholds as {@link #earnedPoints(LevelProfile)} but for an arbitrary invested-level total. */
+    public static int earnedPointsForTotalLevels(int totalInvestedLevelsAcrossSkills) {
+        int totalLevels = Math.max(0, totalInvestedLevelsAcrossSkills);
         int earned = 0;
         for (int threshold : TOTAL_LEVEL_THRESHOLDS) {
             if (totalLevels >= threshold) {

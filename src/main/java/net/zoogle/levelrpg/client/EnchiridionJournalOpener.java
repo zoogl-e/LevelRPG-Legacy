@@ -5,7 +5,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.zoogle.levelrpg.client.data.ClientProfileCache;
+import net.zoogle.levelrpg.net.payload.RequestProfileSyncPayload;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Method;
@@ -50,6 +52,9 @@ public final class EnchiridionJournalOpener {
                     ClientProfileCache.getSkillsView().size(),
                     ClientProfileCache.getLastSkillId()
             );
+            if (minecraft.getConnection() != null) {
+                PacketDistributor.sendToServer(RequestProfileSyncPayload.INSTANCE);
+            }
             openBookMethod.invoke(client, LEVEL_RPG_JOURNAL_BOOK_ID);
             return true;
         } catch (ReflectiveOperationException ex) {

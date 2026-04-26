@@ -13,7 +13,7 @@ import net.zoogle.levelrpg.profile.MasteryAwardResult;
 public final class SkillMasteryRules {
     private SkillMasteryRules() {}
 
-    public static MasteryAwardResult awardMiningForBlockBreak(ServerPlayer player, LevelProfile profile, BlockState state) {
+    public static MasteryAwardResult awardDelvingForBlockBreak(ServerPlayer player, LevelProfile profile, BlockState state) {
         long mastery = MiningXpRules.xpForBlockBreak(state);
         if (mastery <= 0L) {
             return null;
@@ -29,7 +29,8 @@ public final class SkillMasteryRules {
         return profile.awardMastery(ValorXpRules.SKILL_ID, mastery);
     }
 
-    public static MasteryAwardResult awardVitalityForDamageTaken(ServerPlayer player, LevelProfile profile, net.minecraft.world.damagesource.DamageSource source, float damageTaken) {
+    /** Awards Valor (Grit branch) XP for surviving meaningful incoming damage. */
+    public static MasteryAwardResult awardValorGritForDamageTaken(ServerPlayer player, LevelProfile profile, net.minecraft.world.damagesource.DamageSource source, float damageTaken) {
         long mastery = VitalityXpRules.xpForDamageTaken(player, source, damageTaken);
         if (mastery <= 0L) {
             return null;
@@ -45,7 +46,7 @@ public final class SkillMasteryRules {
         return profile.awardMastery(ValorXpRules.SKILL_ID, mastery);
     }
 
-    public static MasteryAwardResult awardCulinaryForCraft(ServerPlayer player, LevelProfile profile, ItemStack result) {
+    public static MasteryAwardResult awardHearthForCraft(ServerPlayer player, LevelProfile profile, ItemStack result) {
         long mastery = CulinaryXpRules.xpForCraftedItem(result);
         if (mastery <= 0L) {
             return null;
@@ -53,7 +54,7 @@ public final class SkillMasteryRules {
         return profile.awardMastery(CulinaryXpRules.SKILL_ID, mastery);
     }
 
-    public static MasteryAwardResult awardCulinaryForSmelt(ServerPlayer player, LevelProfile profile, ItemStack result) {
+    public static MasteryAwardResult awardHearthForSmelt(ServerPlayer player, LevelProfile profile, ItemStack result) {
         long mastery = CulinaryXpRules.xpForSmeltedItem(result);
         if (mastery <= 0L) {
             return null;
@@ -85,7 +86,7 @@ public final class SkillMasteryRules {
         return profile.awardMastery(ArtificingXpRules.SKILL_ID, mastery);
     }
 
-    public static MasteryAwardResult awardMagickForCraft(ServerPlayer player, LevelProfile profile, ItemStack result) {
+    public static MasteryAwardResult awardArcanaForCraft(ServerPlayer player, LevelProfile profile, ItemStack result) {
         long mastery = MagickXpRules.xpForCraftedItem(player, result);
         if (mastery <= 0L) {
             return null;
@@ -93,7 +94,7 @@ public final class SkillMasteryRules {
         return profile.awardMastery(MagickXpRules.SKILL_ID, mastery);
     }
 
-    public static MasteryAwardResult awardMagickForOpenMenu(ServerPlayer player, LevelProfile profile) {
+    public static MasteryAwardResult awardArcanaForOpenMenu(ServerPlayer player, LevelProfile profile) {
         long mastery = MagickXpRules.xpForOpenMenu(player);
         if (mastery <= 0L) {
             return null;
@@ -101,7 +102,7 @@ public final class SkillMasteryRules {
         return profile.awardMastery(MagickXpRules.SKILL_ID, mastery);
     }
 
-    public static MasteryAwardResult awardExplorationForMovement(ServerPlayer player, LevelProfile profile) {
+    public static MasteryAwardResult awardFinesseForMovement(ServerPlayer player, LevelProfile profile) {
         long mastery = ExplorationXpRules.xpForMovement(player);
         if (mastery <= 0L) {
             return null;

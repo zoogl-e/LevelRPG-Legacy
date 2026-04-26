@@ -12,12 +12,11 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Canonical Exploration rules. The first migration step keeps the signals
- * simple and testable: meaningful travel plus first-time chunk discovery within
- * the current play session.
+ * Canonical Finesse rules. Combat through mobility and positioning —
+ * meaningful deliberate movement, not passive traversal accumulation.
  */
 public final class ExplorationXpRules {
-    public static final ResourceLocation SKILL_ID = ProgressionSkill.EXPLORATION.id();
+    public static final ResourceLocation SKILL_ID = ProgressionSkill.FINESSE.id();
 
     private static final double MIN_STEP_DISTANCE = 2.0D;
     private static final double MAX_STEP_DISTANCE = 32.0D;

@@ -39,11 +39,11 @@ public final class MasteryNodeEffects {
     private static final ResourceLocation MODIFIER_VANGUARD_KNOCKBACK = id("vanguard_stance_knockback");
     private static final ResourceLocation MODIFIER_DUELIST_SPEED = id("duelist_footwork_speed");
     private static final ResourceLocation MODIFIER_DUELIST_ATTACK_SPEED = id("duelist_footwork_attack_speed");
-    private static final ResourceLocation MODIFIER_MAGICK_WILD_CHANNELING = id("wild_channeling_attack_speed");
-    private static final ResourceLocation MODIFIER_MAGICK_SURGING_CURRENT = id("surging_current_speed");
-    private static final ResourceLocation MODIFIER_EXPLORATION_TRAIL_MARKS = id("trail_marks_speed");
-    private static final ResourceLocation MODIFIER_EXPLORATION_CARTOGRAPHERS_FOCUS = id("cartographers_focus_speed");
-    private static final ResourceLocation MODIFIER_VITALITY_IRON_RESERVE = id("iron_reserve_health");
+    private static final ResourceLocation MODIFIER_ARCANA_WILD_CHANNELING = id("wild_channeling_attack_speed");
+    private static final ResourceLocation MODIFIER_ARCANA_SURGING_CURRENT = id("surging_current_speed");
+    private static final ResourceLocation MODIFIER_FINESSE_TRAIL_MARKS = id("trail_marks_speed");
+    private static final ResourceLocation MODIFIER_FINESSE_CARTOGRAPHERS_FOCUS = id("cartographers_focus_speed");
+    private static final ResourceLocation MODIFIER_VALOR_IRON_RESERVE = id("iron_reserve_health");
 
     private static final int VEIN_FOLLOWING_HASTE_TICKS = 80;
     private static final int VEIN_FOLLOWING_HASTE_AMPLIFIER = 1;
@@ -77,10 +77,9 @@ public final class MasteryNodeEffects {
 
     public static void applyPassiveEffects(ServerPlayer player, LevelProfile profile) {
         applyValorPassives(player, profile);
-        applyMiningPassives(player, profile);
-        applyMagickPassives(player, profile);
-        applyExplorationPassives(player, profile);
-        applyVitalityPassives(player, profile);
+        applyDelvingPassives(player, profile);
+        applyArcanaPassives(player, profile);
+        applyFinessePassives(player, profile);
     }
 
     public static void applyIncomingDamageModifiers(LivingIncomingDamageEvent event) {
@@ -110,7 +109,7 @@ public final class MasteryNodeEffects {
                 && target.getHealth() <= target.getMaxHealth() * 0.50F) {
             damage *= 1.35F;
         }
-        if (hasNode(profile, ProgressionSkill.MAGICK, "stormcasting") && hasBeneficialEffect(player)) {
+        if (hasNode(profile, ProgressionSkill.ARCANA, "stormcasting") && hasBeneficialEffect(player)) {
             damage *= 1.15F;
         }
 
@@ -136,13 +135,13 @@ public final class MasteryNodeEffects {
 
         LevelProfile profile = LevelProfile.get(player);
         float speedMultiplier = 1.0F;
-        if (MiningXpRules.isStoneLike(state) && hasNode(profile, ProgressionSkill.MINING, "clean_cuts")) {
+        if (MiningXpRules.isStoneLike(state) && hasNode(profile, ProgressionSkill.DELVING, "clean_cuts")) {
             speedMultiplier += 0.30F;
         }
-        if (MiningXpRules.isOre(state) && hasNode(profile, ProgressionSkill.MINING, "prospectors_eye")) {
+        if (MiningXpRules.isOre(state) && hasNode(profile, ProgressionSkill.DELVING, "prospectors_eye")) {
             speedMultiplier += 0.30F;
         }
-        if (MiningXpRules.isStoneLike(state) && hasNode(profile, ProgressionSkill.MINING, "quarry_discipline")) {
+        if (MiningXpRules.isStoneLike(state) && hasNode(profile, ProgressionSkill.DELVING, "quarry_discipline")) {
             speedMultiplier += 0.25F;
         }
 
@@ -158,10 +157,10 @@ public final class MasteryNodeEffects {
         if (!player.getMainHandItem().is(ItemTags.PICKAXES)) {
             return;
         }
-        if (MiningXpRules.isOre(state) && hasNode(profile, ProgressionSkill.MINING, "vein_following")) {
+        if (MiningXpRules.isOre(state) && hasNode(profile, ProgressionSkill.DELVING, "vein_following")) {
             player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, VEIN_FOLLOWING_HASTE_TICKS, VEIN_FOLLOWING_HASTE_AMPLIFIER, true, false, true));
         }
-        if (MiningXpRules.isStoneLike(state) && hasNode(profile, ProgressionSkill.MINING, "quarry_discipline")) {
+        if (MiningXpRules.isStoneLike(state) && hasNode(profile, ProgressionSkill.DELVING, "quarry_discipline")) {
             player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, QUARRY_DISCIPLINE_HASTE_TICKS, QUARRY_DISCIPLINE_HASTE_AMPLIFIER, true, false, true));
         }
     }
@@ -206,10 +205,10 @@ public final class MasteryNodeEffects {
 
         if (MagickXpRules.isMagicCraftOutput(result)) {
             float chance = 0.0F;
-            if (hasNode(profile, ProgressionSkill.MAGICK, "ritual_geometry")) {
+            if (hasNode(profile, ProgressionSkill.ARCANA, "ritual_geometry")) {
                 chance += 0.10F;
             }
-            if (hasNode(profile, ProgressionSkill.MAGICK, "sigil_memory")) {
+            if (hasNode(profile, ProgressionSkill.ARCANA, "sigil_memory")) {
                 chance += 0.14F;
             }
 
@@ -243,16 +242,16 @@ public final class MasteryNodeEffects {
         LAST_DAMAGE_TICK.put(player.getUUID(), player.level().getGameTime());
     }
 
-    public static void afterExplorationAward(ServerPlayer player, LevelProfile profile, MasteryAwardResult result) {
-        if (player == null || profile == null || result == null || !ProgressionSkill.EXPLORATION.id().equals(result.skillId())) {
+    public static void afterFinesseAward(ServerPlayer player, LevelProfile profile, MasteryAwardResult result) {
+        if (player == null || profile == null || result == null || !ProgressionSkill.FINESSE.id().equals(result.skillId())) {
             return;
         }
 
-        if (hasNode(profile, ProgressionSkill.EXPLORATION, "hidden_waypoints")) {
+        if (hasNode(profile, ProgressionSkill.FINESSE, "hidden_waypoints")) {
             player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, EXPLORATION_HIDDEN_WAYPOINTS_SPEED_TICKS, 0, true, false, true));
         }
 
-        if (!hasNode(profile, ProgressionSkill.EXPLORATION, "frontier_sense")) {
+        if (!hasNode(profile, ProgressionSkill.FINESSE, "frontier_sense")) {
             return;
         }
 
@@ -297,8 +296,8 @@ public final class MasteryNodeEffects {
         }
     }
 
-    private static void applyMiningPassives(ServerPlayer player, LevelProfile profile) {
-        boolean deepScanActive = hasNode(profile, ProgressionSkill.MINING, "voidward_prospecting")
+    private static void applyDelvingPassives(ServerPlayer player, LevelProfile profile) {
+        boolean deepScanActive = hasNode(profile, ProgressionSkill.DELVING, "voidward_prospecting")
                 && player.getMainHandItem().is(ItemTags.PICKAXES)
                 && player.blockPosition().getY() <= 0;
         if (deepScanActive) {
@@ -307,39 +306,42 @@ public final class MasteryNodeEffects {
         }
     }
 
-    private static void applyMagickPassives(ServerPlayer player, LevelProfile profile) {
+    private static void applyArcanaPassives(ServerPlayer player, LevelProfile profile) {
         boolean empowered = hasBeneficialEffect(player);
-        updateModifier(player, Attributes.ATTACK_SPEED, MODIFIER_MAGICK_WILD_CHANNELING, 0.10D,
-                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL, empowered && hasNode(profile, ProgressionSkill.MAGICK, "wild_channeling"));
-        updateModifier(player, Attributes.MOVEMENT_SPEED, MODIFIER_MAGICK_SURGING_CURRENT, 0.06D,
-                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL, empowered && hasNode(profile, ProgressionSkill.MAGICK, "surging_current"));
+        updateModifier(player, Attributes.ATTACK_SPEED, MODIFIER_ARCANA_WILD_CHANNELING, 0.10D,
+                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL, empowered && hasNode(profile, ProgressionSkill.ARCANA, "wild_channeling"));
+        updateModifier(player, Attributes.MOVEMENT_SPEED, MODIFIER_ARCANA_SURGING_CURRENT, 0.06D,
+                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL, empowered && hasNode(profile, ProgressionSkill.ARCANA, "surging_current"));
     }
 
-    private static void applyExplorationPassives(ServerPlayer player, LevelProfile profile) {
+    private static void applyFinessePassives(ServerPlayer player, LevelProfile profile) {
         boolean groundedTraversal = player.onGround() && !player.isInWaterOrBubble();
-        updateModifier(player, Attributes.MOVEMENT_SPEED, MODIFIER_EXPLORATION_TRAIL_MARKS, 0.04D,
-                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL, groundedTraversal && hasNode(profile, ProgressionSkill.EXPLORATION, "trail_marks"));
-        updateModifier(player, Attributes.MOVEMENT_SPEED, MODIFIER_EXPLORATION_CARTOGRAPHERS_FOCUS, 0.04D,
+        updateModifier(player, Attributes.MOVEMENT_SPEED, MODIFIER_FINESSE_TRAIL_MARKS, 0.04D,
+                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL, groundedTraversal && hasNode(profile, ProgressionSkill.FINESSE, "trail_marks"));
+        updateModifier(player, Attributes.MOVEMENT_SPEED, MODIFIER_FINESSE_CARTOGRAPHERS_FOCUS, 0.04D,
                 AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL,
-                groundedTraversal && player.isSprinting() && hasNode(profile, ProgressionSkill.EXPLORATION, "cartographers_focus"));
+                groundedTraversal && player.isSprinting() && hasNode(profile, ProgressionSkill.FINESSE, "cartographers_focus"));
 
         boolean lowLight = player.level().getMaxLocalRawBrightness(player.blockPosition()) <= 7;
-        if (lowLight && hasNode(profile, ProgressionSkill.EXPLORATION, "wanderers_instinct")) {
+        if (lowLight && hasNode(profile, ProgressionSkill.FINESSE, "wanderers_instinct")) {
             player.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, EXPLORATION_NIGHT_VISION_TICKS, 0, true, false, true));
         }
+
+        // Valor Grit nodes handled here as they involve similar recovery mechanics.
+        applyValorGritPassives(player, profile);
     }
 
-    private static void applyVitalityPassives(ServerPlayer player, LevelProfile profile) {
-        updateModifier(player, Attributes.MAX_HEALTH, MODIFIER_VITALITY_IRON_RESERVE, 2.0D,
-                AttributeModifier.Operation.ADD_VALUE, hasNode(profile, ProgressionSkill.VITALITY, "iron_reserve"));
+    private static void applyValorGritPassives(ServerPlayer player, LevelProfile profile) {
+        updateModifier(player, Attributes.MAX_HEALTH, MODIFIER_VALOR_IRON_RESERVE, 2.0D,
+                AttributeModifier.Operation.ADD_VALUE, hasNode(profile, ProgressionSkill.VALOR, "iron_reserve"));
 
-        if (hasNode(profile, ProgressionSkill.VITALITY, "last_stand")
+        if (hasNode(profile, ProgressionSkill.VALOR, "last_stand")
                 && player.getMaxHealth() > 0.0F
                 && player.getHealth() <= player.getMaxHealth() * VITALITY_LAST_STAND_HEALTH_RATIO) {
             player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, VITALITY_LAST_STAND_TICKS, 0, true, false, true));
         }
 
-        if (!hasNode(profile, ProgressionSkill.VITALITY, "restorative_bloom")) {
+        if (!hasNode(profile, ProgressionSkill.VALOR, "restorative_bloom")) {
             return;
         }
         if (player.getFoodData().getFoodLevel() < VITALITY_MIN_FOOD_FOR_RECOVERY || player.getHealth() >= player.getMaxHealth()) {
@@ -347,9 +349,9 @@ public final class MasteryNodeEffects {
         }
 
         long recoveryDelay = VITALITY_RESTORATIVE_BLOOM_DELAY_TICKS;
-        if (hasNode(profile, ProgressionSkill.VITALITY, "renewing_core")) {
+        if (hasNode(profile, ProgressionSkill.VALOR, "renewing_core")) {
             recoveryDelay = VITALITY_RENEWING_CORE_DELAY_TICKS;
-        } else if (hasNode(profile, ProgressionSkill.VITALITY, "rapid_recovery")) {
+        } else if (hasNode(profile, ProgressionSkill.VALOR, "rapid_recovery")) {
             recoveryDelay = VITALITY_RAPID_RECOVERY_DELAY_TICKS;
         }
 
@@ -359,7 +361,7 @@ public final class MasteryNodeEffects {
             return;
         }
 
-        boolean renewingCore = hasNode(profile, ProgressionSkill.VITALITY, "renewing_core");
+        boolean renewingCore = hasNode(profile, ProgressionSkill.VALOR, "renewing_core");
         float recoveryThreshold = renewingCore ? player.getMaxHealth() * VITALITY_RENEWING_CORE_HEALTH_RATIO : player.getMaxHealth();
         if (player.getHealth() > recoveryThreshold) {
             return;
@@ -376,17 +378,17 @@ public final class MasteryNodeEffects {
             LevelProfile profile,
             float damage
     ) {
-        if (hasNode(profile, ProgressionSkill.MAGICK, "sealed_circuit")
+        if (hasNode(profile, ProgressionSkill.ARCANA, "sealed_circuit")
                 && (event.getSource().is(DamageTypes.MAGIC) || event.getSource().is(DamageTypes.INDIRECT_MAGIC))) {
             damage *= 0.75F;
         }
-        if (hasNode(profile, ProgressionSkill.EXPLORATION, "measured_stride") && event.getSource().is(DamageTypes.FALL)) {
+        if (hasNode(profile, ProgressionSkill.FINESSE, "measured_stride") && event.getSource().is(DamageTypes.FALL)) {
             damage *= 0.80F;
         }
-        if (hasNode(profile, ProgressionSkill.VITALITY, "stoneheart") && damage >= 4.0F) {
+        if (hasNode(profile, ProgressionSkill.VALOR, "stoneheart") && damage >= 4.0F) {
             damage *= 0.88F;
         }
-        if (hasNode(profile, ProgressionSkill.VITALITY, "last_stand")
+        if (hasNode(profile, ProgressionSkill.VALOR, "last_stand")
                 && defender.getMaxHealth() > 0.0F
                 && defender.getHealth() <= defender.getMaxHealth() * VITALITY_LAST_STAND_HEALTH_RATIO) {
             damage *= 0.90F;

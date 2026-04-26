@@ -6,10 +6,14 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.zoogle.levelrpg.client.data.ClientProfileCache;
+import net.zoogle.levelrpg.net.payload.BindArchetypeRequestPayload;
+import net.zoogle.levelrpg.net.payload.RequestProfileSyncPayload;
 import net.zoogle.levelrpg.net.payload.SpendSkillPointRequestPayload;
+import net.zoogle.levelrpg.net.payload.UnlockTreeNodeRequestPayload;
 import net.zoogle.levelrpg.net.payload.SyncLevelDeltaPayload;
 import net.zoogle.levelrpg.net.payload.SyncLevelProfilePayload;
 import net.zoogle.levelrpg.profile.LevelProfile;
+import net.zoogle.levelrpg.profile.ProgressionSkill;
 import net.zoogle.levelrpg.profile.SkillState;
 import net.zoogle.levelrpg.progression.PassiveSkillScalingService;
 import net.zoogle.levelrpg.progression.SkillPointProgression;
@@ -33,7 +37,9 @@ public class Network {
                                 payload.toTreeSpentMap(),
                                 payload.toTreeUnlockedMap(),
                                 payload.availableSkillPoints(),
-                                payload.spentSkillPoints()
+                                payload.spentSkillPoints(),
+                                payload.archetypeId(),
+                                payload.archetypeApplied()
                         );
                     });
                 }
@@ -52,6 +58,37 @@ public class Network {
                                 payload.spentSkillPoints()
                         );
                     });
+                }
+        );
+        registrar.playToServer(
+                RequestProfileSyncPayload.TYPE,
+                RequestProfileSyncPayload.STREAM_CODEC,
+                (payload, context) -> {
+                    if (!(context.player() instanceof ServerPlayer player)) {
+                        return;
+                    }
+                    LevelProfile profile = LevelProfile.get(player);
+                    LevelProfile.save(player, profile);
+                    sendSync(player, profile);
+                }
+        );
+        registrar.playToServer(
+                BindArchetypeRequestPayload.TYPE,
+                BindArchetypeRequestPayload.STREAM_CODEC,
+                (payload, context) -> {
+                    if (!(context.player() instanceof ServerPlayer player)) {
+                        return;
+                    }
+                    LevelProfile profile = LevelProfile.get(player);
+                    LevelProfile.ArchetypeApplyResult result = profile.selectAndApplyArchetype(payload.archetypeId());
+                    if (!result.success) {
+                        player.displayClientMessage(Component.literal(result.message), true);
+                        return;
+                    }
+                    PassiveSkillScalingService.applyIfChanged(player, profile);
+                    LevelProfile.save(player, profile);
+                    sendSync(player, profile);
+                    player.displayClientMessage(Component.literal("Archetype bound: " + payload.archetypeId().getPath()), true);
                 }
         );
         registrar.playToServer(
@@ -76,6 +113,41 @@ public class Network {
                                     + ". Skill Level is now "
                                     + result.resultingSkillLevel()
                                     + "."
+                    ), true);
+                }
+        );
+        registrar.playToServer(
+                UnlockTreeNodeRequestPayload.TYPE,
+                UnlockTreeNodeRequestPayload.STREAM_CODEC,
+                (payload, context) -> {
+                    if (!(context.player() instanceof ServerPlayer player)) {
+                        return;
+                    }
+                    if (payload.skillId() == null || !ProgressionSkill.isCanonicalId(payload.skillId())) {
+                        return;
+                    }
+                    String nodeId = payload.nodeId();
+                    if (nodeId == null || nodeId.isBlank()) {
+                        return;
+                    }
+                    LevelProfile profile = LevelProfile.get(player);
+                    LevelProfile.UnlockResult res = profile.unlockNode(payload.skillId(), nodeId.trim());
+                    if (!res.success) {
+                        player.displayClientMessage(Component.literal(res.message), true);
+                        return;
+                    }
+                    LevelProfile.save(player, profile);
+                    sendSync(player, profile);
+                    player.displayClientMessage(Component.literal(
+                            "Unlocked "
+                                    + nodeId
+                                    + " in "
+                                    + displayNameForSkill(payload.skillId())
+                                    + ". Specialization "
+                                    + res.availablePoints
+                                    + " / "
+                                    + res.earnedPoints
+                                    + " remaining."
                     ), true);
                 }
         );

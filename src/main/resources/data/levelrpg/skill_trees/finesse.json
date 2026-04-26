@@ -1,0 +1,20 @@
+{
+  "skill": "levelrpg:finesse",
+  "title": "Finesse Mastery",
+  "summary": "Finesse branches between disciplined pathfinding and razor-edged positional combat. The mobile fighter wins by choosing where and when to engage — not by hitting harder.",
+  "minSkillLevel": 1,
+  "thresholds": [
+    { "id": "first_step", "level": 1, "points": 1, "title": "First Step", "description": "Choose how you move through danger." },
+    { "id": "charted_routes", "level": 5, "points": 1, "title": "Charted Routes", "description": "Your movement habits become more intentional." },
+    { "id": "far_horizon", "level": 10, "points": 1, "title": "Far Horizon", "description": "A mid-game movement identity emerges." },
+    { "id": "shadowstep", "level": 18, "points": 1, "title": "Shadowstep", "description": "Late mastery cements your command of distance and approach." }
+  ],
+  "nodes": [
+    { "id": "trail_marks", "title": "Trail Marks", "description": "Favors reliable navigation and route memory.", "branch": "pathfinding", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "wanderers_instinct", "title": "Wanderer's Instinct", "description": "Favors curiosity, detours, and awareness of hidden approaches.", "branch": "evasion", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "measured_stride", "title": "Measured Stride", "description": "Deepens pathfinding into controlled long-distance travel and reduced fall impact.", "branch": "pathfinding", "cost": 1, "requiredSkillLevel": 5, "requires": ["trail_marks"] },
+    { "id": "hidden_waypoints", "title": "Hidden Waypoints", "description": "Deepens evasion into better off-route awareness and positional burst.", "branch": "evasion", "cost": 1, "requiredSkillLevel": 5, "requires": ["wanderers_instinct"] },
+    { "id": "cartographers_focus", "title": "Cartographer's Focus", "description": "Commits to reliable traversal and speed while sprinting.", "branch": "pathfinding", "cost": 2, "requiredSkillLevel": 10, "requires": ["measured_stride"] },
+    { "id": "frontier_sense", "title": "Frontier Sense", "description": "Commits to positional awareness and threat-reading on the move.", "branch": "evasion", "cost": 2, "requiredSkillLevel": 10, "requires": ["hidden_waypoints"] }
+  ]
+}

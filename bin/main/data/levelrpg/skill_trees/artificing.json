@@ -1,0 +1,20 @@
+{
+  "skill": "levelrpg:artificing",
+  "title": "Artificing Mastery",
+  "summary": "Artificing develops into either efficient workshop throughput or higher-complexity invention. Threshold pacing keeps each unlock tied to visible technical growth.",
+  "minSkillLevel": 1,
+  "thresholds": [
+    { "id": "workbench_basics", "level": 1, "points": 1, "title": "Workbench Basics", "description": "Pick the kind of artisan you are becoming." },
+    { "id": "applied_method", "level": 5, "points": 1, "title": "Applied Method", "description": "Specialization becomes visible in how you approach crafting." },
+    { "id": "systems_thinking", "level": 10, "points": 1, "title": "Systems Thinking", "description": "Your practice moves from tinkering to designed process." },
+    { "id": "master_blueprints", "level": 18, "points": 1, "title": "Master Blueprints", "description": "Late-game mastery supports advanced invention paths." }
+  ],
+  "nodes": [
+    { "id": "field_tinkering", "title": "Field Tinkering", "description": "Leans into practical, fast-turnaround engineering.", "branch": "field", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "precision_fabrication", "title": "Precision Fabrication", "description": "Leans into careful, exact technical work.", "branch": "precision", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "salvage_loop", "title": "Salvage Loop", "description": "Extends the field branch into iterative reuse and adaptation.", "branch": "field", "cost": 1, "requiredSkillLevel": 5, "requires": ["field_tinkering"] },
+    { "id": "clockwork_layouts", "title": "Clockwork Layouts", "description": "Extends the precision branch into more deliberate mechanism planning.", "branch": "precision", "cost": 1, "requiredSkillLevel": 5, "requires": ["precision_fabrication"] },
+    { "id": "improvised_rigging", "title": "Improvised Rigging", "description": "Commits to responsive invention under field constraints.", "branch": "field", "cost": 2, "requiredSkillLevel": 10, "requires": ["salvage_loop"] },
+    { "id": "master_mechanisms", "title": "Master Mechanisms", "description": "Commits to higher-complexity crafted systems.", "branch": "precision", "cost": 2, "requiredSkillLevel": 10, "requires": ["clockwork_layouts"] }
+  ]
+}

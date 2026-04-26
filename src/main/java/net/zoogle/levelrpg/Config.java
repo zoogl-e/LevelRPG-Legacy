@@ -22,10 +22,6 @@ public class Config {
             .comment("Enable the Level Book keybind (client-side). If false, the K key will not open the Level Book.")
             .define("client.enableLevelBookKeybind", true);
 
-    private static final ModConfigSpec.BooleanValue USE_GECKOLIB_BOOK = BUILDER
-            .comment("Use GeckoLib for the Level Book GUI (requires geo assets).")
-            .define("client.useGeckoLibBook", true);
-
     // Autocorrect settings
     public static final ModConfigSpec.IntValue AUTOCORRECT_MAX_DISTANCE = BUILDER
             .comment("Levenshtein distance threshold for skill name autocorrect in commands. 0 disables fuzzy matching.")
@@ -37,7 +33,6 @@ public class Config {
     public static boolean feedbackLoginMessage;
     public static boolean devEnableEditor;
     public static boolean enableLevelBookKeybind = true; // default on to match spec default
-    public static boolean useGeckoLibBook = true;
     public static int autocorrectMaxDistance;
 
     @SubscribeEvent
@@ -45,7 +40,6 @@ public class Config {
         feedbackLoginMessage = FEEDBACK_LOGIN_MESSAGE.get();
         devEnableEditor = DEV_ENABLE_EDITOR.get();
         enableLevelBookKeybind = ENABLE_LEVEL_BOOK_KEYBIND.get();
-        useGeckoLibBook = USE_GECKOLIB_BOOK.get();
         autocorrectMaxDistance = Math.max(0, AUTOCORRECT_MAX_DISTANCE.get());
     }
 }

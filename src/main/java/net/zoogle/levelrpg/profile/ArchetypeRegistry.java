@@ -22,9 +22,9 @@ public final class ArchetypeRegistry {
                 "Knight",
                 "A martial start focused on direct combat, resilience, and basic smithing.",
                 Map.of(
-                        ProgressionSkill.VALOR, 3,
-                        ProgressionSkill.VITALITY, 2,
-                        ProgressionSkill.FORGING, 1
+                        ProgressionSkill.VALOR, 4,
+                        ProgressionSkill.FORGING, 1,
+                        ProgressionSkill.FINESSE, 1
                 )
         );
         register(
@@ -34,8 +34,8 @@ public final class ArchetypeRegistry {
                 Map.of(
                         ProgressionSkill.ARTIFICING, 3,
                         ProgressionSkill.FORGING, 2,
-                        ProgressionSkill.MINING, 1,
-                        ProgressionSkill.MAGICK, 1
+                        ProgressionSkill.DELVING, 1,
+                        ProgressionSkill.ARCANA, 1
                 )
         );
         register(
@@ -44,13 +44,12 @@ public final class ArchetypeRegistry {
                 "A humble, broad start with light experience across the fundamentals.",
                 Map.of(
                         ProgressionSkill.VALOR, 1,
-                        ProgressionSkill.VITALITY, 1,
-                        ProgressionSkill.MINING, 1,
-                        ProgressionSkill.CULINARY, 1,
+                        ProgressionSkill.FINESSE, 1,
+                        ProgressionSkill.DELVING, 1,
+                        ProgressionSkill.HEARTH, 1,
                         ProgressionSkill.FORGING, 1,
                         ProgressionSkill.ARTIFICING, 1,
-                        ProgressionSkill.MAGICK, 1,
-                        ProgressionSkill.EXPLORATION, 1
+                        ProgressionSkill.ARCANA, 1
                 )
         );
     }

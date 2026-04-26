@@ -1,0 +1,5 @@
+{
+  "id": "levelrpg:artificing",
+  "display": { "name": "Artificing", "color": "#00BCD4", "icon": "", "notes": "Technology, reach, durability retainment" },
+  "xpCurve": "levelrpg:default"
+}

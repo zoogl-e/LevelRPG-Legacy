@@ -16,12 +16,11 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Canonical Magick rules. Keep the first pass vanilla-first and narrow:
- * enchanting results, brewed potion results, and a small set of curated
- * mystical craft outputs.
+ * Canonical Arcana rules. Scholarly understanding through enchanting,
+ * brewing, and curated magical craft outputs — not offensive spellcasting.
  */
 public final class MagickXpRules {
-    public static final ResourceLocation SKILL_ID = ProgressionSkill.MAGICK.id();
+    public static final ResourceLocation SKILL_ID = ProgressionSkill.ARCANA.id();
 
     private static final long SAME_RESULT_COOLDOWN_TICKS = 100L;
 

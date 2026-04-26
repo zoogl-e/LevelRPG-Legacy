@@ -8,11 +8,11 @@ import net.minecraft.world.item.ItemStack;
 import net.zoogle.levelrpg.profile.ProgressionSkill;
 
 /**
- * Canonical Culinary rules. Keep the signal focused on prepared food outputs,
- * not generic crafting throughput.
+ * Canonical Hearth rules. Prepared food, cooked meals, and the caretaker's
+ * output — not generic crafting throughput.
  */
 public final class CulinaryXpRules {
-    public static final ResourceLocation SKILL_ID = ProgressionSkill.CULINARY.id();
+    public static final ResourceLocation SKILL_ID = ProgressionSkill.HEARTH.id();
 
     private CulinaryXpRules() {}
 

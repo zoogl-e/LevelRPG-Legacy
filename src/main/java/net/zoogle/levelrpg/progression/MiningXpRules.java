@@ -7,11 +7,11 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.zoogle.levelrpg.profile.ProgressionSkill;
 
 /**
- * Canonical Mining rules. Keep the signal narrow: ores and stone-like mining,
- * not broad block farming.
+ * Canonical Delving rules. Underground and underwater mastery — ores,
+ * stone-like blocks, and the hidden places most players avoid.
  */
 public final class MiningXpRules {
-    public static final ResourceLocation SKILL_ID = ProgressionSkill.MINING.id();
+    public static final ResourceLocation SKILL_ID = ProgressionSkill.DELVING.id();
 
     private MiningXpRules() {}
 

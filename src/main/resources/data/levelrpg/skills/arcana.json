@@ -1,0 +1,5 @@
+{
+  "id": "levelrpg:arcana",
+  "display": { "name": "Arcana", "color": "#9B59B6", "icon": "", "notes": "Scholarly study, enchanting, brewing, dimensional entanglement" },
+  "xpCurve": "levelrpg:default"
+}

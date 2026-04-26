@@ -1,0 +1,20 @@
+{
+  "skill": "levelrpg:delving",
+  "title": "Delving Mastery",
+  "summary": "Delving branches between underground extraction and underwater discovery. Both branches reward going where most players won't — and finding what's there.",
+  "minSkillLevel": 1,
+  "thresholds": [
+    { "id": "first_descent", "level": 1, "points": 1, "title": "First Descent", "description": "Choose whether your mastery favors the cave or the sea." },
+    { "id": "steady_excavation", "level": 5, "points": 1, "title": "Steady Excavation", "description": "Your chosen route changes the pace and safety of a run." },
+    { "id": "ore_sense", "level": 10, "points": 1, "title": "Ore Sense", "description": "A committed specialist now feels distinct in the deep." },
+    { "id": "deep_delver", "level": 18, "points": 1, "title": "Deep Delver", "description": "Late mastery turns your branch into a full Delving identity." }
+  ],
+  "nodes": [
+    { "id": "clean_cuts", "title": "Clean Cuts", "description": "The underground route tears through stone and deepslate with ruthless efficiency.", "branch": "underground", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "prospectors_eye", "title": "Prospector's Eye", "description": "The prospecting route closes faster on ore veins and favors targeted extraction.", "branch": "underground", "cost": 1, "requiredSkillLevel": 1 },
+    { "id": "vein_following", "title": "Vein Following", "description": "Each ore pocket feeds a burst of speed, letting you chain deposits together.", "branch": "underground", "cost": 1, "requiredSkillLevel": 5, "requires": ["clean_cuts"] },
+    { "id": "deep_scan", "title": "Deep Scan", "description": "A deep delver learns to see in poor light and read the dark more confidently.", "branch": "underwater", "cost": 1, "requiredSkillLevel": 5, "requires": ["prospectors_eye"] },
+    { "id": "quarry_discipline", "title": "Quarry Discipline", "description": "Stone breaks feed your tempo, turning tunnel work into an uninterrupted rush.", "branch": "underground", "cost": 2, "requiredSkillLevel": 10, "requires": ["vein_following"] },
+    { "id": "voidward_prospecting", "title": "Voidward Prospecting", "description": "The deepest runs become survivable — letting a specialist stay in hostile ground longer.", "branch": "underwater", "cost": 2, "requiredSkillLevel": 10, "requires": ["deep_scan"] }
+  ]
+}
