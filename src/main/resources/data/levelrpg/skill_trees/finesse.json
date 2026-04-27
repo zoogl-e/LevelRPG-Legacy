@@ -10,11 +10,21 @@
     { "id": "shadowstep", "level": 18, "points": 1, "title": "Shadowstep", "description": "Late mastery cements your command of distance and approach." }
   ],
   "nodes": [
-    { "id": "trail_marks", "title": "Trail Marks", "description": "Favors reliable navigation and route memory.", "branch": "pathfinding", "cost": 1, "requiredSkillLevel": 1 },
-    { "id": "wanderers_instinct", "title": "Wanderer's Instinct", "description": "Favors curiosity, detours, and awareness of hidden approaches.", "branch": "evasion", "cost": 1, "requiredSkillLevel": 1 },
-    { "id": "measured_stride", "title": "Measured Stride", "description": "Deepens pathfinding into controlled long-distance travel and reduced fall impact.", "branch": "pathfinding", "cost": 1, "requiredSkillLevel": 5, "requires": ["trail_marks"] },
-    { "id": "hidden_waypoints", "title": "Hidden Waypoints", "description": "Deepens evasion into better off-route awareness and positional burst.", "branch": "evasion", "cost": 1, "requiredSkillLevel": 5, "requires": ["wanderers_instinct"] },
-    { "id": "cartographers_focus", "title": "Cartographer's Focus", "description": "Commits to reliable traversal and speed while sprinting.", "branch": "pathfinding", "cost": 2, "requiredSkillLevel": 10, "requires": ["measured_stride"] },
-    { "id": "frontier_sense", "title": "Frontier Sense", "description": "Commits to positional awareness and threat-reading on the move.", "branch": "evasion", "cost": 2, "requiredSkillLevel": 10, "requires": ["hidden_waypoints"] }
+    { "id": "finesse_wayfarer_script", "title": "Wayfarer's Script", "description": "The first leaf teaches that position is a blade sharpened before any arrow is loosed.", "branch": "core", "cost": 1, "requiredSkillLevel": 1, "requires": [], "layoutX": 0, "layoutY": 0, "iconKey": "minecraft:writable_book" },
+
+    { "id": "ranger_true_draw", "title": "Ranger's True Draw", "description": "A ranger's notation insists that calm breath and measured pull bend distance to your will.", "branch": "ranger", "cost": 1, "requiredSkillLevel": 1, "requires": ["finesse_wayfarer_script"], "layoutX": -120, "layoutY": 120, "iconKey": "minecraft:bow" },
+    { "id": "acrobat_lightstep", "title": "Acrobat's Lightstep", "description": "The acrobat chapter praises feet that leave no promise for an enemy to punish.", "branch": "acrobat", "cost": 1, "requiredSkillLevel": 1, "requires": ["finesse_wayfarer_script"], "layoutX": 120, "layoutY": 120, "iconKey": "minecraft:feather" },
+
+    { "id": "ranger_kiting_arc", "title": "Kiting Arc", "description": "Trail diagrams show retreating lines that keep prey forever one stride too far.", "branch": "ranger", "cost": 1, "requiredSkillLevel": 6, "requires": ["ranger_true_draw"], "layoutX": -120, "layoutY": 240, "iconKey": "minecraft:crossbow" },
+    { "id": "acrobat_slipline", "title": "Slipline", "description": "This passage maps sidesteps that turn committed swings into wasted momentum.", "branch": "acrobat", "cost": 1, "requiredSkillLevel": 6, "requires": ["acrobat_lightstep"], "layoutX": 120, "layoutY": 240, "iconKey": "minecraft:leather_boots" },
+    { "id": "finesse_crossline_reading", "title": "Crossline Reading", "description": "Between shot and step, this folio teaches reading intent before steel can answer.", "branch": "cross", "cost": 2, "requiredSkillLevel": 6, "requires": ["ranger_kiting_arc", "acrobat_slipline"], "layoutX": 0, "layoutY": 240, "iconKey": "minecraft:compass" },
+
+    { "id": "ranger_last_light", "title": "Last-Light Mark", "description": "Hunters' notes claim twilight itself favors the patient archer who never hurries a kill.", "branch": "ranger", "cost": 2, "requiredSkillLevel": 12, "requires": ["ranger_kiting_arc"], "layoutX": -120, "layoutY": 360, "iconKey": "minecraft:tipped_arrow" },
+    { "id": "ranger_deadwind_volley", "title": "Deadwind Volley", "description": "The outer pages describe fletching storms that herd foes as surely as any wall.", "branch": "ranger", "cost": 2, "requiredSkillLevel": 12, "requires": ["ranger_kiting_arc"], "layoutX": -240, "layoutY": 360, "iconKey": "minecraft:arrow" },
+    { "id": "acrobat_reversal_step", "title": "Reversal Step", "description": "A narrow hand records the instant a retreating heel becomes an advancing threat.", "branch": "acrobat", "cost": 2, "requiredSkillLevel": 12, "requires": ["acrobat_slipline"], "layoutX": 120, "layoutY": 360, "iconKey": "minecraft:rabbit_foot" },
+    { "id": "acrobat_knife_dance", "title": "Knife Dance", "description": "This leaf praises spinning routes through crowded blades where hesitation cannot live.", "branch": "acrobat", "cost": 2, "requiredSkillLevel": 12, "requires": ["acrobat_slipline"], "layoutX": 240, "layoutY": 360, "iconKey": "minecraft:iron_sword" },
+
+    { "id": "ranger_horizon_liturgy", "title": "Horizon Liturgy", "description": "Hidden beneath wax, this verse teaches arrows to rule land no boot has reached.", "branch": "ranger", "cost": 3, "requiredSkillLevel": 20, "requires": ["ranger_last_light", "ranger_deadwind_volley"], "layoutX": -300, "layoutY": 480, "iconKey": "minecraft:spectral_arrow", "visibility": "obfuscated" },
+    { "id": "acrobat_midair_verdict", "title": "Midair Verdict", "description": "A veiled coda claims the master acrobat decides outcomes while neither foot has landed.", "branch": "acrobat", "cost": 3, "requiredSkillLevel": 20, "requires": ["acrobat_reversal_step", "acrobat_knife_dance"], "layoutX": 300, "layoutY": 480, "iconKey": "minecraft:wind_charge", "visibility": "obfuscated" }
   ]
 }

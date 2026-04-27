@@ -10,11 +10,21 @@
     { "id": "feastwright", "level": 18, "points": 1, "title": "Feastwright", "description": "Late thresholds support signature Hearth specialization." }
   ],
   "nodes": [
-    { "id": "trail_rations", "title": "Trail Rations", "description": "Favors efficient nourishment and steady adventuring support.", "branch": "provisioning", "cost": 1, "requiredSkillLevel": 1 },
-    { "id": "refined_plating", "title": "Refined Plating", "description": "Favors crafted meals with stronger identity and payoff.", "branch": "gourmet", "cost": 1, "requiredSkillLevel": 1 },
-    { "id": "campfire_efficiency", "title": "Campfire Efficiency", "description": "Deepens provisioning into reliable output for long trips.", "branch": "provisioning", "cost": 1, "requiredSkillLevel": 5, "requires": ["trail_rations"] },
-    { "id": "signature_spices", "title": "Signature Spices", "description": "Deepens gourmet cooking into distinctive prepared dishes.", "branch": "gourmet", "cost": 1, "requiredSkillLevel": 5, "requires": ["refined_plating"] },
-    { "id": "expedition_cookery", "title": "Expedition Cookery", "description": "Commits to efficient field provisioning.", "branch": "provisioning", "cost": 2, "requiredSkillLevel": 10, "requires": ["campfire_efficiency"] },
-    { "id": "banquet_craft", "title": "Banquet Craft", "description": "Commits to refined and high-impact cuisine.", "branch": "gourmet", "cost": 2, "requiredSkillLevel": 10, "requires": ["signature_spices"] }
+    { "id": "hearth_house_ledger", "title": "House Ledger", "description": "The ledger opens by declaring that a fed village outlives any sharpened sword.", "branch": "core", "cost": 1, "requiredSkillLevel": 1, "requires": [], "layoutX": 0, "layoutY": 0, "iconKey": "minecraft:book" },
+
+    { "id": "cook_salt_lesson", "title": "Salt Lesson", "description": "Cook's notes teach balancing hunger, warmth, and flavor as one faithful craft.", "branch": "cook", "cost": 1, "requiredSkillLevel": 1, "requires": ["hearth_house_ledger"], "layoutX": -120, "layoutY": 120, "iconKey": "minecraft:cooked_beef" },
+    { "id": "cultivator_green_hand", "title": "Green Hand", "description": "The cultivator chapter praises patient hands that coax life from reluctant soil.", "branch": "cultivator", "cost": 1, "requiredSkillLevel": 1, "requires": ["hearth_house_ledger"], "layoutX": 120, "layoutY": 120, "iconKey": "minecraft:wheat_seeds" },
+
+    { "id": "cook_fire_timing", "title": "Fire Timing", "description": "This page records embers and intervals that spare grain from waste and bitterness.", "branch": "cook", "cost": 1, "requiredSkillLevel": 6, "requires": ["cook_salt_lesson"], "layoutX": -120, "layoutY": 240, "iconKey": "minecraft:campfire" },
+    { "id": "cultivator_soil_turning", "title": "Soil Turning", "description": "Cultivator margins describe furrows that breathe, drain, and welcome fast growth.", "branch": "cultivator", "cost": 1, "requiredSkillLevel": 6, "requires": ["cultivator_green_hand"], "layoutX": 120, "layoutY": 240, "iconKey": "minecraft:iron_hoe" },
+    { "id": "hearth_shared_table", "title": "Shared Table", "description": "This center lesson binds kitchen and field into one promise of dependable plenty.", "branch": "cross", "cost": 2, "requiredSkillLevel": 6, "requires": ["cook_fire_timing", "cultivator_soil_turning"], "layoutX": 0, "layoutY": 240, "iconKey": "minecraft:bread" },
+
+    { "id": "cook_feast_rhythm", "title": "Feast Rhythm", "description": "Inner cook pages map menu cadence that keeps workers strong through long seasons.", "branch": "cook", "cost": 2, "requiredSkillLevel": 12, "requires": ["cook_fire_timing"], "layoutX": -120, "layoutY": 360, "iconKey": "minecraft:golden_carrot" },
+    { "id": "cook_royal_stock", "title": "Royal Stock", "description": "The outer kitchen script distills broth craft fit for courts and war hosts alike.", "branch": "cook", "cost": 2, "requiredSkillLevel": 12, "requires": ["cook_fire_timing"], "layoutX": -240, "layoutY": 360, "iconKey": "minecraft:suspicious_stew" },
+    { "id": "cultivator_orchard_cycle", "title": "Orchard Cycle", "description": "Inner cultivation notes follow bloom and pruning as a single yearly conversation.", "branch": "cultivator", "cost": 2, "requiredSkillLevel": 12, "requires": ["cultivator_soil_turning"], "layoutX": 120, "layoutY": 360, "iconKey": "minecraft:apple" },
+    { "id": "cultivator_herd_keeping", "title": "Herd Keeping", "description": "Outer husbandry entries set breeding lines for resilience, milk, wool, and meat.", "branch": "cultivator", "cost": 2, "requiredSkillLevel": 12, "requires": ["cultivator_soil_turning"], "layoutX": 240, "layoutY": 360, "iconKey": "minecraft:wheat" },
+
+    { "id": "cook_hidden_banquet", "title": "Hidden Banquet", "description": "Veiled parchment claims this table can restore a weary company in a single night.", "branch": "cook", "cost": 3, "requiredSkillLevel": 20, "requires": ["cook_feast_rhythm", "cook_royal_stock"], "layoutX": -300, "layoutY": 480, "iconKey": "minecraft:cake", "visibility": "obfuscated" },
+    { "id": "cultivator_evergreen_tithe", "title": "Evergreen Tithe", "description": "A hidden farmer's addendum describes harvests that endure blight, drought, and war.", "branch": "cultivator", "cost": 3, "requiredSkillLevel": 20, "requires": ["cultivator_orchard_cycle", "cultivator_herd_keeping"], "layoutX": 300, "layoutY": 480, "iconKey": "minecraft:golden_apple", "visibility": "obfuscated" }
   ]
 }
