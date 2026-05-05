@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Resolves graph coordinates for skill tree nodes. Explicit {@link SkillTreeDefinition.Node#layoutX()}
+ * Resolves graph coordinates for skill tree nodes. Explicit {@link SkillTreeCanonicalDefinition.Node#layoutX()}
  * / {@code layoutY} win; otherwise a layered layout is derived from prerequisite edges.
  */
 public final class SkillTreeGraphLayout {
@@ -24,7 +24,7 @@ public final class SkillTreeGraphLayout {
     /**
      * @return map node id → pixel position in graph space (top-left of the node slot)
      */
-    public static Map<String, int[]> resolve(SkillTreeDefinition tree) {
+    public static Map<String, int[]> resolve(SkillTreeCanonicalDefinition tree) {
         Map<String, int[]> placed = new LinkedHashMap<>();
         if (tree == null || tree.nodes().isEmpty()) {
             return placed;
@@ -32,7 +32,7 @@ public final class SkillTreeGraphLayout {
         List<String> ids = tree.orderedNodeIds();
         List<String> needAuto = new ArrayList<>();
         for (String id : ids) {
-            SkillTreeDefinition.Node node = tree.nodes().get(id);
+            SkillTreeCanonicalDefinition.Node node = tree.nodes().get(id);
             if (node == null) {
                 continue;
             }
@@ -53,7 +53,7 @@ public final class SkillTreeGraphLayout {
         for (int pass = 0; pass < ids.size() + 2; pass++) {
             boolean changed = false;
             for (String id : needAuto) {
-                SkillTreeDefinition.Node node = tree.nodes().get(id);
+                SkillTreeCanonicalDefinition.Node node = tree.nodes().get(id);
                 if (node == null) {
                     continue;
                 }

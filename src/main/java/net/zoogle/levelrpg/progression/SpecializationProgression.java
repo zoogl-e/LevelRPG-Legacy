@@ -29,12 +29,15 @@ public final class SpecializationProgression {
         return total;
     }
 
-    public static int earnedPoints(LevelProfile profile) {
-        return earnedPointsForTotalLevels(totalCanonicalLevels(profile));
+    public static int gainedInsight(LevelProfile profile) {
+        if (profile == null) {
+            return 0;
+        }
+        return gainedInsightForTotalLevels(totalCanonicalLevels(profile)) + Math.max(0, profile.bonusSpecializationPoints);
     }
 
-    /** Same thresholds as {@link #earnedPoints(LevelProfile)} but for an arbitrary invested-level total. */
-    public static int earnedPointsForTotalLevels(int totalInvestedLevelsAcrossSkills) {
+    /** Same thresholds as {@link #gainedInsight(LevelProfile)} but for an arbitrary invested-level total. */
+    public static int gainedInsightForTotalLevels(int totalInvestedLevelsAcrossSkills) {
         int totalLevels = Math.max(0, totalInvestedLevelsAcrossSkills);
         int earned = 0;
         for (int threshold : TOTAL_LEVEL_THRESHOLDS) {
@@ -45,7 +48,7 @@ public final class SpecializationProgression {
         return earned;
     }
 
-    public static int spentPoints(LevelProfile profile) {
+    public static int inscribedPoints(LevelProfile profile) {
         if (profile == null) {
             return 0;
         }
@@ -57,8 +60,8 @@ public final class SpecializationProgression {
         return spent;
     }
 
-    public static int availablePoints(LevelProfile profile) {
-        return Math.max(0, earnedPoints(profile) - spentPoints(profile));
+    public static int insight(LevelProfile profile) {
+        return Math.max(0, gainedInsight(profile) - inscribedPoints(profile));
     }
 
     public static int pointCap() {

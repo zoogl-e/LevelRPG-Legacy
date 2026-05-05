@@ -33,8 +33,8 @@ public final class RecipeUnlockService {
         });
     }
 
-    public static UnlockCheckResult checkAccess(ResourceLocation recipeId, Map<ResourceLocation, SkillState> skillLevels) {
-        Map<ResourceLocation, SkillState> safeMap = skillLevels == null ? Collections.emptyMap() : skillLevels;
+    public static UnlockCheckResult checkAccess(ResourceLocation recipeId, Map<ResourceLocation, SkillState> ranks) {
+        Map<ResourceLocation, SkillState> safeMap = ranks == null ? Collections.emptyMap() : ranks;
         return checkAccess(recipeId, skillId -> {
             SkillState state = safeMap.get(skillId);
             return state != null ? state.level : 0;

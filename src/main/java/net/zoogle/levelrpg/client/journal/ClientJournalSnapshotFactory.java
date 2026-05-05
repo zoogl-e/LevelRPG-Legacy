@@ -24,12 +24,12 @@ public final class ClientJournalSnapshotFactory {
             SkillState state = profile.getSkill(skill);
             if (cached != null) {
                 state.level = cached.level;
-                state.masteryLevel = cached.masteryLevel;
-                state.masteryXp = cached.masteryXp;
+                state.rank = cached.rank;
+                state.proficiency = cached.proficiency;
             } else {
                 state.level = 0;
-                state.masteryLevel = 0;
-                state.masteryXp = 0L;
+                state.rank = 0;
+                state.proficiency = 0L;
             }
             profile.treePointsSpent.put(skill.id(), ClientProfileCache.getTreePointsSpent(skill.id()));
             profile.treeUnlockedNodes.put(skill.id(), new java.util.HashSet<>(safeSet(ClientProfileCache.getTreeUnlockedNodes(skill.id()))));

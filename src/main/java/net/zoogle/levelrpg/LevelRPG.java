@@ -10,10 +10,14 @@ import net.neoforged.neoforge.common.NeoForge;
 import org.slf4j.Logger;
 import net.zoogle.levelrpg.events.ProfileEvents;
 import net.zoogle.levelrpg.events.ActivityEvents;
-import net.zoogle.levelrpg.events.MasteryEvents;
 import net.zoogle.levelrpg.events.PassiveSkillEvents;
 import net.zoogle.levelrpg.command.LevelCommands;
+import net.zoogle.levelrpg.gauge.DelvingMomentumGaugeModifiers;
+import net.zoogle.levelrpg.gauge.FinesseRhythmGaugeModifiers;
+import net.zoogle.levelrpg.gauge.GaugeModifiers;
+import net.zoogle.levelrpg.gauge.ValorResolveGaugeModifiers;
 import net.zoogle.levelrpg.net.Network;
+import net.zoogle.levelrpg.technique.TechniqueRegistry;
 
 @Mod(LevelRPG.MODID)
 public class LevelRPG {
@@ -24,11 +28,25 @@ public class LevelRPG {
         // GeckoLib 4.x no longer requires explicit initialize() call for NeoForge.
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(net.zoogle.levelrpg.net.Network::registerPayloadHandlers);
+        TechniqueRegistry.init();
+        GaugeModifiers.register(new DelvingMomentumGaugeModifiers());
+        GaugeModifiers.register(new ValorResolveGaugeModifiers());
+        GaugeModifiers.register(new FinesseRhythmGaugeModifiers());
 
         NeoForge.EVENT_BUS.register(new ProfileEvents());
         NeoForge.EVENT_BUS.register(new ActivityEvents());
         NeoForge.EVENT_BUS.register(new PassiveSkillEvents());
-        NeoForge.EVENT_BUS.register(new MasteryEvents());
+        NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.events.DelvingGameplayEvents());
+        NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.events.FinesseGameplayEvents());
+        NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.events.FinesseCombatEvents());
+        NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.finesse.FinesseProjectileParry.EventHandler());
+        NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.finesse.FinesseWeakSpotEffects());
+        NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.events.ValorGameplayEvents());
+        NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.events.ValorDuelistSliceEvents());
+        NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.events.ValorExtendedBranchesEvents());
+        NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.events.ValorTechniqueEvents());
+        NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.events.GaugeEvents());
+        NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.events.TechniqueEvents());
         NeoForge.EVENT_BUS.register(new LevelCommands());
         NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.data.DataEvents());
         NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.events.GateEvents());

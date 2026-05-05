@@ -15,7 +15,7 @@ import java.util.Objects;
 public final class SkillPointProgression {
     private SkillPointProgression() {}
 
-    public static int availablePoints(LevelProfile profile) {
+    public static int insight(LevelProfile profile) {
         return profile == null ? 0 : Math.max(0, profile.availableSkillPoints);
     }
 
@@ -24,14 +24,14 @@ public final class SkillPointProgression {
     }
 
     public static int earnedPoints(LevelProfile profile) {
-        return availablePoints(profile) + spentPoints(profile);
+        return insight(profile) + spentPoints(profile);
     }
 
     public static boolean canSpendPoint(LevelProfile profile, ResourceLocation skillId) {
         if (profile == null || skillId == null || !ProgressionSkill.isCanonicalId(skillId)) {
             return false;
         }
-        return availablePoints(profile) > 0;
+        return insight(profile) > 0;
     }
 
     public static void grantPoint(LevelProfile profile, int amount) {
@@ -63,11 +63,11 @@ public final class SkillPointProgression {
             boolean success,
             String message,
             int resultingSkillLevel,
-            int availablePoints,
+            int insight,
             int spentPoints
     ) {
-        public static SkillPointSpendResult success(ResourceLocation skillId, int resultingSkillLevel, int availablePoints, int spentPoints) {
-            return new SkillPointSpendResult(skillId, true, "Spent", resultingSkillLevel, availablePoints, spentPoints);
+        public static SkillPointSpendResult success(ResourceLocation skillId, int resultingSkillLevel, int insight, int spentPoints) {
+            return new SkillPointSpendResult(skillId, true, "Spent", resultingSkillLevel, insight, spentPoints);
         }
 
         public static SkillPointSpendResult failure(ResourceLocation skillId, String message) {

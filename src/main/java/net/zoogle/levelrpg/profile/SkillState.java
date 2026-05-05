@@ -12,50 +12,56 @@ public class SkillState {
      */
     public int level;
     /**
-     * Practice-facing passive mastery rank. Gameplay actions raise this automatically.
+     * Practice-facing passive rank. Gameplay actions raise this automatically.
      */
-    public int masteryLevel;
+    public int rank;
     /**
-     * Practice-facing mastery progress toward the next mastery level.
+     * Practice-facing proficiency progress toward the next rank.
      */
-    public long masteryXp;
+    public long proficiency;
 
     public SkillState() {
         this(0, 0, 0L);
     }
 
-    public SkillState(int level, int masteryLevel, long masteryXp) {
+    public SkillState(int level, int rank, long proficiency) {
         this.level = Math.max(0, level);
-        this.masteryLevel = Math.max(0, masteryLevel);
-        this.masteryXp = Math.max(0L, masteryXp);
+        this.rank = Math.max(0, rank);
+        this.proficiency = Math.max(0L, proficiency);
     }
 
     public CompoundTag serialize() {
         CompoundTag tag = new CompoundTag();
         tag.putInt("level", level);
-        tag.putInt("masteryLevel", masteryLevel);
-        tag.putLong("masteryXp", masteryXp);
-        // Legacy mirror for older readers that still expect xp to exist.
-        tag.putLong("xp", masteryXp);
+        tag.putInt("rank", rank);
+        tag.putLong("proficiency", proficiency);
+        // Legacy mirrors for older readers.
+        tag.putInt("masteryLevel", rank);
+        tag.putLong("masteryXp", proficiency);
+        tag.putLong("xp", proficiency);
         return tag;
     }
 
     public void deserialize(CompoundTag tag) {
         this.level = Math.max(0, tag.getInt("level"));
-        if (tag.contains("masteryLevel")) {
-            this.masteryLevel = Math.max(0, tag.getInt("masteryLevel"));
+        if (tag.contains("rank")) {
+            this.rank = Math.max(0, tag.getInt("rank"));
+        } else if (tag.contains("masteryLevel")) {
+            // Legacy migration: old masteryLevel becomes rank.
+            this.rank = Math.max(0, tag.getInt("masteryLevel"));
         } else {
-            // Legacy migration: old practiced level becomes mastery level.
-            this.masteryLevel = this.level;
+            this.rank = this.level;
         }
-        if (tag.contains("masteryXp")) {
-            this.masteryXp = Math.max(0L, tag.getLong("masteryXp"));
+        if (tag.contains("proficiency")) {
+            this.proficiency = Math.max(0L, tag.getLong("proficiency"));
+        } else if (tag.contains("masteryXp")) {
+            this.proficiency = Math.max(0L, tag.getLong("masteryXp"));
         } else {
-            this.masteryXp = Math.max(0L, tag.getLong("xp"));
+            this.proficiency = Math.max(0L, tag.getLong("xp"));
         }
     }
 
     public SkillState copy() {
-        return new SkillState(level, masteryLevel, masteryXp);
+        return new SkillState(level, rank, proficiency);
     }
 }

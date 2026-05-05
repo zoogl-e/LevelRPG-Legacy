@@ -1,0 +1,246 @@
+{
+  "skill": "levelrpg:forging",
+  "title": "Forging Mastery",
+  "summary": "Forging now branches between durable practical craft and high-performance smith work, making progression choices legible for future recipe unlock presentation.",
+  "minSkillLevel": 1,
+  "thresholds": [
+    {
+      "id": "forge_spark",
+      "level": 1,
+      "points": 1,
+      "title": "Forge Spark",
+      "description": "Choose your approach to metalwork."
+    },
+    {
+      "id": "tempered_hands",
+      "level": 6,
+      "points": 1,
+      "title": "Tempered Hands",
+      "description": "Your metalwork becomes more specialized."
+    },
+    {
+      "id": "anvil_focus",
+      "level": 12,
+      "points": 1,
+      "title": "Anvil Focus",
+      "description": "Mid-tree commitments become available."
+    },
+    {
+      "id": "grandmaster_forge",
+      "level": 20,
+      "points": 1,
+      "title": "Grandmaster Forge",
+      "description": "Late thresholds support a defining smithing identity."
+    }
+  ],
+  "nodes": [
+    {
+      "id": "new_node_1",
+      "title": "Apprentice Smith",
+      "description": "You can repair Condition and begin shaping items through forging.\n\nWork Lock\nItems cannot be reforged immediately after a full session.",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 0,
+      "layoutY": 0
+    },
+    {
+      "id": "new_node_2",
+      "title": "Breaking In",
+      "description": "Using a freshly worked item improves its Condition slightly before decay begins.",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 0,
+      "layoutY": -63,
+      "requires": [
+        "new_node_1"
+      ]
+    },
+    {
+      "id": "new_node_3",
+      "title": "Set Metal",
+      "description": "Freshly Worked items retain their quality longer before degrading.",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 65,
+      "layoutY": -63,
+      "requires": [
+        "new_node_1"
+      ]
+    },
+    {
+      "id": "new_node_4",
+      "title": "Clean Work",
+      "description": "Applying traits no longer reduces Condition.",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 0,
+      "layoutY": -127,
+      "requires": [
+        "new_node_5"
+      ]
+    },
+    {
+      "id": "new_node_5",
+      "title": "Guided Forging",
+      "description": "You can preview and confirm traits before applying them.",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -62,
+      "layoutY": -127,
+      "requires": [
+        "new_node_2"
+      ]
+    },
+    {
+      "id": "new_node_6",
+      "title": "Reheat",
+      "description": "You may rework a Freshly Worked item early at increased cost.",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 65,
+      "layoutY": -127,
+      "requires": [
+        "new_node_3"
+      ]
+    },
+    {
+      "id": "new_node_7",
+      "title": "Lasting Form",
+      "description": "Forged improvements persist longer as Condition declines.",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 65,
+      "layoutY": -190,
+      "requires": [
+        "new_node_6"
+      ]
+    },
+    {
+      "id": "new_node_8",
+      "title": "Temper Link",
+      "description": "Traits scale with Condition.",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -62,
+      "layoutY": -190,
+      "requires": [
+        "new_node_4",
+        "new_node_7"
+      ]
+    },
+    {
+      "id": "new_node_9",
+      "title": "Dual Forging",
+      "description": "Items can hold two traits.",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -62,
+      "layoutY": -255,
+      "requires": [
+        "new_node_8"
+      ]
+    },
+    {
+      "id": "new_node_10",
+      "title": "Masterwork",
+      "description": "Items can hold a third trait and exceed normal Condition cap.",
+      "type": "technique",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 0,
+      "layoutY": -255,
+      "requires": [
+        "new_node_9"
+      ]
+    },
+    {
+      "id": "new_node_11",
+      "title": "Perfect Temper",
+      "description": "Forged items maintain peak performance for longer before degrading.",
+      "type": "technique",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 65,
+      "layoutY": -255,
+      "requires": [
+        "new_node_7"
+      ]
+    },
+    {
+      "id": "new_node_12",
+      "title": "Maker’s Mark",
+      "description": "Items you forge bear your signature.\n\nSignature Craft\nTraits are stronger on items bearing your Maker’s Mark.",
+      "type": "mastery",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 0,
+      "layoutY": -320,
+      "requires": [
+        "new_node_10"
+      ]
+    },
+    {
+      "id": "new_node_13",
+      "title": "Recognized Craft",
+      "description": "You repair your own items more effectively.",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -62,
+      "layoutY": -320,
+      "requires": [
+        "new_node_12"
+      ]
+    },
+    {
+      "id": "new_node_14",
+      "title": "Legacy Craft",
+      "description": "Your items degrade more gracefully.",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 65,
+      "layoutY": -320,
+      "requires": [
+        "new_node_12"
+      ]
+    },
+    {
+      "id": "new_node_15",
+      "title": "Trusted Work",
+      "description": "Others gain benefits from your crafted items.",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 0,
+      "layoutY": -383,
+      "requires": [
+        "new_node_12"
+      ]
+    },
+    {
+      "id": "new_node_16",
+      "title": "Grand Artisan",
+      "description": "Items you create start at higher Condition and have increased Condition cap.",
+      "type": "mastery",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 0,
+      "layoutY": -448,
+      "requires": [
+        "new_node_15",
+        "new_node_13",
+        "new_node_14"
+      ]
+    }
+  ]
+}

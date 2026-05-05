@@ -8,7 +8,7 @@ public enum SkillTreeNodeVisibility {
     NORMAL,
     /**
      * Hidden until the branch is discovered: shown once any direct prerequisite is unlocked,
-     * or immediately for roots once the tree's {@code minSkillLevel} is met.
+     * or immediately for roots once the tree's {@code minRank} is met.
      */
     HIDDEN,
     /**

@@ -22,6 +22,7 @@ public record SyncLevelProfilePayload(
         List<TreeEntry> trees,
         int availableSkillPoints,
         int spentSkillPoints,
+        int bonusSpecializationPoints,
         @Nullable ResourceLocation archetypeId,
         boolean archetypeApplied
 )
@@ -31,15 +32,51 @@ public record SyncLevelProfilePayload(
             ResourceLocation.fromNamespaceAndPath(LevelRPG.MODID, "sync_profile"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, SyncLevelProfilePayload> STREAM_CODEC =
-            StreamCodec.composite(
-                    Entry.STREAM_CODEC.apply(ByteBufCodecs.list(64)), SyncLevelProfilePayload::skills,
-                    TreeEntry.STREAM_CODEC.apply(ByteBufCodecs.list(64)), SyncLevelProfilePayload::trees,
-                    ByteBufCodecs.VAR_INT, SyncLevelProfilePayload::availableSkillPoints,
-                    ByteBufCodecs.VAR_INT, SyncLevelProfilePayload::spentSkillPoints,
-                    ByteBufCodecs.optional(ResourceLocation.STREAM_CODEC), payload -> java.util.Optional.ofNullable(payload.archetypeId()),
-                    ByteBufCodecs.BOOL, SyncLevelProfilePayload::archetypeApplied,
-                    (skills, trees, availablePoints, spentPoints, archetypeId, archetypeApplied) ->
-                            new SyncLevelProfilePayload(skills, trees, availablePoints, spentPoints, archetypeId.orElse(null), archetypeApplied)
+            StreamCodec.of(
+                    (buf, payload) -> {
+                        buf.writeVarInt(payload.skills().size());
+                        for (Entry entry : payload.skills()) {
+                            Entry.STREAM_CODEC.encode(buf, entry);
+                        }
+                        buf.writeVarInt(payload.trees().size());
+                        for (TreeEntry tree : payload.trees()) {
+                            TreeEntry.STREAM_CODEC.encode(buf, tree);
+                        }
+                        buf.writeVarInt(payload.availableSkillPoints());
+                        buf.writeVarInt(payload.spentSkillPoints());
+                        buf.writeVarInt(payload.bonusSpecializationPoints());
+                        buf.writeBoolean(payload.archetypeId() != null);
+                        if (payload.archetypeId() != null) {
+                            ResourceLocation.STREAM_CODEC.encode(buf, payload.archetypeId());
+                        }
+                        buf.writeBoolean(payload.archetypeApplied());
+                    },
+                    buf -> {
+                        int skillCount = Math.min(64, Math.max(0, buf.readVarInt()));
+                        ArrayList<Entry> skills = new ArrayList<>(skillCount);
+                        for (int i = 0; i < skillCount; i++) {
+                            skills.add(Entry.STREAM_CODEC.decode(buf));
+                        }
+                        int treeCount = Math.min(64, Math.max(0, buf.readVarInt()));
+                        ArrayList<TreeEntry> trees = new ArrayList<>(treeCount);
+                        for (int i = 0; i < treeCount; i++) {
+                            trees.add(TreeEntry.STREAM_CODEC.decode(buf));
+                        }
+                        int availableSkillPoints = buf.readVarInt();
+                        int spentSkillPoints = buf.readVarInt();
+                        int bonusSpecializationPoints = buf.readVarInt();
+                        ResourceLocation archetypeId = buf.readBoolean() ? ResourceLocation.STREAM_CODEC.decode(buf) : null;
+                        boolean archetypeApplied = buf.readBoolean();
+                        return new SyncLevelProfilePayload(
+                                List.copyOf(skills),
+                                List.copyOf(trees),
+                                availableSkillPoints,
+                                spentSkillPoints,
+                                bonusSpecializationPoints,
+                                archetypeId,
+                                archetypeApplied
+                        );
+                    }
             );
 
     @Override
@@ -50,7 +87,7 @@ public record SyncLevelProfilePayload(
     public static SyncLevelProfilePayload from(LevelProfile profile) {
         List<Entry> list = new ArrayList<>(ProgressionSkill.values().length);
         for (Map.Entry<ResourceLocation, SkillState> e : profile.canonicalSkillsView().entrySet()) {
-            list.add(new Entry(e.getKey(), e.getValue().level, e.getValue().masteryLevel, e.getValue().masteryXp));
+            list.add(new Entry(e.getKey(), e.getValue().level, e.getValue().rank, e.getValue().proficiency));
         }
         List<TreeEntry> treeEntries = new ArrayList<>(ProgressionSkill.values().length);
         for (ProgressionSkill skill : ProgressionSkill.values()) {
@@ -63,6 +100,7 @@ public record SyncLevelProfilePayload(
                 treeEntries,
                 profile.availableSkillPoints,
                 profile.spentSkillPoints,
+                profile.bonusSpecializationPoints,
                 profile.archetype.id,
                 profile.hasAppliedStartingArchetype()
         );
@@ -73,8 +111,8 @@ public record SyncLevelProfilePayload(
         for (Entry e : skills) {
             SkillState sp = new SkillState();
             sp.level = e.level();
-            sp.masteryLevel = e.masteryLevel();
-            sp.masteryXp = e.masteryXp();
+            sp.rank = e.rank();
+            sp.proficiency = e.proficiency();
             map.put(e.id(), sp);
         }
         return map;
@@ -83,7 +121,7 @@ public record SyncLevelProfilePayload(
     public Map<ResourceLocation, Integer> toTreeSpentMap() {
         LinkedHashMap<ResourceLocation, Integer> map = new LinkedHashMap<>();
         for (TreeEntry tree : trees) {
-            map.put(tree.id(), Math.max(0, tree.spentPoints()));
+            map.put(tree.id(), Math.max(0, tree.inscribedPoints()));
         }
         return map;
     }
@@ -96,18 +134,18 @@ public record SyncLevelProfilePayload(
         return map;
     }
 
-    public record Entry(ResourceLocation id, int level, int masteryLevel, long masteryXp) {
+    public record Entry(ResourceLocation id, int level, int rank, long proficiency) {
         public static final StreamCodec<RegistryFriendlyByteBuf, Entry> STREAM_CODEC =
                 StreamCodec.composite(
                         ResourceLocation.STREAM_CODEC, Entry::id,
                         ByteBufCodecs.VAR_INT, Entry::level,
-                        ByteBufCodecs.VAR_INT, Entry::masteryLevel,
-                        ByteBufCodecs.VAR_LONG, Entry::masteryXp,
+                        ByteBufCodecs.VAR_INT, Entry::rank,
+                        ByteBufCodecs.VAR_LONG, Entry::proficiency,
                         Entry::new
                 );
     }
 
-    public record TreeEntry(ResourceLocation id, int spentPoints, List<String> unlockedNodes) {
+    public record TreeEntry(ResourceLocation id, int inscribedPoints, List<String> unlockedNodes) {
         public TreeEntry {
             unlockedNodes = unlockedNodes == null ? List.of() : List.copyOf(unlockedNodes);
         }
@@ -115,7 +153,7 @@ public record SyncLevelProfilePayload(
         public static final StreamCodec<RegistryFriendlyByteBuf, TreeEntry> STREAM_CODEC =
                 StreamCodec.composite(
                         ResourceLocation.STREAM_CODEC, TreeEntry::id,
-                        ByteBufCodecs.VAR_INT, TreeEntry::spentPoints,
+                        ByteBufCodecs.VAR_INT, TreeEntry::inscribedPoints,
                         ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list(64)), TreeEntry::unlockedNodes,
                         TreeEntry::new
                 );

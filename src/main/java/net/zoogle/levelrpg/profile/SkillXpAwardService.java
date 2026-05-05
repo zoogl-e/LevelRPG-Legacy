@@ -1,15 +1,15 @@
 package net.zoogle.levelrpg.profile;
 
 import net.minecraft.resources.ResourceLocation;
-import net.zoogle.levelrpg.progression.MasteryProgressionService;
+import net.zoogle.levelrpg.progression.ProficiencyProgressionService;
 
 import java.util.Objects;
 
 /**
  * Deprecated XP-named compatibility shim.
  *
- * New gameplay code should call {@link LevelProfile#awardMastery(ResourceLocation, long)}
- * or {@link MasteryProgressionService} directly.
+ * New gameplay code should call {@link LevelProfile#awardProficiency(ResourceLocation, long)}
+ * or {@link ProficiencyProgressionService} directly.
  */
 @Deprecated
 public final class SkillXpAwardService {
@@ -19,6 +19,6 @@ public final class SkillXpAwardService {
     public static SkillXpResult award(LevelProfile profile, ResourceLocation skillId, long xpAmount) {
         Objects.requireNonNull(profile, "profile");
         Objects.requireNonNull(skillId, "skillId");
-        return SkillXpResult.from(MasteryProgressionService.award(profile, skillId, xpAmount));
+        return SkillXpResult.from(ProficiencyProgressionService.award(profile, skillId, xpAmount));
     }
 }

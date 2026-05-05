@@ -2,29 +2,413 @@
   "skill": "levelrpg:artificing",
   "title": "Artificing Mastery",
   "summary": "Artificing develops into either efficient workshop throughput or higher-complexity invention. Threshold pacing keeps each unlock tied to visible technical growth.",
-  "minSkillLevel": 1,
-  "thresholds": [
-    { "id": "workbench_basics", "level": 1, "points": 1, "title": "Workbench Basics", "description": "Pick the kind of artisan you are becoming." },
-    { "id": "applied_method", "level": 5, "points": 1, "title": "Applied Method", "description": "Specialization becomes visible in how you approach crafting." },
-    { "id": "systems_thinking", "level": 10, "points": 1, "title": "Systems Thinking", "description": "Your practice moves from tinkering to designed process." },
-    { "id": "master_blueprints", "level": 18, "points": 1, "title": "Master Blueprints", "description": "Late-game mastery supports advanced invention paths." }
-  ],
+  "minRank": 1,
   "nodes": [
-    { "id": "artificing_workshop_primer", "title": "Workshop Primer", "description": "The primer claims craft becomes engineering when every part is named before it is cut.", "branch": "core", "cost": 1, "requiredSkillLevel": 1, "requires": [], "layoutX": 0, "layoutY": 0, "iconKey": "minecraft:crafting_table" },
-
-    { "id": "mechanist_signal_law", "title": "Signal Law", "description": "Mechanist notes map current and delay so redstone answers as predictably as dawn.", "branch": "mechanist", "cost": 1, "requiredSkillLevel": 1, "requires": ["artificing_workshop_primer"], "layoutX": -120, "layoutY": 120, "iconKey": "minecraft:redstone" },
-    { "id": "tinkerer_hand_tune", "title": "Hand Tune", "description": "The tinkerer chapter teaches subtle tool adjustments that save labor over seasons.", "branch": "tinkerer", "cost": 1, "requiredSkillLevel": 1, "requires": ["artificing_workshop_primer"], "layoutX": 120, "layoutY": 120, "iconKey": "minecraft:iron_pickaxe" },
-
-    { "id": "mechanist_relay_stack", "title": "Relay Stack", "description": "Inner mechanism diagrams show chained signals that drive whole workshops unattended.", "branch": "mechanist", "cost": 1, "requiredSkillLevel": 6, "requires": ["mechanist_signal_law"], "layoutX": -120, "layoutY": 240, "iconKey": "minecraft:repeater" },
-    { "id": "tinkerer_edge_honing", "title": "Edge Honing", "description": "The tinkerer script details balancing tools for cleaner cuts and longer service.", "branch": "tinkerer", "cost": 1, "requiredSkillLevel": 6, "requires": ["tinkerer_hand_tune"], "layoutX": 120, "layoutY": 240, "iconKey": "minecraft:grindstone" },
-    { "id": "artificing_hybrid_schema", "title": "Hybrid Schema", "description": "This central schema binds automation and handcraft into a single workshop doctrine.", "branch": "cross", "cost": 2, "requiredSkillLevel": 6, "requires": ["mechanist_relay_stack", "tinkerer_edge_honing"], "layoutX": 0, "layoutY": 240, "iconKey": "minecraft:comparator" },
-
-    { "id": "mechanist_clock_chamber", "title": "Clock Chamber", "description": "Inner mechanism leaves detail timed engines that keep systems breathing day and night.", "branch": "mechanist", "cost": 2, "requiredSkillLevel": 12, "requires": ["mechanist_relay_stack"], "layoutX": -120, "layoutY": 360, "iconKey": "minecraft:observer" },
-    { "id": "mechanist_factory_web", "title": "Factory Web", "description": "Outer diagrams describe linked contraptions that route goods with near-human judgment.", "branch": "mechanist", "cost": 2, "requiredSkillLevel": 12, "requires": ["mechanist_relay_stack"], "layoutX": -240, "layoutY": 360, "iconKey": "minecraft:hopper" },
-    { "id": "tinkerer_master_balance", "title": "Master Balance", "description": "Inner tinkerer pages refine weight and leverage until tools feel like extensions of bone.", "branch": "tinkerer", "cost": 2, "requiredSkillLevel": 12, "requires": ["tinkerer_edge_honing"], "layoutX": 120, "layoutY": 360, "iconKey": "minecraft:diamond_pickaxe" },
-    { "id": "tinkerer_far_reach", "title": "Far Reach Rig", "description": "Outer plans show articulated handles and heads for work where footing is perilous.", "branch": "tinkerer", "cost": 2, "requiredSkillLevel": 12, "requires": ["tinkerer_edge_honing"], "layoutX": 240, "layoutY": 360, "iconKey": "minecraft:fishing_rod" },
-
-    { "id": "mechanist_hidden_engine", "title": "Hidden Engine", "description": "Ciphered notes describe an engine room that turns itself while the master sleeps.", "branch": "mechanist", "cost": 3, "requiredSkillLevel": 20, "requires": ["mechanist_clock_chamber", "mechanist_factory_web"], "layoutX": -300, "layoutY": 480, "iconKey": "minecraft:crafter", "visibility": "obfuscated" },
-    { "id": "tinkerer_secret_instrument", "title": "Secret Instrument", "description": "A hidden sketchbook promises a tool line that outworks any common forge by itself.", "branch": "tinkerer", "cost": 3, "requiredSkillLevel": 20, "requires": ["tinkerer_master_balance", "tinkerer_far_reach"], "layoutX": 300, "layoutY": 480, "iconKey": "minecraft:netherite_pickaxe", "visibility": "obfuscated" }
+    {
+      "id": "artificing_wand_of_the_artificer",
+      "title": "Wand of The Artificer",
+      "description": "A complex tool with many complex functions.\n+1 Tool Slot\n\nBuilder’s Instinct\n\nConsecutive block placement slightly increases placement speed",
+      "type": "core",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": 0,
+      "requirement": {
+        "mode": "all",
+        "nodes": []
+      }
+    },
+    {
+      "id": "artificing_measuring_tape",
+      "title": "Measuring Tape",
+      "description": "Quickly assess block dimensions",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -62,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_wand_of_the_artificer",
+          "artificing_line_tool"
+        ]
+      },
+      "requires": [
+        "artificing_wand_of_the_artificer",
+        "artificing_line_tool"
+      ]
+    },
+    {
+      "id": "artificing_line_tool",
+      "title": "Line Tool",
+      "description": "Select two points → fills a straight line\nConstraints:\n limited max length (e.g. 16–32)\n requires sufficient materials",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -63,
+      "layoutY": -62,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_wand_of_the_artificer"
+        ]
+      },
+      "requires": [
+        "artificing_wand_of_the_artificer"
+      ]
+    },
+    {
+      "id": "artificing_replace_tool",
+      "title": "Replace Tool",
+      "description": "Replace blocks you placed with another block type",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -126,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_measuring_tape",
+          "artificing_rotate_tool"
+        ]
+      },
+      "requires": [
+        "artificing_measuring_tape",
+        "artificing_rotate_tool"
+      ]
+    },
+    {
+      "id": "artificing_rotate_tool",
+      "title": "Rotate Tool",
+      "description": "Rotate placed blocks\n",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -63,
+      "layoutY": -126,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_line_tool"
+        ]
+      },
+      "requires": [
+        "artificing_line_tool"
+      ]
+    },
+    {
+      "id": "artificing_smart_scaffolding",
+      "title": "Smart Scaffolding",
+      "description": "While holding jump, automatically places scaffolding from inventory beneath you and extends as you move upward",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -63,
+      "layoutY": -189,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_rotate_tool"
+        ]
+      },
+      "requires": [
+        "artificing_rotate_tool"
+      ]
+    },
+    {
+      "id": "artificing_block_swap",
+      "title": "Block Swap",
+      "description": "Swap two blocks with each other\n",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -189,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_replace_tool",
+          "artificing_smart_scaffolding"
+        ]
+      },
+      "requires": [
+        "artificing_replace_tool",
+        "artificing_smart_scaffolding"
+      ]
+    },
+    {
+      "id": "artificing_reach_extension",
+      "title": "Reach Extension",
+      "description": "Place blocks up to +3 blocks further\n",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -63,
+      "layoutY": -253,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_smart_scaffolding"
+        ]
+      },
+      "requires": [
+        "artificing_smart_scaffolding"
+      ]
+    },
+    {
+      "id": "artificing_fill_tool",
+      "title": "Fill Tool",
+      "description": "Attempt to fill in an area with a block\n",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -253,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_block_swap",
+          "artificing_reach_extension"
+        ]
+      },
+      "requires": [
+        "artificing_block_swap",
+        "artificing_reach_extension"
+      ]
+    },
+    {
+      "id": "artificing_weaver",
+      "title": "Weaver",
+      "description": "Two tools can merge into a new composite behavior",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -31,
+      "layoutY": -318,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_reach_extension",
+          "artificing_fill_tool"
+        ]
+      },
+      "requires": [
+        "artificing_reach_extension",
+        "artificing_fill_tool"
+      ]
+    },
+    {
+      "id": "artificing_tool_saver",
+      "title": "Tool Saver",
+      "description": "Reduced durability loss breaking blocks you placed",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 97,
+      "layoutY": -62,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_wand_of_the_artificer"
+        ]
+      },
+      "requires": [
+        "artificing_wand_of_the_artificer"
+      ]
+    },
+    {
+      "id": "artificing_trash_slot",
+      "title": "Trash Slot",
+      "description": "Items placed here are destroyed instantly",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 160,
+      "layoutY": -62,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_tool_saver",
+          "artificing_wand_of_the_artificer"
+        ]
+      },
+      "requires": [
+        "artificing_tool_saver",
+        "artificing_wand_of_the_artificer"
+      ]
+    },
+    {
+      "id": "artificing_compactor_slot",
+      "title": "Compactor Slot",
+      "description": "A dedicated slot that automatically converts specific items into compacted forms",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 225,
+      "layoutY": -62,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_trash_slot"
+        ]
+      },
+      "requires": [
+        "artificing_trash_slot"
+      ]
+    },
+    {
+      "id": "artificing_salvage_slot",
+      "title": "Salvage Slot",
+      "description": "Breaks items down into base materials",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 225,
+      "layoutY": -126,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_compactor_slot"
+        ]
+      },
+      "requires": [
+        "artificing_compactor_slot"
+      ]
+    },
+    {
+      "id": "artificing_manual_overclock",
+      "title": "Manual Overclock",
+      "description": "Interact with a machine:\n boosts speed for X seconds\n applies cooldown",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 160,
+      "layoutY": -126,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_trash_slot"
+        ]
+      },
+      "requires": [
+        "artificing_trash_slot"
+      ]
+    },
+    {
+      "id": "artificing_focused_operation",
+      "title": "Focused Operation",
+      "description": "While actively using a machine:\n slightly increased speed\n",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 97,
+      "layoutY": -126,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_tool_saver"
+        ]
+      },
+      "requires": [
+        "artificing_tool_saver"
+      ]
+    },
+    {
+      "id": "artificing_builders_cache",
+      "title": "Builder’s Cache",
+      "description": "Pull blocks automatically from inventory while building",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 97,
+      "layoutY": -189,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_focused_operation"
+        ]
+      },
+      "requires": [
+        "artificing_focused_operation"
+      ]
+    },
+    {
+      "id": "artificing_multi_mode_handling",
+      "title": "Multi-Mode Handling",
+      "description": "+1 Tool Slot",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 160,
+      "layoutY": -189,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_builders_cache"
+        ]
+      },
+      "requires": [
+        "artificing_builders_cache"
+      ]
+    },
+    {
+      "id": "artificing_mechanist",
+      "title": "Mechanist",
+      "description": "+1 Tool Slot\n",
+      "type": "manifestation",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 160,
+      "layoutY": -253,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_multi_mode_handling"
+        ]
+      },
+      "requires": [
+        "artificing_multi_mode_handling"
+      ]
+    },
+    {
+      "id": "artificing_quick_access",
+      "title": "Quick Access",
+      "description": "Reopen last interacted machine instantly",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 97,
+      "layoutY": -253,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_builders_cache"
+        ]
+      },
+      "requires": [
+        "artificing_builders_cache"
+      ]
+    },
+    {
+      "id": "artificing_architect",
+      "title": "Architect",
+      "description": "Quick Access becomes a persistent recall system\n",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 97,
+      "layoutY": -318,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "artificing_quick_access"
+        ]
+      },
+      "requires": [
+        "artificing_quick_access"
+      ]
+    }
   ]
 }

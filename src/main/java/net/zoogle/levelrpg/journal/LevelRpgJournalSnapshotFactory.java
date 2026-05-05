@@ -6,15 +6,13 @@ import net.zoogle.levelrpg.data.RecipeUnlockDefinition;
 import net.zoogle.levelrpg.data.RecipeUnlockRegistry;
 import net.zoogle.levelrpg.data.SkillDefinition;
 import net.zoogle.levelrpg.data.SkillRegistry;
-import net.zoogle.levelrpg.data.SkillTreeDefinition;
+import net.zoogle.levelrpg.data.SkillTreeCanonicalDefinition;
 import net.zoogle.levelrpg.profile.ArchetypeDefinition;
 import net.zoogle.levelrpg.profile.LevelProfile;
 import net.zoogle.levelrpg.profile.ProgressionSkill;
 import net.zoogle.levelrpg.profile.SkillProgressView;
-import net.zoogle.levelrpg.profile.SkillState;
 import net.zoogle.levelrpg.progression.PassiveSkillScalingService;
 import net.zoogle.levelrpg.progression.PassiveSkillSummary;
-import net.zoogle.levelrpg.progression.MasteryLeveling;
 import net.zoogle.levelrpg.progression.RecipeUnlockService;
 import net.zoogle.levelrpg.progression.SpecializationProgression;
 import net.zoogle.levelrpg.progression.SkillPointProgression;
@@ -55,10 +53,10 @@ public final class LevelRpgJournalSnapshotFactory {
         int totalMasteryLevels = totalMasteryLevels(profile);
         int earnedSkillPoints = SkillPointProgression.earnedPoints(profile);
         int spentSkillPoints = SkillPointProgression.spentPoints(profile);
-        int availableSkillPoints = SkillPointProgression.availablePoints(profile);
-        int earnedSpecializationPoints = SpecializationProgression.earnedPoints(profile);
-        int spentSpecializationPoints = SpecializationProgression.spentPoints(profile);
-        int availableSpecializationPoints = SpecializationProgression.availablePoints(profile);
+        int availableSkillPoints = SkillPointProgression.insight(profile);
+        int earnedSpecializationPoints = SpecializationProgression.gainedInsight(profile);
+        int spentSpecializationPoints = SpecializationProgression.inscribedPoints(profile);
+        int availableSpecializationPoints = SpecializationProgression.insight(profile);
 
         ArrayList<JournalCharacterLedgerSnapshot.Row> rows = new ArrayList<>(ProgressionSkill.values().length);
         for (ProgressionSkill skill : ProgressionSkill.values()) {
@@ -72,12 +70,12 @@ public final class LevelRpgJournalSnapshotFactory {
                     progress.investedSkillLevel(),
                     0L,
                     0L,
-                    progress.masteryLevel(),
-                    progress.masteryProgress(),
-                    progress.masteryRequiredForNextLevel(),
-                    progress.masteryProgress(),
-                    progress.masteryRequiredForNextLevel(),
-                    progress.masteryProgress() + "/" + progress.masteryRequiredForNextLevel(),
+                    progress.rank(),
+                    progress.proficiency(),
+                    progress.proficiencyRequiredForNextRank(),
+                    progress.proficiency(),
+                    progress.proficiencyRequiredForNextRank(),
+                    progress.proficiency() + "/" + progress.proficiencyRequiredForNextRank(),
                     progress.canSpendSkillPoint(),
                     passiveEffects
             ));
@@ -101,7 +99,6 @@ public final class LevelRpgJournalSnapshotFactory {
     private static JournalSkillSnapshot buildSkillSnapshot(LevelProfile profile, ProgressionSkill progressionSkill) {
         ResourceLocation skillId = progressionSkill.id();
         SkillProgressView progress = profile.skillProgress(progressionSkill);
-        SkillState state = profile.getSkill(progressionSkill);
         SkillDefinition definition = SkillRegistry.get(skillId);
         String summary = skillSummary(definition);
         JournalPassiveEffectSnapshot passiveEffects = toJournalPassiveEffects(
@@ -118,12 +115,12 @@ public final class LevelRpgJournalSnapshotFactory {
                 0L,
                 0L,
                 progress.investedSkillLevel(),
-                progress.masteryLevel(),
-                progress.masteryProgress(),
-                progress.masteryRequiredForNextLevel(),
-                progress.masteryProgress(),
-                progress.masteryRequiredForNextLevel(),
-                progress.masteryProgress() + "/" + progress.masteryRequiredForNextLevel(),
+                progress.rank(),
+                progress.proficiency(),
+                progress.proficiencyRequiredForNextRank(),
+                progress.proficiency(),
+                progress.proficiencyRequiredForNextRank(),
+                progress.proficiency() + "/" + progress.proficiencyRequiredForNextRank(),
                 progress.canSpendSkillPoint(),
                 passiveEffects,
                 buildMasterySnapshot(profile, skillId),
@@ -133,34 +130,11 @@ public final class LevelRpgJournalSnapshotFactory {
 
     private static JournalMasterySnapshot buildMasterySnapshot(LevelProfile profile, ResourceLocation skillId) {
         SkillTreeProgression.TreeSnapshot tree = SkillTreeProgression.snapshot(profile, skillId);
-        SkillTreeDefinition definition = tree.tree();
+        SkillTreeCanonicalDefinition definition = tree.tree();
 
-        ArrayList<JournalUnlockSnapshot> milestones = new ArrayList<>();
-        if (definition != null) {
-            for (SkillTreeDefinition.Threshold threshold : definition.thresholds()) {
-                milestones.add(new JournalUnlockSnapshot(
-                        JournalUnlockSnapshot.Kind.MILESTONE,
-                        threshold.id(),
-                        fallbackTitle(threshold.title(), "Level " + threshold.level()),
-                        safe(threshold.description()),
-                        tree.skillLevel(),
-                        threshold.level(),
-                        tree.skillLevel() >= threshold.level()
-                ));
-            }
-        }
-
-        JournalUnlockSnapshot nextThreshold = tree.nextThreshold()
-                .map(threshold -> new JournalUnlockSnapshot(
-                        JournalUnlockSnapshot.Kind.MILESTONE,
-                        threshold.id(),
-                        fallbackTitle(threshold.title(), "Level " + threshold.level()),
-                        safe(threshold.description()),
-                        tree.skillLevel(),
-                        threshold.level(),
-                        false
-                ))
-                .orElse(null);
+        // Legacy JSON thresholds were milestone pacing flavor; the active node-based system no longer uses them.
+        JournalUnlockSnapshot nextThreshold = null;
+        List<JournalUnlockSnapshot> milestones = List.of();
 
         ArrayList<JournalMasterySnapshot.NodeSnapshot> nodes = new ArrayList<>(tree.nodes().size());
         for (SkillTreeProgression.NodeSnapshot node : tree.nodes()) {
@@ -169,6 +143,8 @@ public final class LevelRpgJournalSnapshotFactory {
                     fallbackTitle(node.node().title(), humanize(node.node().id())),
                     safe(node.node().description()),
                     safe(node.node().branch()),
+                    node.node().type(),
+                    safe(node.node().iconKey()),
                     node.node().normalizedCost(),
                     SkillTreeProgression.requiredLevelFor(definition, node.node()),
                     mapStatus(node.status()),
@@ -180,19 +156,19 @@ public final class LevelRpgJournalSnapshotFactory {
                 definition != null,
                 definition != null ? fallbackTitle(definition.title(), displayNameFor(skillId) + " Mastery") : "",
                 definition != null ? safe(definition.summary()) : "",
-                tree.skillLevel(),
-                tree.unlockedTiers(),
-                tree.earnedPoints(),
-                tree.spentPoints(),
-                tree.availablePoints(),
+                tree.rank(),
+                0,
+                tree.gainedInsight(),
+                tree.inscribedPoints(),
+                tree.insight(),
                 nextThreshold,
-                List.copyOf(milestones),
+                milestones,
                 List.copyOf(nodes),
                 tree.suggestedNextNode().map(node -> node.node().id()).orElse("")
         );
     }
 
-    private static List<JournalUnlockSnapshot> buildRecipeUnlocks(LevelProfile profile, ResourceLocation skillId, int skillLevel) {
+    private static List<JournalUnlockSnapshot> buildRecipeUnlocks(LevelProfile profile, ResourceLocation skillId, int rank) {
         ArrayList<JournalUnlockSnapshot> unlocks = new ArrayList<>();
         for (Map.Entry<ResourceLocation, RecipeUnlockDefinition> entry : RecipeUnlockRegistry.entries()) {
             RecipeUnlockDefinition definition = entry.getValue();
@@ -216,7 +192,7 @@ public final class LevelRpgJournalSnapshotFactory {
                     entry.getKey().toString(),
                     humanize(entry.getKey().getPath()),
                     describeRecipeRequirements(definition, skillId),
-                    skillLevel,
+                    rank,
                     matchingRequirement.minLevel(),
                     unlocked
             ));
@@ -232,21 +208,21 @@ public final class LevelRpgJournalSnapshotFactory {
             return JournalMasterySnapshot.Status.LOCKED;
         }
         return switch (status) {
-            case UNLOCKED -> JournalMasterySnapshot.Status.UNLOCKED;
+            case INSCRIBED -> JournalMasterySnapshot.Status.UNLOCKED;
             case AVAILABLE -> JournalMasterySnapshot.Status.AVAILABLE;
             case LOCKED_SKILL_LEVEL -> JournalMasterySnapshot.Status.LOCKED_LEVEL;
             case LOCKED_PREREQUISITE -> JournalMasterySnapshot.Status.LOCKED_PREREQUISITE;
-            case LOCKED_MASTERY_POINTS -> JournalMasterySnapshot.Status.LOCKED_POINTS;
+            case LOCKED_INSIGHT -> JournalMasterySnapshot.Status.LOCKED_POINTS;
         };
     }
 
-    private static List<String> describeMissingNodes(SkillTreeDefinition tree, List<String> missingIds) {
+    private static List<String> describeMissingNodes(SkillTreeCanonicalDefinition tree, List<String> missingIds) {
         if (tree == null || missingIds == null || missingIds.isEmpty()) {
             return List.of();
         }
         ArrayList<String> labels = new ArrayList<>(missingIds.size());
         for (String missingId : missingIds) {
-            SkillTreeDefinition.Node node = tree.nodes().get(missingId);
+            SkillTreeCanonicalDefinition.Node node = tree.nodes().get(missingId);
             if (node != null) {
                 labels.add(fallbackTitle(node.title(), humanize(node.id())));
             } else {
@@ -343,7 +319,7 @@ public final class LevelRpgJournalSnapshotFactory {
     private static int totalMasteryLevels(LevelProfile profile) {
         int total = 0;
         for (ProgressionSkill skill : ProgressionSkill.values()) {
-            total += Math.max(0, profile.getSkill(skill).masteryLevel);
+            total += Math.max(0, profile.getSkill(skill).rank);
         }
         return total;
     }

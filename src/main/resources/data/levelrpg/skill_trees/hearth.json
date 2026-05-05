@@ -2,29 +2,382 @@
   "skill": "levelrpg:hearth",
   "title": "Hearth Mastery",
   "summary": "Hearth separates efficient provisioning from refined cuisine. The caretaker skill — the most powerful combat players quietly depend on the Hearth specialist for their best food, potions, and buffs.",
-  "minSkillLevel": 1,
-  "thresholds": [
-    { "id": "kitchen_foundation", "level": 1, "points": 1, "title": "Kitchen Foundation", "description": "Pick a cooking philosophy." },
-    { "id": "trusted_recipes", "level": 5, "points": 1, "title": "Trusted Recipes", "description": "Your meals start reflecting your chosen focus." },
-    { "id": "seasoned_hand", "level": 10, "points": 1, "title": "Seasoned Hand", "description": "Mid-game unlocks deepen your craft." },
-    { "id": "feastwright", "level": 18, "points": 1, "title": "Feastwright", "description": "Late thresholds support signature Hearth specialization." }
-  ],
+  "minRank": 1,
   "nodes": [
-    { "id": "hearth_house_ledger", "title": "House Ledger", "description": "The ledger opens by declaring that a fed village outlives any sharpened sword.", "branch": "core", "cost": 1, "requiredSkillLevel": 1, "requires": [], "layoutX": 0, "layoutY": 0, "iconKey": "minecraft:book" },
-
-    { "id": "cook_salt_lesson", "title": "Salt Lesson", "description": "Cook's notes teach balancing hunger, warmth, and flavor as one faithful craft.", "branch": "cook", "cost": 1, "requiredSkillLevel": 1, "requires": ["hearth_house_ledger"], "layoutX": -120, "layoutY": 120, "iconKey": "minecraft:cooked_beef" },
-    { "id": "cultivator_green_hand", "title": "Green Hand", "description": "The cultivator chapter praises patient hands that coax life from reluctant soil.", "branch": "cultivator", "cost": 1, "requiredSkillLevel": 1, "requires": ["hearth_house_ledger"], "layoutX": 120, "layoutY": 120, "iconKey": "minecraft:wheat_seeds" },
-
-    { "id": "cook_fire_timing", "title": "Fire Timing", "description": "This page records embers and intervals that spare grain from waste and bitterness.", "branch": "cook", "cost": 1, "requiredSkillLevel": 6, "requires": ["cook_salt_lesson"], "layoutX": -120, "layoutY": 240, "iconKey": "minecraft:campfire" },
-    { "id": "cultivator_soil_turning", "title": "Soil Turning", "description": "Cultivator margins describe furrows that breathe, drain, and welcome fast growth.", "branch": "cultivator", "cost": 1, "requiredSkillLevel": 6, "requires": ["cultivator_green_hand"], "layoutX": 120, "layoutY": 240, "iconKey": "minecraft:iron_hoe" },
-    { "id": "hearth_shared_table", "title": "Shared Table", "description": "This center lesson binds kitchen and field into one promise of dependable plenty.", "branch": "cross", "cost": 2, "requiredSkillLevel": 6, "requires": ["cook_fire_timing", "cultivator_soil_turning"], "layoutX": 0, "layoutY": 240, "iconKey": "minecraft:bread" },
-
-    { "id": "cook_feast_rhythm", "title": "Feast Rhythm", "description": "Inner cook pages map menu cadence that keeps workers strong through long seasons.", "branch": "cook", "cost": 2, "requiredSkillLevel": 12, "requires": ["cook_fire_timing"], "layoutX": -120, "layoutY": 360, "iconKey": "minecraft:golden_carrot" },
-    { "id": "cook_royal_stock", "title": "Royal Stock", "description": "The outer kitchen script distills broth craft fit for courts and war hosts alike.", "branch": "cook", "cost": 2, "requiredSkillLevel": 12, "requires": ["cook_fire_timing"], "layoutX": -240, "layoutY": 360, "iconKey": "minecraft:suspicious_stew" },
-    { "id": "cultivator_orchard_cycle", "title": "Orchard Cycle", "description": "Inner cultivation notes follow bloom and pruning as a single yearly conversation.", "branch": "cultivator", "cost": 2, "requiredSkillLevel": 12, "requires": ["cultivator_soil_turning"], "layoutX": 120, "layoutY": 360, "iconKey": "minecraft:apple" },
-    { "id": "cultivator_herd_keeping", "title": "Herd Keeping", "description": "Outer husbandry entries set breeding lines for resilience, milk, wool, and meat.", "branch": "cultivator", "cost": 2, "requiredSkillLevel": 12, "requires": ["cultivator_soil_turning"], "layoutX": 240, "layoutY": 360, "iconKey": "minecraft:wheat" },
-
-    { "id": "cook_hidden_banquet", "title": "Hidden Banquet", "description": "Veiled parchment claims this table can restore a weary company in a single night.", "branch": "cook", "cost": 3, "requiredSkillLevel": 20, "requires": ["cook_feast_rhythm", "cook_royal_stock"], "layoutX": -300, "layoutY": 480, "iconKey": "minecraft:cake", "visibility": "obfuscated" },
-    { "id": "cultivator_evergreen_tithe", "title": "Evergreen Tithe", "description": "A hidden farmer's addendum describes harvests that endure blight, drought, and war.", "branch": "cultivator", "cost": 3, "requiredSkillLevel": 20, "requires": ["cultivator_orchard_cycle", "cultivator_herd_keeping"], "layoutX": 300, "layoutY": 480, "iconKey": "minecraft:golden_apple", "visibility": "obfuscated" }
+    {
+      "id": "hearth_kindled_hearth",
+      "title": "Kindled Hearth",
+      "description": "Meals you prepare gain Hearth Properties based on their ingredients. These properties grant long-lasting effects when consumed.",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": 0,
+      "requirement": {
+        "mode": "all",
+        "nodes": []
+      }
+    },
+    {
+      "id": "hearth_simple_cooking",
+      "title": "Simple Cooking",
+      "description": "Cooked foods gain minor Hearth Properties\n\nSimple Infusion\nUsing a full heated cauldron, you can mix ingredients to add minor Hearth Properties to food",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -64,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_kindled_hearth"
+        ]
+      },
+      "requires": [
+        "hearth_kindled_hearth"
+      ]
+    },
+    {
+      "id": "hearth_warm_hearth",
+      "title": "Warm Hearth",
+      "description": "Meals you cook last longer when consumed near heat sources",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -64,
+      "layoutY": -95,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_simple_cooking"
+        ]
+      },
+      "requires": [
+        "hearth_simple_cooking"
+      ]
+    },
+    {
+      "id": "hearth_angler",
+      "title": "Angler",
+      "description": "Fish grant unique Hearth Properties",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -64,
+      "layoutY": -31,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_simple_cooking"
+        ]
+      },
+      "requires": [
+        "hearth_simple_cooking"
+      ]
+    },
+    {
+      "id": "hearth_light",
+      "title": "Light",
+      "description": "Meals with vegetables improve Rhythm stability",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -95,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_simple_cooking"
+        ]
+      },
+      "requires": [
+        "hearth_simple_cooking"
+      ]
+    },
+    {
+      "id": "hearth_hearty",
+      "title": "Hearty",
+      "description": "Meals with meat improve Resolve retention",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -31,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_simple_cooking"
+        ]
+      },
+      "requires": [
+        "hearth_simple_cooking"
+      ]
+    },
+    {
+      "id": "hearth_refined_cooking",
+      "title": "Refined Cooking",
+      "description": "Cooked meals gain stronger and longer-lasting properties\nRefined Infusion\nUsing a full heated cauldron, you can mix ingredients to add longer-lasting Hearth Properties to food",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -191,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_simple_cooking"
+        ]
+      },
+      "requires": [
+        "hearth_simple_cooking"
+      ]
+    },
+    {
+      "id": "hearth_seasoned",
+      "title": "Seasoned",
+      "description": "Meals have a chance to grant a slightly enhanced version of their properties",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -64,
+      "layoutY": -191,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_refined_cooking"
+        ]
+      },
+      "requires": [
+        "hearth_refined_cooking"
+      ]
+    },
+    {
+      "id": "hearth_forged",
+      "title": "Forged",
+      "description": "Meals reduce Condition decay",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -241,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_refined_cooking"
+        ]
+      },
+      "requires": [
+        "hearth_refined_cooking"
+      ]
+    },
+    {
+      "id": "hearth_arcane",
+      "title": "Arcane",
+      "description": "Meals can enhance Soul Gain",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -191,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_refined_cooking"
+        ]
+      },
+      "requires": [
+        "hearth_refined_cooking"
+      ]
+    },
+    {
+      "id": "hearth_enduring",
+      "title": "Enduring",
+      "description": "Meals improve Momentum persistence",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -144,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_refined_cooking"
+        ]
+      },
+      "requires": [
+        "hearth_refined_cooking"
+      ]
+    },
+    {
+      "id": "hearth_layered_meals",
+      "title": "Layered Meals",
+      "description": "Meals with multiple ingredients apply multiple Hearth Properties\n\nAdvanced Infusion\nUsing a full heated cauldron, you can mix ingredients to add multiple Hearth Properties to food",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -287,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_refined_cooking"
+        ]
+      },
+      "requires": [
+        "hearth_refined_cooking"
+      ]
+    },
+    {
+      "id": "hearth_fresh_meal",
+      "title": "Fresh Meal",
+      "description": "Recently cooked meals are more effective",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -64,
+      "layoutY": -287,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_layered_meals"
+        ]
+      },
+      "requires": [
+        "hearth_layered_meals"
+      ]
+    },
+    {
+      "id": "hearth_unexpected_flavor",
+      "title": "Unexpected Flavor",
+      "description": "Meals have a chance to gain a minor additional property based on their ingredients\n",
+      "type": "axiom",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -287,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_layered_meals"
+        ]
+      },
+      "requires": [
+        "hearth_layered_meals"
+      ]
+    },
+    {
+      "id": "hearth_chefs_touch",
+      "title": "Chef’s Touch",
+      "description": "Complex meals enhance all applied properties",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -351,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_layered_meals"
+        ]
+      },
+      "requires": [
+        "hearth_layered_meals"
+      ]
+    },
+    {
+      "id": "hearth_experimental_cooking",
+      "title": "Experimental Cooking",
+      "description": "Meals have a chance to produce a unique or rare effect when consumed\n",
+      "type": "axiom",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -64,
+      "layoutY": -351,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_chefs_touch"
+        ]
+      },
+      "requires": [
+        "hearth_chefs_touch"
+      ]
+    },
+    {
+      "id": "hearth_prepared",
+      "title": "Prepared",
+      "description": "Meals can be prepared as snack-sized portions\u2028Snack meals are consumed near instantly, but their effects are greatly reduced and do not stack",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -351,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_chefs_touch"
+        ]
+      },
+      "requires": [
+        "hearth_chefs_touch"
+      ]
+    },
+    {
+      "id": "hearth_gourmand",
+      "title": "Gourmand",
+      "description": "Meals you consume are significantly stronger\u2028 Meals given to others are weaker",
+      "type": "manifestation",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -416,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_chefs_touch"
+        ]
+      },
+      "requires": [
+        "hearth_chefs_touch"
+      ]
+    },
+    {
+      "id": "hearth_chef",
+      "title": "Chef",
+      "description": "Meals you prepare grant stronger Hearth Properties to other players. Effects are weaker when consumed by yourself",
+      "type": "manifestation",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -64,
+      "layoutY": -416,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_chefs_touch"
+        ]
+      },
+      "requires": [
+        "hearth_chefs_touch"
+      ]
+    },
+    {
+      "id": "hearth_host",
+      "title": "Host",
+      "description": "Players who consume your meals gain longer-lasting effects. Effects are further extended near heat sources",
+      "type": "manifestation",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -416,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "hearth_chefs_touch"
+        ]
+      },
+      "requires": [
+        "hearth_chefs_touch"
+      ]
+    }
   ]
 }

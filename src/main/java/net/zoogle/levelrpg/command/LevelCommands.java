@@ -1,6 +1,7 @@
 package net.zoogle.levelrpg.command;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
@@ -16,12 +17,24 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.zoogle.levelrpg.profile.LevelProfile;
-import net.zoogle.levelrpg.profile.MasteryAwardResult;
+import net.zoogle.levelrpg.profile.ProficiencyAwardResult;
 import net.zoogle.levelrpg.profile.SkillState;
 import net.zoogle.levelrpg.net.Network;
+import net.zoogle.levelrpg.gauge.GaugeDefinition;
+import net.zoogle.levelrpg.gauge.GaugeRegistry;
+import net.zoogle.levelrpg.gauge.PlayerGauges;
+import net.zoogle.levelrpg.gauge.GaugeModifiers;
+import net.zoogle.levelrpg.gauge.DelvingMomentumGaugeModifiers;
+import net.zoogle.levelrpg.finesse.FinessePassiveModifiers;
 import net.zoogle.levelrpg.progression.PassiveSkillScalingService;
 import net.zoogle.levelrpg.progression.MasteryLeveling;
 import net.zoogle.levelrpg.progression.SkillPointProgression;
+import net.zoogle.levelrpg.progression.SpecializationProgression;
+import net.zoogle.levelrpg.skilltree.effect.PlayerSkillEffectQuery;
+import net.zoogle.levelrpg.technique.PlayerTechniqueData;
+import net.zoogle.levelrpg.technique.PlayerTechniques;
+import net.zoogle.levelrpg.technique.TechniqueDefinition;
+import net.zoogle.levelrpg.technique.TechniqueRegistry;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -70,6 +83,21 @@ public class LevelCommands {
                                         .executes(ctx -> spendPoint(ctx, getCallingPlayer(ctx)))
                                         .then(Commands.argument("player", EntityArgument.player())
                                                 .executes(ctx -> spendPoint(ctx, EntityArgument.getPlayer(ctx, "player"))))))
+                        .then(Commands.literal("givepoints")
+                                .then(Commands.argument("amount", IntegerArgumentType.integer(1))
+                                        .executes(ctx -> giveSkillPoints(ctx, getCallingPlayer(ctx)))
+                                        .then(Commands.argument("player", EntityArgument.player())
+                                                .executes(ctx -> giveSkillPoints(ctx, EntityArgument.getPlayer(ctx, "player"))))))
+                        .then(Commands.literal("givespecialization")
+                                .then(Commands.argument("amount", IntegerArgumentType.integer(1))
+                                        .executes(ctx -> giveSpecializationPoints(ctx, getCallingPlayer(ctx)))
+                                        .then(Commands.argument("player", EntityArgument.player())
+                                                .executes(ctx -> giveSpecializationPoints(ctx, EntityArgument.getPlayer(ctx, "player"))))))
+                        .then(Commands.literal("givespec")
+                                .then(Commands.argument("amount", IntegerArgumentType.integer(1))
+                                        .executes(ctx -> giveSpecializationPoints(ctx, getCallingPlayer(ctx)))
+                                        .then(Commands.argument("player", EntityArgument.player())
+                                                .executes(ctx -> giveSpecializationPoints(ctx, EntityArgument.getPlayer(ctx, "player"))))))
                         .then(Commands.literal("unlock")
                                 .then(Commands.argument("skill", StringArgumentType.word())
                                         .suggests(LevelCommands::suggestTreeSkills)
@@ -78,12 +106,79 @@ public class LevelCommands {
                                                 .executes(ctx -> unlockNode(ctx, getCallingPlayer(ctx)))
                                                 .then(Commands.argument("player", EntityArgument.player())
                                                         .executes(ctx -> unlockNode(ctx, EntityArgument.getPlayer(ctx, "player")))))))
+                        .then(Commands.literal("tree")
+                                .then(Commands.literal("open")
+                                        .then(Commands.argument("skill", StringArgumentType.word())
+                                                .suggests(LevelCommands::suggestTreeSkills)
+                                                .executes(ctx -> openTree(ctx, getCallingPlayer(ctx)))
+                                                .then(Commands.argument("player", EntityArgument.player())
+                                                        .executes(ctx -> openTree(ctx, EntityArgument.getPlayer(ctx, "player")))))))
                         .then(Commands.literal("reloadinfo")
                                 .executes(ctx -> reloadInfo(ctx)))
                         .then(Commands.literal("sync")
                                 .executes(ctx -> sync(ctx, getCallingPlayer(ctx)))
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .executes(ctx -> sync(ctx, EntityArgument.getPlayer(ctx, "player")))))
+                        .then(Commands.literal("archetype")
+                                .then(Commands.literal("unbind")
+                                        .executes(ctx -> unbindArchetype(ctx, getCallingPlayer(ctx)))
+                                        .then(Commands.argument("player", EntityArgument.player())
+                                                .executes(ctx -> unbindArchetype(ctx, EntityArgument.getPlayer(ctx, "player"))))))
+                        .then(Commands.literal("effects")
+                                .executes(ctx -> effects(ctx, getCallingPlayer(ctx)))
+                                .then(Commands.argument("player", EntityArgument.player())
+                                        .executes(ctx -> effects(ctx, EntityArgument.getPlayer(ctx, "player")))))
+                        .then(Commands.literal("technique")
+                                .then(Commands.literal("list")
+                                        .executes(ctx -> techniqueList(ctx)))
+                                .then(Commands.literal("slots")
+                                        .executes(ctx -> techniqueSlots(ctx, getCallingPlayer(ctx)))
+                                        .then(Commands.argument("player", EntityArgument.player())
+                                                .executes(ctx -> techniqueSlots(ctx, EntityArgument.getPlayer(ctx, "player")))))
+                                .then(Commands.literal("assign")
+                                        .then(Commands.argument("slot", IntegerArgumentType.integer(1, PlayerTechniqueData.SLOT_COUNT))
+                                                .then(Commands.argument("technique", StringArgumentType.word())
+                                                        .suggests(LevelCommands::suggestTechniques)
+                                                        .executes(ctx -> techniqueAssign(ctx, getCallingPlayer(ctx)))
+                                                        .then(Commands.argument("player", EntityArgument.player())
+                                                                .executes(ctx -> techniqueAssign(ctx, EntityArgument.getPlayer(ctx, "player")))))))
+                                .then(Commands.literal("clear")
+                                        .then(Commands.argument("slot", IntegerArgumentType.integer(1, PlayerTechniqueData.SLOT_COUNT))
+                                                .executes(ctx -> techniqueClear(ctx, getCallingPlayer(ctx)))
+                                                .then(Commands.argument("player", EntityArgument.player())
+                                                        .executes(ctx -> techniqueClear(ctx, EntityArgument.getPlayer(ctx, "player"))))))
+                                .then(Commands.literal("cooldowns")
+                                        .executes(ctx -> techniqueCooldowns(ctx, getCallingPlayer(ctx)))
+                                        .then(Commands.argument("player", EntityArgument.player())
+                                                .executes(ctx -> techniqueCooldowns(ctx, EntityArgument.getPlayer(ctx, "player"))))))
+                        .then(Commands.literal("gauge")
+                                .then(Commands.literal("get")
+                                        .then(Commands.argument("gauge", StringArgumentType.word())
+                                                .suggests(LevelCommands::suggestGauges)
+                                                .executes(ctx -> gaugeGet(ctx, getCallingPlayer(ctx)))
+                                                .then(Commands.argument("player", EntityArgument.player())
+                                                        .executes(ctx -> gaugeGet(ctx, EntityArgument.getPlayer(ctx, "player"))))))
+                                .then(Commands.literal("set")
+                                        .then(Commands.argument("gauge", StringArgumentType.word())
+                                                .suggests(LevelCommands::suggestGauges)
+                                                .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.0))
+                                                        .executes(ctx -> gaugeSet(ctx, getCallingPlayer(ctx)))
+                                                        .then(Commands.argument("player", EntityArgument.player())
+                                                                .executes(ctx -> gaugeSet(ctx, EntityArgument.getPlayer(ctx, "player")))))))
+                                .then(Commands.literal("add")
+                                        .then(Commands.argument("gauge", StringArgumentType.word())
+                                                .suggests(LevelCommands::suggestGauges)
+                                                .then(Commands.argument("amount", DoubleArgumentType.doubleArg())
+                                                        .executes(ctx -> gaugeAdd(ctx, getCallingPlayer(ctx)))
+                                                        .then(Commands.argument("player", EntityArgument.player())
+                                                                .executes(ctx -> gaugeAdd(ctx, EntityArgument.getPlayer(ctx, "player")))))))
+                                .then(Commands.literal("spend")
+                                        .then(Commands.argument("gauge", StringArgumentType.word())
+                                                .suggests(LevelCommands::suggestGauges)
+                                                .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.0))
+                                                        .executes(ctx -> gaugeSpend(ctx, getCallingPlayer(ctx)))
+                                                        .then(Commands.argument("player", EntityArgument.player())
+                                                                .executes(ctx -> gaugeSpend(ctx, EntityArgument.getPlayer(ctx, "player"))))))))
         );
     }
 
@@ -100,7 +195,7 @@ public class LevelCommands {
         }
         int amount = IntegerArgumentType.getInteger(ctx, "amount");
         LevelProfile profile = LevelProfile.get(target);
-        MasteryAwardResult award = profile.awardMastery(skill, amount);
+        ProficiencyAwardResult award = profile.awardProficiency(skill, amount);
         PassiveSkillScalingService.applyIfChanged(target, profile);
         LevelProfile.save(target, profile);
         Network.sendDelta(target, profile, skill);
@@ -111,18 +206,18 @@ public class LevelCommands {
         // Feedback to target: action bar with current/needed and level up message
         SkillState spSkill = profile.skills.get(skill);
         if (spSkill != null) {
-            long needed = MasteryLeveling.xpToNextLevel(skill, spSkill.masteryLevel);
+            long needed = MasteryLeveling.xpToNextLevel(skill, spSkill.rank);
             String name = displayNameForSkill(skill);
             target.displayClientMessage(Component.literal(
-                    name + " mastery " + spSkill.masteryXp + "/" + needed + " (M" + spSkill.masteryLevel + ")"
+                    name + " proficiency " + spSkill.proficiency + "/" + needed + " (Rank " + spSkill.rank + ")"
             ).withStyle(ChatFormatting.GOLD), true);
             if (award.leveledUp()) {
                 target.sendSystemMessage(Component.literal(
-                    name + " mastery reached " + spSkill.masteryLevel + ". Earned 1 Skill Point."
+                    name + " discipline ranked up to Rank " + spSkill.rank + ". Earned 1 Skill Point."
                 ).withStyle(ChatFormatting.GREEN));
             }
         }
-        return (int) Math.max(1L, award.masteryAwarded());
+        return (int) Math.max(1L, award.proficiencyAwarded());
     }
 
     private int setSkill(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
@@ -178,8 +273,8 @@ public class LevelCommands {
             ctx.getSource().sendSuccess(() -> Component.literal(
                     displayNameForSkill(e.getKey())
                             + " -> Skill Level " + sp.level
-                            + ", Mastery " + sp.masteryLevel
-                            + " (" + sp.masteryXp + "/" + MasteryLeveling.xpToNextLevel(e.getKey(), sp.masteryLevel) + ")"
+                            + ", Rank " + sp.rank
+                            + " (" + sp.proficiency + "/" + MasteryLeveling.xpToNextLevel(e.getKey(), sp.rank) + ")"
                             + ", Available Skill Points " + profile.availableSkillPoints()
             ), false);
         }
@@ -200,16 +295,16 @@ public class LevelCommands {
         LevelProfile profile = LevelProfile.get(target);
         SkillState sp = profile.skills.get(skill);
         int level = sp != null ? sp.level : 0;
-        int masteryLevel = sp != null ? sp.masteryLevel : 0;
-        long masteryXp = sp != null ? sp.masteryXp : 0L;
-        long needed = MasteryLeveling.xpToNextLevel(skill, masteryLevel);
+        int rank = sp != null ? sp.rank : 0;
+        long proficiency = sp != null ? sp.proficiency : 0L;
+        long needed = MasteryLeveling.xpToNextLevel(skill, rank);
         String name = displayNameForSkill(skill);
         String who = target.getGameProfile().getName();
         ctx.getSource().sendSuccess(() -> Component.literal(
                 who + " " + name
                         + ": Skill Level " + level
-                        + ", Mastery " + masteryLevel
-                        + " (" + masteryXp + "/" + needed + ")"
+                        + ", Rank " + rank
+                        + " (" + proficiency + "/" + needed + ")"
                         + ", Available Skill Points " + profile.availableSkillPoints()
         ), false);
         return 1;
@@ -235,9 +330,51 @@ public class LevelCommands {
         ctx.getSource().sendSuccess(() -> Component.literal(
                 "Spent 1 Skill Point into " + displayNameForSkill(skill) + " for " + target.getGameProfile().getName()
                         + " -> Skill " + result.resultingSkillLevel()
-                        + ", " + result.availablePoints() + " Skill Point(s) remaining"
+                        + ", " + result.insight() + " Skill Point(s) remaining"
         ), true);
         return 1;
+    }
+
+    private int giveSkillPoints(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+        int amount = IntegerArgumentType.getInteger(ctx, "amount");
+        LevelProfile profile = LevelProfile.get(target);
+        SkillPointProgression.grantPoint(profile, amount);
+        LevelProfile.save(target, profile);
+        Network.sendSync(target, profile);
+        int available = profile.availableSkillPoints();
+        ctx.getSource().sendSuccess(() -> Component.literal(
+                "Granted " + amount + " Skill Point(s) to " + target.getGameProfile().getName()
+                        + ". Available Skill Points: " + available
+        ), true);
+        if (target != ctx.getSource().getEntity()) {
+            target.displayClientMessage(Component.literal(
+                    "You received " + amount + " LevelRPG Skill Point(s). Available: " + available
+            ).withStyle(ChatFormatting.GREEN), false);
+        }
+        return amount;
+    }
+
+    private int giveSpecializationPoints(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+        int amount = IntegerArgumentType.getInteger(ctx, "amount");
+        LevelProfile profile = LevelProfile.get(target);
+        profile.bonusSpecializationPoints = Math.max(0, profile.bonusSpecializationPoints + amount);
+        LevelProfile.save(target, profile);
+        Network.sendSync(target, profile);
+        int earned = SpecializationProgression.gainedInsight(profile);
+        int spent = SpecializationProgression.inscribedPoints(profile);
+        int available = SpecializationProgression.insight(profile);
+        ctx.getSource().sendSuccess(() -> Component.literal(
+                "Granted " + amount + " Specialization Point(s) to " + target.getGameProfile().getName()
+                        + ". Available: " + available
+                        + " / Earned: " + earned
+                        + " / Spent: " + spent
+        ), true);
+        if (target != ctx.getSource().getEntity()) {
+            target.displayClientMessage(Component.literal(
+                    "You received " + amount + " LevelRPG Specialization Point(s). Available: " + available
+            ).withStyle(ChatFormatting.GREEN), false);
+        }
+        return amount;
     }
 
     private int sync(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
@@ -248,6 +385,184 @@ public class LevelCommands {
             target.displayClientMessage(Component.literal("Your LevelRPG profile was saved."), false);
         }
         return 1;
+    }
+
+    private int effects(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+        var active = PlayerSkillEffectQuery.activeEffects(target);
+        ctx.getSource().sendSuccess(() -> Component.literal(
+                "Active LevelRPG skill node effects for " + target.getGameProfile().getName() + ": " + active.size()
+        ), false);
+        for (PlayerSkillEffectQuery.ActiveSkillNodeEffect effect : active) {
+            ctx.getSource().sendSuccess(() -> Component.literal(
+                    "- " + effect.effect().id()
+                            + " [" + effect.effect().type() + "]"
+                            + " from " + effect.skillId() + "#" + effect.nodeId()
+            ), false);
+        }
+        return active.size();
+    }
+
+    private int unbindArchetype(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+        LevelProfile profile = LevelProfile.get(target);
+        boolean changed = profile.clearArchetypeBinding();
+        LevelProfile.save(target, profile);
+        Network.sendSync(target, profile);
+        if (changed) {
+            ctx.getSource().sendSuccess(() -> Component.literal(
+                    "Cleared archetype binding for " + target.getGameProfile().getName()
+            ), true);
+            if (target != ctx.getSource().getEntity()) {
+                target.displayClientMessage(Component.literal("Your archetype binding was cleared."), true);
+            }
+        } else {
+            ctx.getSource().sendSuccess(() -> Component.literal(
+                    target.getGameProfile().getName() + " had no archetype binding to clear."
+            ), false);
+        }
+        return 1;
+    }
+
+    private int techniqueList(CommandContext<CommandSourceStack> ctx) {
+        for (TechniqueDefinition technique : TechniqueRegistry.entries()) {
+            String cost = technique.cost().hasGaugeCost()
+                    ? ", cost " + round(technique.cost().amount()) + " " + technique.cost().gaugeId().getPath()
+                    : "";
+            ctx.getSource().sendSuccess(() -> Component.literal(
+                    technique.id() + " - " + technique.displayName()
+                            + " [requires " + technique.requiredSkillId() + "#" + technique.requiredNodeId()
+                            + ", cooldown " + technique.cooldownTicks() + " ticks"
+                            + cost + "]"
+            ), false);
+        }
+        return TechniqueRegistry.entries().size();
+    }
+
+    private int techniqueSlots(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+        LevelProfile profile = LevelProfile.get(target);
+        ResourceLocation[] slots = profile.techniques.slotsCopy();
+        ctx.getSource().sendSuccess(() -> Component.literal("Technique slots for " + target.getGameProfile().getName()), false);
+        for (int i = 0; i < slots.length; i++) {
+            ResourceLocation id = slots[i];
+            TechniqueDefinition technique = TechniqueRegistry.get(id);
+            String label = technique == null ? "empty" : technique.displayName() + " (" + id + ")";
+            int slot = i + 1;
+            ctx.getSource().sendSuccess(() -> Component.literal(slot + ": " + label), false);
+        }
+        return slots.length;
+    }
+
+    private int techniqueAssign(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+        int slot = IntegerArgumentType.getInteger(ctx, "slot");
+        ResourceLocation techniqueId = TechniqueRegistry.resolve(StringArgumentType.getString(ctx, "technique"));
+        if (techniqueId == null) {
+            ctx.getSource().sendFailure(Component.literal("Unknown technique"));
+            return 0;
+        }
+        LevelProfile profile = LevelProfile.get(target);
+        var result = PlayerTechniques.assign(target, profile, slot, techniqueId);
+        if (!result.success()) {
+            ctx.getSource().sendFailure(Component.literal(result.message()));
+            return 0;
+        }
+        ctx.getSource().sendSuccess(() -> Component.literal(result.message() + " for " + target.getGameProfile().getName()), true);
+        return 1;
+    }
+
+    private int techniqueClear(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+        int slot = IntegerArgumentType.getInteger(ctx, "slot");
+        PlayerTechniques.clear(target, LevelProfile.get(target), slot);
+        ctx.getSource().sendSuccess(() -> Component.literal("Cleared technique slot " + slot + " for " + target.getGameProfile().getName()), true);
+        return 1;
+    }
+
+    private int techniqueCooldowns(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+        LevelProfile profile = LevelProfile.get(target);
+        ctx.getSource().sendSuccess(() -> Component.literal("Technique cooldowns for " + target.getGameProfile().getName()), false);
+        int count = 0;
+        for (Map.Entry<ResourceLocation, Integer> entry : profile.techniques.cooldownsView().entrySet()) {
+            TechniqueDefinition technique = TechniqueRegistry.get(entry.getKey());
+            String name = technique == null ? entry.getKey().toString() : technique.displayName();
+            ctx.getSource().sendSuccess(() -> Component.literal(name + ": " + entry.getValue() + " ticks"), false);
+            count++;
+        }
+        if (count == 0) {
+            ctx.getSource().sendSuccess(() -> Component.literal("No active cooldowns"), false);
+        }
+        return count;
+    }
+
+    private int gaugeGet(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+        ResourceLocation gaugeId = resolveGauge(ctx);
+        if (gaugeId == null) {
+            ctx.getSource().sendFailure(Component.literal("Unknown gauge"));
+            return 0;
+        }
+        LevelProfile profile = LevelProfile.get(target);
+        double value = profile.gauges.getValue(gaugeId);
+        double max = profile.gauges.getMax(target, profile, gaugeId);
+        GaugeDefinition gauge = GaugeRegistry.get(gaugeId);
+        double decay = gauge == null ? 0.0 : GaugeModifiers.computeDecayPerSecond(target, profile, gauge);
+        ctx.getSource().sendSuccess(() -> Component.literal(target.getGameProfile().getName() + " " + gaugeId + ": " + round(value) + "/" + round(max)), false);
+        if (gauge != null) {
+            ctx.getSource().sendSuccess(() -> Component.literal(
+                    "Base max: " + round(gauge.defaultMax()) + ", computed max: " + round(max) + ", decay/sec: " + round(decay)
+            ), false);
+            if (GaugeRegistry.MOMENTUM.equals(gaugeId)) {
+                ctx.getSource().sendSuccess(() -> Component.literal(
+                        "Momentum modifiers: overdrive=" + hasDelving(profile, "overdrive")
+                                + ", stone_reservoir=" + hasDelving(profile, "stone_reservoir")
+                                + ", momentum_reservoir=" + hasDelving(profile, "momentum_reservoir")
+                                + ", deep_delver=" + hasDelving(profile, "deep_delver")
+                                + ", momentum_core=" + hasDelving(profile, "momentum_core")
+                ), false);
+            }
+        }
+        return 1;
+    }
+
+    private int gaugeSet(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+        ResourceLocation gaugeId = resolveGauge(ctx);
+        if (gaugeId == null) {
+            ctx.getSource().sendFailure(Component.literal("Unknown gauge"));
+            return 0;
+        }
+        double amount = DoubleArgumentType.getDouble(ctx, "amount");
+        PlayerGauges.set(target, gaugeId, amount);
+        if (GaugeRegistry.RHYTHM.equals(gaugeId)) {
+            PassiveSkillScalingService.applyFinesseRhythmMovementSpeed(target, LevelProfile.get(target));
+        }
+        return gaugeGet(ctx, target);
+    }
+
+    private int gaugeAdd(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+        ResourceLocation gaugeId = resolveGauge(ctx);
+        if (gaugeId == null) {
+            ctx.getSource().sendFailure(Component.literal("Unknown gauge"));
+            return 0;
+        }
+        double amount = DoubleArgumentType.getDouble(ctx, "amount");
+        PlayerGauges.add(target, gaugeId, amount);
+        if (GaugeRegistry.RHYTHM.equals(gaugeId)) {
+            PassiveSkillScalingService.applyFinesseRhythmMovementSpeed(target, LevelProfile.get(target));
+        }
+        return gaugeGet(ctx, target);
+    }
+
+    private int gaugeSpend(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+        ResourceLocation gaugeId = resolveGauge(ctx);
+        if (gaugeId == null) {
+            ctx.getSource().sendFailure(Component.literal("Unknown gauge"));
+            return 0;
+        }
+        double amount = DoubleArgumentType.getDouble(ctx, "amount");
+        if (!PlayerGauges.spend(target, gaugeId, amount)) {
+            ctx.getSource().sendFailure(Component.literal("Not enough " + gaugeId));
+            return 0;
+        }
+        if (GaugeRegistry.RHYTHM.equals(gaugeId)) {
+            PassiveSkillScalingService.applyFinesseRhythmMovementSpeed(target, LevelProfile.get(target));
+        }
+        return gaugeGet(ctx, target);
     }
 
     private static ServerPlayer getCallingPlayer(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
@@ -327,6 +642,42 @@ public class LevelCommands {
         return SharedSuggestionProvider.suggest(options, builder);
     }
 
+    public static CompletableFuture<Suggestions> suggestGauges(CommandContext<CommandSourceStack> ctx, SuggestionsBuilder builder) {
+        Set<String> options = new java.util.LinkedHashSet<>();
+        for (GaugeDefinition gauge : GaugeRegistry.entries()) {
+            if (gauge.id().getNamespace().equals(net.zoogle.levelrpg.LevelRPG.MODID)) {
+                options.add(gauge.id().getPath());
+            } else {
+                options.add(gauge.id().toString());
+            }
+        }
+        return SharedSuggestionProvider.suggest(options, builder);
+    }
+
+    public static CompletableFuture<Suggestions> suggestTechniques(CommandContext<CommandSourceStack> ctx, SuggestionsBuilder builder) {
+        Set<String> options = new java.util.LinkedHashSet<>();
+        for (TechniqueDefinition technique : TechniqueRegistry.entries()) {
+            if (technique.id().getNamespace().equals(net.zoogle.levelrpg.LevelRPG.MODID)) {
+                options.add(technique.id().getPath());
+            } else {
+                options.add(technique.id().toString());
+            }
+        }
+        return SharedSuggestionProvider.suggest(options, builder);
+    }
+
+    private static ResourceLocation resolveGauge(CommandContext<CommandSourceStack> ctx) {
+        String raw = StringArgumentType.getString(ctx, "gauge");
+        ResourceLocation id = raw.indexOf(':') >= 0
+                ? ResourceLocation.parse(raw)
+                : ResourceLocation.fromNamespaceAndPath(net.zoogle.levelrpg.LevelRPG.MODID, raw);
+        return GaugeRegistry.get(id) == null ? null : id;
+    }
+
+    private static String round(double value) {
+        return String.format(java.util.Locale.ROOT, "%.1f", value);
+    }
+
     private int unlockNode(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
         String raw = StringArgumentType.getString(ctx, "skill");
         String nodeId = StringArgumentType.getString(ctx, "node");
@@ -336,25 +687,122 @@ public class LevelCommands {
             return 0;
         }
         ResourceLocation skill = resolved.id();
-        LevelProfile profile = LevelProfile.get(target);
-        LevelProfile.UnlockResult res = profile.unlockNode(skill, nodeId);
-        if (!res.success) {
-            String detail = "Unlock failed: " + res.message
-                    + " [level " + res.skillLevel
-                    + ", mastery " + res.availablePoints + "/" + res.earnedPoints + "]";
-            if (res.suggestedNextNodeId != null && !res.suggestedNextNodeId.isBlank()) {
-                detail += " Next: " + res.suggestedNextNodeId;
-            }
-            ctx.getSource().sendFailure(Component.literal(detail));
+        var tree = net.zoogle.levelrpg.data.SkillTreeRegistry.get(skill);
+        if (tree == null) {
+            ctx.getSource().sendFailure(Component.literal("No tree for skill"));
             return 0;
         }
+        if (tree.nodes() == null || !tree.nodes().containsKey(nodeId)) {
+            ctx.getSource().sendFailure(Component.literal("Unknown node: " + nodeId));
+            return 0;
+        }
+        LevelProfile profile = LevelProfile.get(target);
+
+        ArrayList<String> unlockOrder = new ArrayList<>();
+        String planFailure = buildUnlockOrder(
+                tree,
+                nodeId,
+                profile.getUnlockedTreeNodes(skill),
+                new HashSet<>(),
+                new HashSet<>(),
+                unlockOrder
+        );
+        if (planFailure != null) {
+            ctx.getSource().sendFailure(Component.literal(planFailure));
+            return 0;
+        }
+        if (unlockOrder.isEmpty()) {
+            ctx.getSource().sendFailure(Component.literal("'" + nodeId + "' is already unlocked"));
+            return 0;
+        }
+
+        ArrayList<String> unlockedNow = new ArrayList<>();
+        LevelProfile.UnlockResult lastResult = null;
+        for (String plannedNodeId : unlockOrder) {
+            LevelProfile.UnlockResult res = profile.unlockNode(skill, plannedNodeId);
+            if (!res.success) {
+                String detail = "Unlock failed at '" + plannedNodeId + "': " + res.message
+                        + " [level " + res.rank
+                        + ", mastery " + res.insight + "/" + res.gainedInsight + "]";
+                if (res.suggestedNextNodeId != null && !res.suggestedNextNodeId.isBlank()) {
+                    detail += " Next: " + res.suggestedNextNodeId;
+                }
+                ctx.getSource().sendFailure(Component.literal(detail));
+                return 0;
+            }
+            unlockedNow.add(plannedNodeId);
+            lastResult = res;
+        }
+        if (lastResult == null) {
+            ctx.getSource().sendFailure(Component.literal("Unlock failed"));
+            return 0;
+        }
+
         LevelProfile.save(target, profile);
         Network.sendSync(target, profile);
+        PlayerGauges.syncAll(target, profile);
+        PassiveSkillScalingService.applyFinesseRhythmMovementSpeed(target, profile);
+        FinessePassiveModifiers.apply(target, profile);
         String name = displayNameForSkill(skill);
-        String detail = "Unlocked '" + nodeId + "' in " + name + " for " + target.getGameProfile().getName()
-                + " [mastery " + res.availablePoints + "/" + res.earnedPoints + " remaining]";
+        String detail = "Inscribed " + unlockedNow.size() + " node(s) in " + name + " for " + target.getGameProfile().getName()
+                + ": " + String.join(", ", unlockedNow)
+                + " [specialization " + lastResult.insight + "/" + lastResult.gainedInsight + " remaining]";
         ctx.getSource().sendSuccess(() -> Component.literal(detail), true);
-        target.displayClientMessage(Component.literal("Unlocked '" + nodeId + "' in " + name), true);
+        target.displayClientMessage(Component.literal("Inscribed '" + nodeId + "' in " + name), true);
+        return unlockedNow.size();
+    }
+
+    private int openTree(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+        String raw = StringArgumentType.getString(ctx, "skill");
+        var resolved = net.zoogle.levelrpg.util.IdUtil.resolveSkill(raw);
+        if (resolved == null) {
+            ctx.getSource().sendFailure(Component.literal("Unknown skill: " + raw));
+            return 0;
+        }
+        ResourceLocation skill = resolved.id();
+        var tree = net.zoogle.levelrpg.skilltree.SkillTreeRegistry.get(skill);
+        if (tree == null) {
+            ctx.getSource().sendFailure(Component.literal("No skill tree registered for " + skill));
+            return 0;
+        }
+        Network.openSkillTreeEditorScreen(target, skill);
+        ctx.getSource().sendSuccess(() -> Component.literal(
+                "Opening " + displayNameForSkill(skill) + " tree for " + target.getGameProfile().getName()
+        ), true);
         return 1;
+    }
+
+    private static String buildUnlockOrder(
+            net.zoogle.levelrpg.data.SkillTreeCanonicalDefinition tree,
+            String nodeId,
+            Set<String> alreadyUnlocked,
+            Set<String> visiting,
+            Set<String> planned,
+            ArrayList<String> unlockOrder
+    ) {
+        if (alreadyUnlocked.contains(nodeId) || planned.contains(nodeId)) {
+            return null;
+        }
+        var node = tree.nodes().get(nodeId);
+        if (node == null) {
+            return "Unknown prerequisite node: " + nodeId;
+        }
+        if (!visiting.add(nodeId)) {
+            return "Cycle in skill tree prerequisites at: " + nodeId;
+        }
+        for (String prerequisiteId : node.requires()) {
+            String failure = buildUnlockOrder(tree, prerequisiteId, alreadyUnlocked, visiting, planned, unlockOrder);
+            if (failure != null) {
+                return failure;
+            }
+        }
+        visiting.remove(nodeId);
+        planned.add(nodeId);
+        unlockOrder.add(nodeId);
+        return null;
+    }
+
+    private static boolean hasDelving(LevelProfile profile, String nodeId) {
+        return net.zoogle.levelrpg.skilltree.SkillUnlockQuery.hasNode(profile, DelvingMomentumGaugeModifiers.DELVING, nodeId);
     }
 }

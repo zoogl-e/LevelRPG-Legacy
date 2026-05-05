@@ -2,29 +2,432 @@
   "skill": "levelrpg:arcana",
   "title": "Arcana Mastery",
   "summary": "Arcana separates ritual control from raw channeling. It is a multiplier across other skills — not a standalone damage class. Each unlock teaches the underlying magical framework through play.",
-  "minSkillLevel": 1,
-  "thresholds": [
-    { "id": "arcane_awareness", "level": 1, "points": 1, "title": "Arcane Awareness", "description": "Choose how you approach hidden forces." },
-    { "id": "ether_practice", "level": 6, "points": 1, "title": "Ether Practice", "description": "Your arcane approach becomes more stable." },
-    { "id": "spellcraft_focus", "level": 12, "points": 1, "title": "Spellcraft Focus", "description": "A mid-tree scholarly identity solidifies." },
-    { "id": "archmage_path", "level": 20, "points": 1, "title": "Archmage Path", "description": "Late thresholds support committed cross-skill arcane specialization." }
-  ],
+  "minRank": 1,
   "nodes": [
-    { "id": "arcana_primer_leaf", "title": "Primer of Hidden Forces", "description": "The opening page warns that power obeys only those who first learn the names of its currents.", "branch": "core", "cost": 1, "requiredSkillLevel": 1, "requires": [], "layoutX": 0, "layoutY": 0, "iconKey": "minecraft:book" },
-
-    { "id": "imbuement_binding_stroke", "title": "Binding Stroke", "description": "Inscribers note that a steady hand can persuade iron and wood to remember enchantment.", "branch": "imbuement", "cost": 1, "requiredSkillLevel": 1, "requires": ["arcana_primer_leaf"], "layoutX": -120, "layoutY": 120, "iconKey": "minecraft:lapis_lazuli" },
-    { "id": "dimensional_rift_measure", "title": "Rift Measure", "description": "The dimensional margin measures safe steps through space where lesser minds are torn apart.", "branch": "dimensional", "cost": 1, "requiredSkillLevel": 1, "requires": ["arcana_primer_leaf"], "layoutX": 120, "layoutY": 120, "iconKey": "minecraft:ender_pearl" },
-
-    { "id": "imbuement_sigil_knots", "title": "Sigil Knots", "description": "This chapter knots runes together so objects may carry power without cracking their form.", "branch": "imbuement", "cost": 1, "requiredSkillLevel": 6, "requires": ["imbuement_binding_stroke"], "layoutX": -120, "layoutY": 240, "iconKey": "minecraft:enchanting_table" },
-    { "id": "dimensional_fold_step", "title": "Fold Step", "description": "The traveler script details short displacements that spare the body while cheating distance.", "branch": "dimensional", "cost": 1, "requiredSkillLevel": 6, "requires": ["dimensional_rift_measure"], "layoutX": 120, "layoutY": 240, "iconKey": "minecraft:chorus_fruit" },
-    { "id": "arcana_balanced_equation", "title": "Balanced Equation", "description": "Here the author binds inscription and traversal into one theorem of controlled transference.", "branch": "cross", "cost": 2, "requiredSkillLevel": 6, "requires": ["imbuement_sigil_knots", "dimensional_fold_step"], "layoutX": 0, "layoutY": 240, "iconKey": "minecraft:clock" },
-
-    { "id": "imbuement_living_seal", "title": "Living Seal", "description": "The inner imbuement codex claims crafted items may answer like sworn companions.", "branch": "imbuement", "cost": 2, "requiredSkillLevel": 12, "requires": ["imbuement_sigil_knots"], "layoutX": -120, "layoutY": 360, "iconKey": "minecraft:enchanted_book" },
-    { "id": "imbuement_graven_crown", "title": "Graven Crown", "description": "Outer annotations teach engraving authority into artifacts that command lesser enchantments.", "branch": "imbuement", "cost": 2, "requiredSkillLevel": 12, "requires": ["imbuement_sigil_knots"], "layoutX": -240, "layoutY": 360, "iconKey": "minecraft:nether_star" },
-    { "id": "dimensional_endwalk", "title": "Endwalk", "description": "A brittle violet sheet records movement habits borrowed from those who survived the End.", "branch": "dimensional", "cost": 2, "requiredSkillLevel": 12, "requires": ["dimensional_fold_step"], "layoutX": 120, "layoutY": 360, "iconKey": "minecraft:end_stone" },
-    { "id": "dimensional_void_anchor", "title": "Void Anchor", "description": "The outer dimensional leaf explains fixing one's place when portals rage and landmarks lie.", "branch": "dimensional", "cost": 2, "requiredSkillLevel": 12, "requires": ["dimensional_fold_step"], "layoutX": 240, "layoutY": 360, "iconKey": "minecraft:crying_obsidian" },
-
-    { "id": "imbuement_hidden_masterwork", "title": "Hidden Masterwork", "description": "In ciphered ink, the treatise whispers of relics that awaken only to their rightful maker.", "branch": "imbuement", "cost": 3, "requiredSkillLevel": 20, "requires": ["imbuement_living_seal", "imbuement_graven_crown"], "layoutX": -300, "layoutY": 480, "iconKey": "minecraft:totem_of_undying", "visibility": "obfuscated" },
-    { "id": "dimensional_night_bridge", "title": "Night Bridge", "description": "This hidden addendum maps a passage where worlds kiss and only the prepared may return.", "branch": "dimensional", "cost": 3, "requiredSkillLevel": 20, "requires": ["dimensional_endwalk", "dimensional_void_anchor"], "layoutX": 300, "layoutY": 480, "iconKey": "minecraft:dragon_breath", "visibility": "obfuscated" }
+    {
+      "id": "arcana_arcane_initiation",
+      "title": "Arcane Initiation",
+      "description": "You are attuned to the Inner Magicks you’ve learned",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": 0,
+      "requirement": {
+        "mode": "all",
+        "nodes": []
+      }
+    },
+    {
+      "id": "arcana_soul_catcher",
+      "title": "Soul Catcher",
+      "description": "Occasionally absorb souls into your own, allowing you to perform Animakinesis\n\nAllay Calling\nGentle souls occasionally manifest as Allays",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -62,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_arcane_initiation"
+        ]
+      },
+      "requires": [
+        "arcana_arcane_initiation"
+      ]
+    },
+    {
+      "id": "arcana_spirit_infusion",
+      "title": "Spirit Infusion",
+      "description": "Bound souls enhance your current enchantment",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 66,
+      "layoutY": -96,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_verbose_runes",
+          "arcana_soul_catcher"
+        ]
+      },
+      "requires": [
+        "arcana_verbose_runes",
+        "arcana_soul_catcher"
+      ]
+    },
+    {
+      "id": "arcana_soulbound_tool",
+      "title": "Soulbound Tool",
+      "description": "Your weapon consumes souls to empower hits",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 66,
+      "layoutY": -31,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_arcane_enchant",
+          "arcana_soul_catcher"
+        ]
+      },
+      "requires": [
+        "arcana_arcane_enchant",
+        "arcana_soul_catcher"
+      ]
+    },
+    {
+      "id": "arcana_arcane_enchant",
+      "title": "Arcane Enchant",
+      "description": "Imbue a temporary enchantment to your held item",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 129,
+      "layoutY": -31,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_arcane_initiation"
+        ]
+      },
+      "requires": [
+        "arcana_arcane_initiation"
+      ]
+    },
+    {
+      "id": "arcana_verbose_runes",
+      "title": "Verbose Runes",
+      "description": "Imbue your held item with two enchantments.",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 129,
+      "layoutY": -96,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_arcane_enchant"
+        ]
+      },
+      "requires": [
+        "arcana_arcane_enchant"
+      ]
+    },
+    {
+      "id": "arcana_breath_of_magic",
+      "title": "Breath of Magic",
+      "description": "Potions you brew have a chance to be enhanced",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 193,
+      "layoutY": -31,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_arcane_initiation"
+        ]
+      },
+      "requires": [
+        "arcana_arcane_initiation"
+      ]
+    },
+    {
+      "id": "arcana_veil",
+      "title": "Veil",
+      "description": "Imbue your soul with another’s essence, taking on their form and altering how entities perceive you.",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 129,
+      "layoutY": -159,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_verbose_runes",
+          "arcana_soul_possession"
+        ]
+      },
+      "requires": [
+        "arcana_verbose_runes",
+        "arcana_soul_possession"
+      ]
+    },
+    {
+      "id": "arcana_soul_displacement",
+      "title": "Soul Displacement",
+      "description": "When you swap positions, nearby mobs retarget unpredictably",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -63,
+      "layoutY": -96,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_soul_catcher",
+          "arcana_swap"
+        ]
+      },
+      "requires": [
+        "arcana_soul_catcher",
+        "arcana_swap"
+      ]
+    },
+    {
+      "id": "arcana_phantom_step",
+      "title": "Phantom Step",
+      "description": "Teleporting leaves behind a decoy that draws aggro",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -63,
+      "layoutY": -31,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_soul_catcher"
+        ]
+      },
+      "requires": [
+        "arcana_soul_catcher"
+      ]
+    },
+    {
+      "id": "arcana_phase_step",
+      "title": "Phase Step",
+      "description": "Short-range teleport forward",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -127,
+      "layoutY": -31,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_arcane_initiation"
+        ]
+      },
+      "requires": [
+        "arcana_arcane_initiation"
+      ]
+    },
+    {
+      "id": "arcana_swap",
+      "title": "Swap",
+      "description": "Swap position with a nearby entity",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -127,
+      "layoutY": -96,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_phase_step"
+        ]
+      },
+      "requires": [
+        "arcana_phase_step"
+      ]
+    },
+    {
+      "id": "arcana_tether",
+      "title": "Tether",
+      "description": "Link yourself to a point; snapping back if you move too far",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -190,
+      "layoutY": -31,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_phase_step"
+        ]
+      },
+      "requires": [
+        "arcana_phase_step"
+      ]
+    },
+    {
+      "id": "arcana_reach_through",
+      "title": "Reach Through",
+      "description": "Briefly phase a block out of existence, allowing interaction or movement through it",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -190,
+      "layoutY": -96,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_tether",
+          "arcana_swap"
+        ]
+      },
+      "requires": [
+        "arcana_tether",
+        "arcana_swap"
+      ]
+    },
+    {
+      "id": "arcana_dimensional_tunnel",
+      "title": "Dimensional Tunnel",
+      "description": "Create a temporary tunnel phased out of existence",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -190,
+      "layoutY": -159,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_reach_through"
+        ]
+      },
+      "requires": [
+        "arcana_reach_through"
+      ]
+    },
+    {
+      "id": "arcana_pocket_space",
+      "title": "Pocket-Space",
+      "description": "Access a pocket-space to keep your valuables in",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -127,
+      "layoutY": -159,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_dimensional_tunnel"
+        ]
+      },
+      "requires": [
+        "arcana_dimensional_tunnel"
+      ]
+    },
+    {
+      "id": "arcana_dimensional_gate",
+      "title": "Dimensional Gate",
+      "description": "Open a door to pocket-space.",
+      "type": "manifestation",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -127,
+      "layoutY": -223,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_pocket_space"
+        ]
+      },
+      "requires": [
+        "arcana_pocket_space"
+      ]
+    },
+    {
+      "id": "arcana_bound_spirit",
+      "title": "Bound Spirit",
+      "description": "A slain mob’s soul may become a temporary allied spirit that fights for you",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -31,
+      "layoutY": -159,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_soul_catcher"
+        ]
+      },
+      "requires": [
+        "arcana_soul_catcher"
+      ]
+    },
+    {
+      "id": "arcana_soul_override",
+      "title": "Soul Override",
+      "description": "Spend a soul to briefly turn a mob on your side",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 31,
+      "layoutY": -159,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_soul_catcher"
+        ]
+      },
+      "requires": [
+        "arcana_soul_catcher"
+      ]
+    },
+    {
+      "id": "arcana_second_breath",
+      "title": "Second Breath",
+      "description": "When you would die, consume your remaining souls to survive",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -31,
+      "layoutY": -223,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_bound_spirit"
+        ]
+      },
+      "requires": [
+        "arcana_bound_spirit"
+      ]
+    },
+    {
+      "id": "arcana_soul_possession",
+      "title": "Soul Possession",
+      "description": "Spend a soul to temporarily take control of a mob",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 31,
+      "layoutY": -223,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_soul_override"
+        ]
+      },
+      "requires": [
+        "arcana_soul_override"
+      ]
+    },
+    {
+      "id": "arcana_last_will",
+      "title": "Last Will",
+      "description": "Upon death, you consume all Souls and enter a brief spectral state. You may move for a few seconds before collapsing, determining where your items are dropped.",
+      "type": "manifestation",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -285,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "arcana_second_breath",
+          "arcana_soul_possession"
+        ]
+      },
+      "requires": [
+        "arcana_second_breath",
+        "arcana_soul_possession"
+      ]
+    }
   ]
 }

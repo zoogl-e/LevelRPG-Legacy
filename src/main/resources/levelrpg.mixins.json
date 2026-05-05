@@ -3,8 +3,16 @@
   "minVersion": "0.8",
   "package": "net.zoogle.levelrpg.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": [],
+  "mixins": [
+    "AbstractArrowGroundAccessor",
+    "AbstractArrowPierceInvoker",
+    "BowItemMixin",
+    "CrossbowItemMixin",
+    "EntityInvisibleToMixin"
+  ],
   "client": [
+    "client.ItemPropertiesMixin",
+    "client.PlayerModelGuardPoseMixin",
     "client.RecipeBookComponentMixin",
     "client.RecipeButtonMixin",
     "client.OverlayRecipeButtonMixin"

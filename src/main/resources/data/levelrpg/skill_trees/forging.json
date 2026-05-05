@@ -2,29 +2,312 @@
   "skill": "levelrpg:forging",
   "title": "Forging Mastery",
   "summary": "Forging now branches between durable practical craft and high-performance smith work, making progression choices legible for future recipe unlock presentation.",
-  "minSkillLevel": 1,
-  "thresholds": [
-    { "id": "forge_spark", "level": 1, "points": 1, "title": "Forge Spark", "description": "Choose your approach to metalwork." },
-    { "id": "tempered_hands", "level": 6, "points": 1, "title": "Tempered Hands", "description": "Your metalwork becomes more specialized." },
-    { "id": "anvil_focus", "level": 12, "points": 1, "title": "Anvil Focus", "description": "Mid-tree commitments become available." },
-    { "id": "grandmaster_forge", "level": 20, "points": 1, "title": "Grandmaster Forge", "description": "Late thresholds support a defining smithing identity." }
-  ],
+  "minRank": 1,
   "nodes": [
-    { "id": "forging_foundry_canon", "title": "Foundry Canon", "description": "The opener claims every true smith begins by mastering heat before shaping ambition.", "branch": "core", "cost": 1, "requiredSkillLevel": 1, "requires": [], "layoutX": 0, "layoutY": 0, "iconKey": "minecraft:blast_furnace" },
-
-    { "id": "weaponsmith_balanced_edge", "title": "Balanced Edge", "description": "Weaponsmith records insist a blade must strike true before it strikes hard.", "branch": "weaponsmith", "cost": 1, "requiredSkillLevel": 1, "requires": ["forging_foundry_canon"], "layoutX": -120, "layoutY": 120, "iconKey": "minecraft:iron_sword" },
-    { "id": "armorsmith_rivet_oath", "title": "Rivet Oath", "description": "Armorsmith notes praise joins that hold under panic, mud, and siege alike.", "branch": "armorsmith", "cost": 1, "requiredSkillLevel": 1, "requires": ["forging_foundry_canon"], "layoutX": 120, "layoutY": 120, "iconKey": "minecraft:iron_chestplate" },
-
-    { "id": "weaponsmith_temper_line", "title": "Temper Line", "description": "This chapter tracks the heat at which steel remembers violence without becoming brittle.", "branch": "weaponsmith", "cost": 1, "requiredSkillLevel": 6, "requires": ["weaponsmith_balanced_edge"], "layoutX": -120, "layoutY": 240, "iconKey": "minecraft:smithing_table" },
-    { "id": "armorsmith_layered_guard", "title": "Layered Guard", "description": "The armorsmith folio details plate orderings that redirect force into harmless echoes.", "branch": "armorsmith", "cost": 1, "requiredSkillLevel": 6, "requires": ["armorsmith_rivet_oath"], "layoutX": 120, "layoutY": 240, "iconKey": "minecraft:shield" },
-    { "id": "forging_joint_discipline", "title": "Joint Discipline", "description": "At center, the text unites killing edge and patient guard into one smith's ethic.", "branch": "cross", "cost": 2, "requiredSkillLevel": 6, "requires": ["weaponsmith_temper_line", "armorsmith_layered_guard"], "layoutX": 0, "layoutY": 240, "iconKey": "minecraft:anvil" },
-
-    { "id": "weaponsmith_kingsteel", "title": "Kingsteel Temper", "description": "Inner weapon pages speak of a temper that keeps bite after endless campaigns.", "branch": "weaponsmith", "cost": 2, "requiredSkillLevel": 12, "requires": ["weaponsmith_temper_line"], "layoutX": -120, "layoutY": 360, "iconKey": "minecraft:netherite_sword" },
-    { "id": "weaponsmith_helmsplitter", "title": "Helmsplitter Pattern", "description": "The outer route details profile shapes built to ruin armor at first contact.", "branch": "weaponsmith", "cost": 2, "requiredSkillLevel": 12, "requires": ["weaponsmith_temper_line"], "layoutX": -240, "layoutY": 360, "iconKey": "minecraft:netherite_axe" },
-    { "id": "armorsmith_bastion_skin", "title": "Bastion Skin", "description": "Inner armor leaves map cuirass forms that endure where others buckle and split.", "branch": "armorsmith", "cost": 2, "requiredSkillLevel": 12, "requires": ["armorsmith_layered_guard"], "layoutX": 120, "layoutY": 360, "iconKey": "minecraft:netherite_chestplate" },
-    { "id": "armorsmith_vigil_plate", "title": "Vigil Plate", "description": "The outer armorer script details layered helm and greave sets for relentless defense.", "branch": "armorsmith", "cost": 2, "requiredSkillLevel": 12, "requires": ["armorsmith_layered_guard"], "layoutX": 240, "layoutY": 360, "iconKey": "minecraft:netherite_helmet" },
-
-    { "id": "weaponsmith_crimson_edict", "title": "Crimson Edict", "description": "Hidden marginalia names a weapon line forged for decisive wars and no half-measures.", "branch": "weaponsmith", "cost": 3, "requiredSkillLevel": 20, "requires": ["weaponsmith_kingsteel", "weaponsmith_helmsplitter"], "layoutX": -300, "layoutY": 480, "iconKey": "minecraft:netherite_ingot", "visibility": "obfuscated" },
-    { "id": "armorsmith_immortal_harness", "title": "Immortal Harness", "description": "A hidden armorer appendix claims this harness lets its bearer outlast impossible sieges.", "branch": "armorsmith", "cost": 3, "requiredSkillLevel": 20, "requires": ["armorsmith_bastion_skin", "armorsmith_vigil_plate"], "layoutX": 300, "layoutY": 480, "iconKey": "minecraft:netherite_leggings", "visibility": "obfuscated" }
+    {
+      "id": "forging_apprentice_smith",
+      "title": "Apprentice Smith",
+      "description": "You can repair Condition and begin shaping items through forging.\n\nWork Lock\nItems cannot be reforged immediately after a full session.",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": 0,
+      "requirement": {
+        "mode": "all",
+        "nodes": []
+      }
+    },
+    {
+      "id": "forging_breaking_in",
+      "title": "Breaking In",
+      "description": "Using a freshly worked item improves its Condition slightly before decay begins.",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -63,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "forging_apprentice_smith"
+        ]
+      },
+      "requires": [
+        "forging_apprentice_smith"
+      ]
+    },
+    {
+      "id": "forging_set_metal",
+      "title": "Set Metal",
+      "description": "Freshly Worked items retain their quality longer before degrading.",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -63,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "forging_apprentice_smith"
+        ]
+      },
+      "requires": [
+        "forging_apprentice_smith"
+      ]
+    },
+    {
+      "id": "forging_clean_work",
+      "title": "Clean Work",
+      "description": "Applying traits no longer reduces Condition.",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -127,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "forging_guided_forging"
+        ]
+      },
+      "requires": [
+        "forging_guided_forging"
+      ]
+    },
+    {
+      "id": "forging_guided_forging",
+      "title": "Guided Forging",
+      "description": "You can preview and confirm traits before applying them.",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -62,
+      "layoutY": -127,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "forging_breaking_in"
+        ]
+      },
+      "requires": [
+        "forging_breaking_in"
+      ]
+    },
+    {
+      "id": "forging_reheat",
+      "title": "Reheat",
+      "description": "You may rework a Freshly Worked item early at increased cost.",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -127,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "forging_set_metal"
+        ]
+      },
+      "requires": [
+        "forging_set_metal"
+      ]
+    },
+    {
+      "id": "forging_lasting_form",
+      "title": "Lasting Form",
+      "description": "Forged improvements persist longer as Condition declines.",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -190,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "forging_reheat"
+        ]
+      },
+      "requires": [
+        "forging_reheat"
+      ]
+    },
+    {
+      "id": "forging_temper_link",
+      "title": "Temper Link",
+      "description": "Traits scale with Condition.",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -62,
+      "layoutY": -190,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "forging_clean_work",
+          "forging_lasting_form"
+        ]
+      },
+      "requires": [
+        "forging_clean_work",
+        "forging_lasting_form"
+      ]
+    },
+    {
+      "id": "forging_dual_forging",
+      "title": "Dual Forging",
+      "description": "Items can hold two traits.",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -62,
+      "layoutY": -255,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "forging_temper_link"
+        ]
+      },
+      "requires": [
+        "forging_temper_link"
+      ]
+    },
+    {
+      "id": "forging_masterwork",
+      "title": "Masterwork",
+      "description": "Items can hold a third trait and exceed normal Condition cap.",
+      "type": "technique",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -255,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "forging_dual_forging"
+        ]
+      },
+      "requires": [
+        "forging_dual_forging"
+      ]
+    },
+    {
+      "id": "forging_perfect_temper",
+      "title": "Perfect Temper",
+      "description": "Forged items maintain peak performance for longer before degrading.",
+      "type": "technique",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -255,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "forging_lasting_form"
+        ]
+      },
+      "requires": [
+        "forging_lasting_form"
+      ]
+    },
+    {
+      "id": "forging_makers_mark",
+      "title": "Maker’s Mark",
+      "description": "Items you forge bear your signature.\n\nSignature Craft\nTraits are stronger on items bearing your Maker’s Mark.",
+      "type": "manifestation",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -320,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "forging_masterwork"
+        ]
+      },
+      "requires": [
+        "forging_masterwork"
+      ]
+    },
+    {
+      "id": "forging_recognized_craft",
+      "title": "Recognized Craft",
+      "description": "You repair your own items more effectively.",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -62,
+      "layoutY": -320,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "forging_makers_mark"
+        ]
+      },
+      "requires": [
+        "forging_makers_mark"
+      ]
+    },
+    {
+      "id": "forging_legacy_craft",
+      "title": "Legacy Craft",
+      "description": "Your items degrade more gracefully.",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -320,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "forging_makers_mark"
+        ]
+      },
+      "requires": [
+        "forging_makers_mark"
+      ]
+    },
+    {
+      "id": "forging_trusted_work",
+      "title": "Trusted Work",
+      "description": "Others gain benefits from your crafted items.",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -383,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "forging_makers_mark"
+        ]
+      },
+      "requires": [
+        "forging_makers_mark"
+      ]
+    },
+    {
+      "id": "forging_grand_artisan",
+      "title": "Grand Artisan",
+      "description": "Items you create start at higher Condition and have increased Condition cap.",
+      "type": "manifestation",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -448,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "forging_trusted_work",
+          "forging_recognized_craft",
+          "forging_legacy_craft"
+        ]
+      },
+      "requires": [
+        "forging_trusted_work",
+        "forging_recognized_craft",
+        "forging_legacy_craft"
+      ]
+    }
   ]
 }

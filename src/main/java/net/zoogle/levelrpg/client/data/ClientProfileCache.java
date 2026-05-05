@@ -22,12 +22,17 @@ public final class ClientProfileCache {
     private static final LinkedHashMap<ResourceLocation, Set<String>> treeUnlockedNodes = new LinkedHashMap<>();
     private static int availableSkillPoints;
     private static int spentSkillPoints;
+    private static int bonusSpecializationPoints;
     private static ResourceLocation archetypeId;
     private static boolean archetypeApplied;
     private static long lastUpdatedMs;
     private static ResourceLocation lastSkillId; // last skill that received a delta
     private static boolean ready; // true once we have received profile/delta from server
     private static boolean fullProfileSynced; // true once a full canonical profile snapshot has been received
+    private static long bindResultVersion;
+    private static boolean lastBindSuccess;
+    private static String lastBindMessage = "";
+    private static ResourceLocation lastBindArchetypeId;
 
     private ClientProfileCache() {}
 
@@ -35,8 +40,9 @@ public final class ClientProfileCache {
             Map<ResourceLocation, SkillState> map,
             Map<ResourceLocation, Integer> spentMap,
             Map<ResourceLocation, Set<String>> unlockedMap,
-            int availablePoints,
+            int insight,
             int spentPoints,
+            int bonusSpecPoints,
             ResourceLocation selectedArchetypeId,
             boolean selectedArchetypeApplied
     ) {
@@ -46,8 +52,8 @@ public final class ClientProfileCache {
             SkillState state = new SkillState();
             if (incoming != null) {
                 state.level = incoming.level;
-                state.masteryLevel = incoming.masteryLevel;
-                state.masteryXp = incoming.masteryXp;
+                state.rank = incoming.rank;
+                state.proficiency = incoming.proficiency;
             }
             skills.put(skill.id(), state);
         }
@@ -59,8 +65,9 @@ public final class ClientProfileCache {
         for (ProgressionSkill skill : ProgressionSkill.values()) {
             treeUnlockedNodes.put(skill.id(), Set.copyOf(unlockedMap.getOrDefault(skill.id(), Set.of())));
         }
-        availableSkillPoints = Math.max(0, availablePoints);
+        availableSkillPoints = Math.max(0, insight);
         spentSkillPoints = Math.max(0, spentPoints);
+        bonusSpecializationPoints = Math.max(0, bonusSpecPoints);
         archetypeId = selectedArchetypeId;
         archetypeApplied = selectedArchetypeApplied;
         lastUpdatedMs = System.currentTimeMillis();
@@ -76,7 +83,7 @@ public final class ClientProfileCache {
         );
     }
 
-    public static void applyDelta(ResourceLocation skillId, int level, int masteryLevel, long masteryXp, int availablePoints, int spentPoints) {
+    public static void applyDelta(ResourceLocation skillId, int level, int masteryLevel, long masteryXp, int insight, int spentPoints) {
         if (!ProgressionSkill.isCanonicalId(skillId)) {
             LOGGER.warn("Ignoring non-canonical LevelRPG client profile delta for {}", skillId);
             return;
@@ -87,9 +94,9 @@ public final class ClientProfileCache {
             skills.put(skillId, sp);
         }
         sp.level = level;
-        sp.masteryLevel = masteryLevel;
-        sp.masteryXp = masteryXp;
-        availableSkillPoints = Math.max(0, availablePoints);
+        sp.rank = masteryLevel;
+        sp.proficiency = masteryXp;
+        availableSkillPoints = Math.max(0, insight);
         spentSkillPoints = Math.max(0, spentPoints);
         lastUpdatedMs = System.currentTimeMillis();
         lastSkillId = skillId;
@@ -112,8 +119,20 @@ public final class ClientProfileCache {
     public static boolean hasCanonicalProfileData() { return fullProfileSynced && !skills.isEmpty(); }
     public static int getAvailableSkillPoints() { return availableSkillPoints; }
     public static int getSpentSkillPoints() { return spentSkillPoints; }
+    public static int getBonusSpecializationPoints() { return bonusSpecializationPoints; }
     public static ResourceLocation getArchetypeId() { return archetypeId; }
     public static boolean isArchetypeApplied() { return archetypeApplied; }
+    public static long getBindResultVersion() { return bindResultVersion; }
+    public static boolean wasLastBindSuccess() { return lastBindSuccess; }
+    public static String getLastBindMessage() { return lastBindMessage; }
+    public static ResourceLocation getLastBindArchetypeId() { return lastBindArchetypeId; }
+
+    public static void recordBindResult(boolean success, String message, ResourceLocation archetypeId) {
+        lastBindSuccess = success;
+        lastBindMessage = message == null ? "" : message;
+        lastBindArchetypeId = archetypeId;
+        bindResultVersion++;
+    }
 
     /** Sum of invested skill levels across all canonical skills (specialization thresholds use this). */
     public static int totalInvestedLevelsAcrossSkills() {

@@ -9,11 +9,11 @@ public record JournalMasterySnapshot(
         boolean hasTree,
         String title,
         String summary,
-        int skillLevel,
+        int rank,
         int unlockedTierCount,
         int earnedPoints,
         int spentPoints,
-        int availablePoints,
+        int insight,
         JournalUnlockSnapshot nextThreshold,
         List<JournalUnlockSnapshot> milestones,
         List<NodeSnapshot> nodes,
@@ -22,11 +22,11 @@ public record JournalMasterySnapshot(
     public JournalMasterySnapshot {
         title = title == null ? "" : title;
         summary = summary == null ? "" : summary;
-        skillLevel = Math.max(0, skillLevel);
+        rank = Math.max(0, rank);
         unlockedTierCount = Math.max(0, unlockedTierCount);
         earnedPoints = Math.max(0, earnedPoints);
         spentPoints = Math.max(0, spentPoints);
-        availablePoints = Math.max(0, availablePoints);
+        insight = Math.max(0, insight);
         milestones = milestones == null ? List.of() : List.copyOf(milestones);
         nodes = nodes == null ? List.of() : List.copyOf(nodes);
         suggestedNextNodeId = suggestedNextNodeId == null ? "" : suggestedNextNodeId;
@@ -37,6 +37,8 @@ public record JournalMasterySnapshot(
             String title,
             String description,
             String branch,
+            String type,
+            String iconKey,
             int cost,
             int requiredLevel,
             Status status,
@@ -47,6 +49,8 @@ public record JournalMasterySnapshot(
             title = title == null ? "" : title;
             description = description == null ? "" : description;
             branch = branch == null ? "" : branch;
+            type = type == null ? "" : type;
+            iconKey = iconKey == null ? "" : iconKey;
             cost = Math.max(0, cost);
             requiredLevel = Math.max(0, requiredLevel);
             status = status == null ? Status.LOCKED : status;

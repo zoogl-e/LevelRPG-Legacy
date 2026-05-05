@@ -1,7 +1,7 @@
 package net.zoogle.levelrpg.progression;
 
 import net.minecraft.resources.ResourceLocation;
-import net.zoogle.levelrpg.data.SkillTreeDefinition;
+import net.zoogle.levelrpg.data.SkillTreeCanonicalDefinition;
 import net.zoogle.levelrpg.data.SkillTreeRegistry;
 import net.zoogle.levelrpg.profile.LevelProfile;
 import net.zoogle.levelrpg.profile.SkillState;
@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+// Server-side: uses data.SkillTreeCanonicalDefinition (JSON-loaded). Client rendering uses skilltree.SkillTreePresentationDefinition via SkillTreeRegistry.
 /**
  * Central evaluator for mastery tree state so commands, journal guidance, and
  * client presentation all read the same unlock logic.
@@ -21,12 +22,12 @@ public final class SkillTreeProgression {
     private SkillTreeProgression() {}
 
     public static TreeSnapshot snapshot(LevelProfile profile, ResourceLocation skillId) {
-        SkillTreeDefinition tree = SkillTreeRegistry.get(skillId);
+        SkillTreeCanonicalDefinition tree = SkillTreeRegistry.get(skillId);
         SkillState skillProgress = profile.getSkill(skillId);
-        Set<String> unlockedNodes = profile.getUnlockedTreeNodes(skillId);
-        int earnedPoints = SpecializationProgression.earnedPoints(profile);
-        int spentPoints = SpecializationProgression.spentPoints(profile);
-        return snapshot(skillId, tree, skillProgress.level, unlockedNodes, earnedPoints, spentPoints);
+        Set<String> inscribedNodes = profile.getUnlockedTreeNodes(skillId);
+        int gainedInsight = SpecializationProgression.gainedInsight(profile);
+        int inscribedPoints = SpecializationProgression.inscribedPoints(profile);
+        return snapshot(skillId, tree, skillProgress.level, inscribedNodes, gainedInsight, inscribedPoints);
     }
 
     /**
@@ -35,41 +36,36 @@ public final class SkillTreeProgression {
      */
     public static TreeSnapshot snapshot(
             ResourceLocation skillId,
-            SkillTreeDefinition tree,
+            SkillTreeCanonicalDefinition tree,
             int investedSkillLevel,
             Set<String> unlockedNodesForSkill,
             int specializationEarnedGlobal,
             int specializationSpentGlobal
     ) {
-        int availablePoints = Math.max(0, specializationEarnedGlobal - specializationSpentGlobal);
+        int insight = Math.max(0, specializationEarnedGlobal - specializationSpentGlobal);
         if (tree == null) {
             return new TreeSnapshot(
                     skillId,
                     null,
                     investedSkillLevel,
-                    0,
                     specializationEarnedGlobal,
                     specializationSpentGlobal,
-                    availablePoints,
+                    insight,
                     unlockedNodesForSkill,
-                    Optional.empty(),
                     List.of(),
                     Optional.empty(),
                     Optional.empty()
             );
         }
 
-        int unlockedTiers = unlockedTierCount(tree, investedSkillLevel);
-        Optional<SkillTreeDefinition.Threshold> nextThreshold = tree.nextThreshold(investedSkillLevel);
-
         ArrayList<NodeSnapshot> nodeSnapshots = new ArrayList<>();
         for (String nodeId : tree.orderedNodeIds()) {
-            SkillTreeDefinition.Node node = tree.nodes().get(nodeId);
+            SkillTreeCanonicalDefinition.Node node = tree.nodes().get(nodeId);
             if (node == null) {
                 continue;
             }
             List<String> missingRequirements = tree.missingRequirements(nodeId, unlockedNodesForSkill);
-            NodeStatus status = resolveStatus(tree, node, investedSkillLevel, availablePoints, unlockedNodesForSkill, missingRequirements);
+            NodeStatus status = resolveStatus(tree, node, investedSkillLevel, insight, unlockedNodesForSkill, missingRequirements);
             nodeSnapshots.add(new NodeSnapshot(node, status, missingRequirements));
         }
 
@@ -77,7 +73,7 @@ public final class SkillTreeProgression {
                 .filter(node -> node.status() == NodeStatus.AVAILABLE)
                 .findFirst();
         Optional<NodeSnapshot> suggestedLocked = nodeSnapshots.stream()
-                .filter(node -> node.status() != NodeStatus.UNLOCKED)
+                .filter(node -> node.status() != NodeStatus.INSCRIBED)
                 .min(Comparator
                         .comparingInt((NodeSnapshot node) -> requiredLevelFor(tree, node.node()))
                         .thenComparing(node -> node.node().id()));
@@ -86,12 +82,10 @@ public final class SkillTreeProgression {
                 skillId,
                 tree,
                 investedSkillLevel,
-                unlockedTiers,
                 specializationEarnedGlobal,
                 specializationSpentGlobal,
-                availablePoints,
+                insight,
                 unlockedNodesForSkill,
-                nextThreshold,
                 List.copyOf(nodeSnapshots),
                 suggestedAvailable,
                 suggestedAvailable.isPresent() ? suggestedAvailable : suggestedLocked
@@ -99,42 +93,42 @@ public final class SkillTreeProgression {
     }
 
     private static NodeStatus resolveStatus(
-            SkillTreeDefinition tree,
-            SkillTreeDefinition.Node node,
-            int skillLevel,
-            int availablePoints,
-            Set<String> unlockedNodes,
+            SkillTreeCanonicalDefinition tree,
+            SkillTreeCanonicalDefinition.Node node,
+            int rank,
+            int insight,
+            Set<String> inscribedNodes,
             List<String> missingRequirements
     ) {
-        if (unlockedNodes.contains(node.id())) {
-            return NodeStatus.UNLOCKED;
+        if (inscribedNodes.contains(node.id())) {
+            return NodeStatus.INSCRIBED;
         }
-        if (skillLevel < requiredLevelFor(tree, node)) {
+        if (rank < requiredLevelFor(tree, node)) {
             return NodeStatus.LOCKED_SKILL_LEVEL;
         }
         if (!missingRequirements.isEmpty()) {
             return NodeStatus.LOCKED_PREREQUISITE;
         }
-        if (availablePoints < node.normalizedCost()) {
-            return NodeStatus.LOCKED_MASTERY_POINTS;
+        if (insight < node.normalizedCost()) {
+            return NodeStatus.LOCKED_INSIGHT;
         }
         return NodeStatus.AVAILABLE;
     }
 
-    public static int requiredLevelFor(SkillTreeDefinition tree, SkillTreeDefinition.Node node) {
-        return Math.max(Math.max(0, tree.minSkillLevel()), node.normalizedRequiredSkillLevel());
+    public static int requiredLevelFor(SkillTreeCanonicalDefinition tree, SkillTreeCanonicalDefinition.Node node) {
+        return Math.max(Math.max(0, tree.minRank()), node.normalizedRequiredRank());
     }
 
     public enum NodeStatus {
-        UNLOCKED,
+        INSCRIBED,
         AVAILABLE,
         LOCKED_SKILL_LEVEL,
         LOCKED_PREREQUISITE,
-        LOCKED_MASTERY_POINTS
+        LOCKED_INSIGHT
     }
 
     public record NodeSnapshot(
-            SkillTreeDefinition.Node node,
+            SkillTreeCanonicalDefinition.Node node,
             NodeStatus status,
             List<String> missingRequirements
     ) {
@@ -145,37 +139,21 @@ public final class SkillTreeProgression {
 
     public record TreeSnapshot(
             ResourceLocation skillId,
-            SkillTreeDefinition tree,
-            int skillLevel,
-            int unlockedTiers,
-            int earnedPoints,
-            int spentPoints,
-            int availablePoints,
-            Set<String> unlockedNodes,
-            Optional<SkillTreeDefinition.Threshold> nextThreshold,
+            SkillTreeCanonicalDefinition tree,
+            int rank,
+            int gainedInsight,
+            int inscribedPoints,
+            int insight,
+            Set<String> inscribedNodes,
             List<NodeSnapshot> nodes,
             Optional<NodeSnapshot> suggestedAvailableNode,
             Optional<NodeSnapshot> suggestedNextNode
     ) {
         public TreeSnapshot {
-            unlockedNodes = unlockedNodes == null ? Set.of() : Set.copyOf(new LinkedHashSet<>(unlockedNodes));
-            nextThreshold = nextThreshold == null ? Optional.empty() : nextThreshold;
+            inscribedNodes = inscribedNodes == null ? Set.of() : Set.copyOf(new LinkedHashSet<>(inscribedNodes));
             nodes = nodes == null ? List.of() : List.copyOf(nodes);
             suggestedAvailableNode = suggestedAvailableNode == null ? Optional.empty() : suggestedAvailableNode;
             suggestedNextNode = suggestedNextNode == null ? Optional.empty() : suggestedNextNode;
         }
-    }
-
-    private static int unlockedTierCount(SkillTreeDefinition tree, int skillLevel) {
-        if (tree == null) {
-            return 0;
-        }
-        int unlocked = 0;
-        for (SkillTreeDefinition.Threshold threshold : tree.thresholds()) {
-            if (skillLevel >= Math.max(0, threshold.level())) {
-                unlocked++;
-            }
-        }
-        return unlocked;
     }
 }

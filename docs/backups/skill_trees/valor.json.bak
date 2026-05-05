@@ -1,0 +1,442 @@
+{
+  "skill": "levelrpg:valor",
+  "title": "Valor Mastery",
+  "summary": "Valor mastery splits between a weapon-heavy vanguard and a relentless duelist. Practice opens the tiers, but your specialization commits you to either battlefield pressure or lethal finishing chains.",
+  "minSkillLevel": 1,
+  "thresholds": [
+    {
+      "id": "combat_awakening",
+      "level": 1,
+      "points": 1,
+      "title": "Combat Awakening",
+      "description": "Claim either the vanguard\u0027s crushing line or the duelist\u0027s finishing rhythm."
+    },
+    {
+      "id": "battle_hardened",
+      "level": 6,
+      "points": 1,
+      "title": "Battle Hardened",
+      "description": "Your chosen style sharpens into a recognisable combat doctrine."
+    },
+    {
+      "id": "veteran_edge",
+      "level": 12,
+      "points": 1,
+      "title": "Veteran Edge",
+      "description": "A deeper commitment turns your branch into a real battlefield identity."
+    },
+    {
+      "id": "champions_bearing",
+      "level": 20,
+      "points": 1,
+      "title": "Champion\u0027s Bearing",
+      "description": "Late mastery cements how you control the flow of a fight."
+    }
+  ],
+  "nodes": [
+    {
+      "id": "new_node_1",
+      "title": "Resolve",
+      "description": "Dealing damage builds Resolve. Higher Resolve increases critical strike damage. Taking damage reduces your Resolve",
+      "type": "core",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 0,
+      "layoutY": 0,
+      "requirement": {
+        "mode": "all",
+        "nodes": []
+      }
+    },
+    {
+      "id": "new_node_2",
+      "title": "Melee Combatant",
+      "description": "Increased attack speed with melee weapons",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -65,
+      "layoutY": -67,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_1"
+        ]
+      },
+      "requires": [
+        "new_node_1"
+      ]
+    },
+    {
+      "id": "new_node_3",
+      "title": "Vanguard",
+      "description": "Get increased value from armor",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 66,
+      "layoutY": -67,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_1"
+        ]
+      },
+      "requires": [
+        "new_node_1"
+      ]
+    },
+    {
+      "id": "new_node_4",
+      "title": "Deflection",
+      "description": "Enemy attacks have a chance of bouncing off your armor",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 66,
+      "layoutY": -130,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_3"
+        ]
+      },
+      "requires": [
+        "new_node_3"
+      ]
+    },
+    {
+      "id": "new_node_5",
+      "title": "Shield Bash",
+      "description": "Left click while blocking with shield to knock enemies away",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 130,
+      "layoutY": -130,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_4",
+          "new_node_3"
+        ]
+      },
+      "requires": [
+        "new_node_4",
+        "new_node_3"
+      ]
+    },
+    {
+      "id": "new_node_6",
+      "title": "Inpenetrable",
+      "description": "Max Resolve grants Resistance for 10 seconds.",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 194,
+      "layoutY": -130,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_5"
+        ]
+      },
+      "requires": [
+        "new_node_5"
+      ]
+    },
+    {
+      "id": "new_node_7",
+      "title": "Goad",
+      "description": "Pressing ? will taunt all nearby enemies, and increase deflect damage whilst increasing damage reduction for the player for x seconds\nCosts Resolve",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 130,
+      "layoutY": -192,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_5"
+        ]
+      },
+      "requires": [
+        "new_node_5"
+      ]
+    },
+    {
+      "id": "new_node_8",
+      "title": "Immovable object",
+      "description": "You can no longer be knocked back, poisoned, or set aflame",
+      "type": "technique",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 130,
+      "layoutY": -254,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_7"
+        ]
+      },
+      "requires": [
+        "new_node_7"
+      ]
+    },
+    {
+      "id": "new_node_9",
+      "title": "Judgement Day",
+      "description": "Press ? to become invulnerable to damage, fully deflecting all damage done to you within x seconds\nCosts Resolve",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 130,
+      "layoutY": -319,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_8",
+          "new_node_12"
+        ]
+      },
+      "requires": [
+        "new_node_8",
+        "new_node_12"
+      ]
+    },
+    {
+      "id": "new_node_10",
+      "title": "Battering Ram",
+      "description": "Sprinting into enemies damages and knocks them back, effectivness based on armor set",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 66,
+      "layoutY": -192,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_4",
+          "new_node_7"
+        ]
+      },
+      "requires": [
+        "new_node_4",
+        "new_node_7"
+      ]
+    },
+    {
+      "id": "new_node_11",
+      "title": "Protection Aura",
+      "description": "Damaging enemies will heal yourself and allies around you",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 66,
+      "layoutY": -254,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_10"
+        ]
+      },
+      "requires": [
+        "new_node_10"
+      ]
+    },
+    {
+      "id": "new_node_12",
+      "title": "Bulwark of Hope",
+      "description": "Every x minutes/hours, when fatal damage is taken, you will resist death and gain massive health regen",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 66,
+      "layoutY": -319,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_11"
+        ]
+      },
+      "requires": [
+        "new_node_11"
+      ]
+    },
+    {
+      "id": "new_node_13",
+      "title": "Combo Break",
+      "description": "Hitting continuous crits raises damage for each",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -65,
+      "layoutY": -130,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_2"
+        ]
+      },
+      "requires": [
+        "new_node_2"
+      ]
+    },
+    {
+      "id": "new_node_14",
+      "title": "Seasoned Fighter",
+      "description": "Gain increased health regen based on amount of enemies around you",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -65,
+      "layoutY": -192,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_13"
+        ]
+      },
+      "requires": [
+        "new_node_13"
+      ]
+    },
+    {
+      "id": "new_node_15",
+      "title": "Monster Hunter",
+      "description": "Killing enemies grants double XP and slightly recharges weapon durability",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -65,
+      "layoutY": -254,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_14"
+        ]
+      },
+      "requires": [
+        "new_node_14"
+      ]
+    },
+    {
+      "id": "new_node_16",
+      "title": "Mortal Wound",
+      "description": "Hitting an enemy to below 25% HP will instantly execute them\nCosts Resolve",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -65,
+      "layoutY": -319,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_15"
+        ]
+      },
+      "requires": [
+        "new_node_15"
+      ]
+    },
+    {
+      "id": "new_node_17",
+      "title": "Far Reach",
+      "description": "Increased range with melee weapons",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -127,
+      "layoutY": -130,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_2",
+          "new_node_13"
+        ]
+      },
+      "requires": [
+        "new_node_2",
+        "new_node_13"
+      ]
+    },
+    {
+      "id": "new_node_18",
+      "title": "Forward Frenzy",
+      "description": "Pressing right click while crouched will dash you forward, damaging all enemies in a line\nCosts Resolve",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -127,
+      "layoutY": -192,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_17"
+        ]
+      },
+      "requires": [
+        "new_node_17"
+      ]
+    },
+    {
+      "id": "new_node_19",
+      "title": "Reckless Strike",
+      "description": "Holding left click will charge up a powerful attack.\nCosts Resolve",
+      "type": "technique",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -127,
+      "layoutY": -254,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_18"
+        ]
+      },
+      "requires": [
+        "new_node_18"
+      ]
+    },
+    {
+      "id": "new_node_20",
+      "title": "Crescent Slash",
+      "description": "Press ? to spin your weapon around dealing massive AOE damage around  you\nCosts Resolve",
+      "type": "mastery",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -127,
+      "layoutY": -319,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_19",
+          "new_node_16"
+        ]
+      },
+      "requires": [
+        "new_node_19",
+        "new_node_16"
+      ]
+    },
+    {
+      "id": "new_node_21",
+      "title": "Steeled",
+      "description": "Taking damage grants Resolve slower, but it decays slower",
+      "type": "keystone",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -190,
+      "layoutY": -130,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "new_node_17"
+        ]
+      },
+      "requires": [
+        "new_node_17"
+      ]
+    }
+  ]
+}

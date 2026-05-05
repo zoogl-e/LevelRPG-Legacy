@@ -11,8 +11,12 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.zoogle.levelrpg.LevelRPG;
 import net.zoogle.levelrpg.profile.LevelProfile;
+import net.zoogle.levelrpg.finesse.FinessePassiveModifiers;
+import net.zoogle.levelrpg.gauge.GaugeRegistry;
 import net.zoogle.levelrpg.profile.ProgressionSkill;
 import net.zoogle.levelrpg.profile.SkillState;
+import net.zoogle.levelrpg.skilltree.FinesseNodeIds;
+import net.zoogle.levelrpg.skilltree.SkillUnlockQuery;
 
 import java.text.DecimalFormat;
 import java.util.Map;
@@ -31,6 +35,7 @@ public final class PassiveSkillScalingService {
     private static final ResourceLocation MODIFIER_VALOR_KNOCKBACK_RESISTANCE = id("baseline_valor_knockback_resistance");
     private static final ResourceLocation MODIFIER_FORGING_ARMOR_TOUGHNESS = id("baseline_forging_armor_toughness");
     private static final ResourceLocation MODIFIER_FINESSE_MOVEMENT_SPEED = id("baseline_finesse_movement_speed");
+    private static final ResourceLocation MODIFIER_FINESSE_RHYTHM_MOVEMENT_SPEED = id("finesse_rhythm_movement_speed");
 
     // Central tuning constants for the first-pass canonical baseline map.
     private static final double VALOR_MAX_HEALTH_PER_LEVEL = 0.5D;
@@ -38,6 +43,8 @@ public final class PassiveSkillScalingService {
     private static final double VALOR_KNOCKBACK_RESISTANCE_PER_LEVEL = 0.0025D;
     private static final double FORGING_ARMOR_TOUGHNESS_PER_LEVEL = 0.05D;
     private static final double FINESSE_MOVEMENT_SPEED_PER_LEVEL = 0.0025D;
+    /** Extra movement speed at full Rhythm ({@link AttributeModifier.Operation#ADD_MULTIPLIED_TOTAL}). */
+    private static final double FINESSE_RHYTHM_MAX_MOVEMENT_MULTIPLIER = 0.085D;
     private static final float DELVING_BREAK_SPEED_PER_LEVEL = 0.01F;
     private static final Map<UUID, Long> LAST_APPLIED_SIGNATURES = new ConcurrentHashMap<>();
     private static final DecimalFormat ONE_DECIMAL = new DecimalFormat("0.0");
@@ -148,6 +155,7 @@ public final class PassiveSkillScalingService {
 
         applyValorBaseline(player, profile.getSkill(ProgressionSkill.VALOR));
         applyFinesseBaseline(player, profile.getSkill(ProgressionSkill.FINESSE));
+        applyFinesseRhythmMovementSpeed(player, profile);
         applyForgingBaseline(player, profile.getSkill(ProgressionSkill.FORGING));
 
         // Extension hooks for non-attribute systems that do not yet have a
@@ -156,6 +164,8 @@ public final class PassiveSkillScalingService {
         applyHearthBaseline(player, profile.getSkill(ProgressionSkill.HEARTH));
         applyArtificingBaseline(player, profile.getSkill(ProgressionSkill.ARTIFICING));
         applyArcanaBaseline(player, profile.getSkill(ProgressionSkill.ARCANA));
+
+        FinessePassiveModifiers.apply(player, profile);
 
         if (player.getHealth() > player.getMaxHealth()) {
             player.setHealth(player.getMaxHealth());
@@ -218,6 +228,35 @@ public final class PassiveSkillScalingService {
                 Attributes.MOVEMENT_SPEED,
                 MODIFIER_FINESSE_MOVEMENT_SPEED,
                 state.level * FINESSE_MOVEMENT_SPEED_PER_LEVEL,
+                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL
+        );
+    }
+
+    /**
+     * Applies movement speed from current Rhythm (not part of passive signature — call when Rhythm or its max changes).
+     */
+    public static void applyFinesseRhythmMovementSpeed(ServerPlayer player, LevelProfile profile) {
+        if (player == null || profile == null) {
+            return;
+        }
+        if (!SkillUnlockQuery.hasNode(profile, FinesseNodeIds.SKILL, FinesseNodeIds.RHYTHM)) {
+            updateModifier(player, Attributes.MOVEMENT_SPEED, MODIFIER_FINESSE_RHYTHM_MOVEMENT_SPEED, 0.0D,
+                    AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+            return;
+        }
+        double max = profile.gauges.getMax(player, profile, GaugeRegistry.RHYTHM);
+        if (max <= 0.0) {
+            updateModifier(player, Attributes.MOVEMENT_SPEED, MODIFIER_FINESSE_RHYTHM_MOVEMENT_SPEED, 0.0D,
+                    AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+            return;
+        }
+        double fraction = Math.max(0.0, Math.min(1.0, profile.gauges.getValue(GaugeRegistry.RHYTHM) / max));
+        double bonus = fraction * FINESSE_RHYTHM_MAX_MOVEMENT_MULTIPLIER;
+        updateModifier(
+                player,
+                Attributes.MOVEMENT_SPEED,
+                MODIFIER_FINESSE_RHYTHM_MOVEMENT_SPEED,
+                bonus,
                 AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL
         );
     }

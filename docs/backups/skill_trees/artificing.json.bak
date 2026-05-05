@@ -1,0 +1,314 @@
+{
+  "skill": "levelrpg:artificing",
+  "title": "Artificing Mastery",
+  "summary": "Artificing develops into either efficient workshop throughput or higher-complexity invention. Threshold pacing keeps each unlock tied to visible technical growth.",
+  "minSkillLevel": 1,
+  "thresholds": [
+    {
+      "id": "workbench_basics",
+      "level": 1,
+      "points": 1,
+      "title": "Workbench Basics",
+      "description": "Pick the kind of artisan you are becoming."
+    },
+    {
+      "id": "applied_method",
+      "level": 5,
+      "points": 1,
+      "title": "Applied Method",
+      "description": "Specialization becomes visible in how you approach crafting."
+    },
+    {
+      "id": "systems_thinking",
+      "level": 10,
+      "points": 1,
+      "title": "Systems Thinking",
+      "description": "Your practice moves from tinkering to designed process."
+    },
+    {
+      "id": "master_blueprints",
+      "level": 18,
+      "points": 1,
+      "title": "Master Blueprints",
+      "description": "Late-game mastery supports advanced invention paths."
+    }
+  ],
+  "nodes": [
+    {
+      "id": "new_node_1",
+      "title": "Wand of The Artificer",
+      "description": "A complex tool with many complex functions.\n+1 Tool Slot\n\nBuilder’s Instinct\n\nConsecutive block placement slightly increases placement speed",
+      "type": "core",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 0,
+      "layoutY": 0
+    },
+    {
+      "id": "new_node_2",
+      "title": "Measuring Tape",
+      "description": "Quickly assess block dimensions",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 0,
+      "layoutY": -62,
+      "requires": [
+        "new_node_1",
+        "new_node_3"
+      ]
+    },
+    {
+      "id": "new_node_3",
+      "title": "Line Tool",
+      "description": "Select two points → fills a straight line\nConstraints:\n limited max length (e.g. 16–32)\n requires sufficient materials",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -63,
+      "layoutY": -62,
+      "requires": [
+        "new_node_1"
+      ]
+    },
+    {
+      "id": "new_node_4",
+      "title": "Replace Tool",
+      "description": "Replace blocks you placed with another block type",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 0,
+      "layoutY": -126,
+      "requires": [
+        "new_node_2",
+        "new_node_5"
+      ]
+    },
+    {
+      "id": "new_node_5",
+      "title": "Rotate Tool",
+      "description": "Rotate placed blocks\n",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -63,
+      "layoutY": -126,
+      "requires": [
+        "new_node_3"
+      ]
+    },
+    {
+      "id": "new_node_6",
+      "title": "Smart Scaffolding",
+      "description": "While holding jump, automatically places scaffolding from inventory beneath you and extends as you move upward",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -63,
+      "layoutY": -189,
+      "requires": [
+        "new_node_5"
+      ]
+    },
+    {
+      "id": "new_node_7",
+      "title": "Block Swap",
+      "description": "Swap two blocks with each other\n",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 0,
+      "layoutY": -189,
+      "requires": [
+        "new_node_4",
+        "new_node_6"
+      ]
+    },
+    {
+      "id": "new_node_8",
+      "title": "Reach Extension",
+      "description": "Place blocks up to +3 blocks further\n",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -63,
+      "layoutY": -253,
+      "requires": [
+        "new_node_6"
+      ]
+    },
+    {
+      "id": "new_node_9",
+      "title": "Fill Tool",
+      "description": "Attempt to fill in an area with a block\n",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 0,
+      "layoutY": -253,
+      "requires": [
+        "new_node_7",
+        "new_node_8"
+      ]
+    },
+    {
+      "id": "new_node_10",
+      "title": "Weaver",
+      "description": "Two tools can merge into a new composite behavior",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": -31,
+      "layoutY": -318,
+      "requires": [
+        "new_node_8",
+        "new_node_9"
+      ]
+    },
+    {
+      "id": "new_node_11",
+      "title": "Tool Saver",
+      "description": "Reduced durability loss breaking blocks you placed",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 97,
+      "layoutY": -62,
+      "requires": [
+        "new_node_1"
+      ]
+    },
+    {
+      "id": "new_node_12",
+      "title": "Trash Slot",
+      "description": "Items placed here are destroyed instantly",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 160,
+      "layoutY": -62,
+      "requires": [
+        "new_node_11",
+        "new_node_1"
+      ]
+    },
+    {
+      "id": "new_node_13",
+      "title": "Compactor Slot",
+      "description": "A dedicated slot that automatically converts specific items into compacted forms",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 225,
+      "layoutY": -62,
+      "requires": [
+        "new_node_12"
+      ]
+    },
+    {
+      "id": "new_node_14",
+      "title": "Salvage Slot",
+      "description": "Breaks items down into base materials",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 225,
+      "layoutY": -126,
+      "requires": [
+        "new_node_13"
+      ]
+    },
+    {
+      "id": "new_node_15",
+      "title": "Manual Overclock",
+      "description": "Interact with a machine:\n boosts speed for X seconds\n applies cooldown",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 160,
+      "layoutY": -126,
+      "requires": [
+        "new_node_12"
+      ]
+    },
+    {
+      "id": "new_node_16",
+      "title": "Focused Operation",
+      "description": "While actively using a machine:\n slightly increased speed\n",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 97,
+      "layoutY": -126,
+      "requires": [
+        "new_node_11"
+      ]
+    },
+    {
+      "id": "new_node_17",
+      "title": "Builder’s Cache",
+      "description": "Pull blocks automatically from inventory while building",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 97,
+      "layoutY": -189,
+      "requires": [
+        "new_node_16"
+      ]
+    },
+    {
+      "id": "new_node_18",
+      "title": "Multi-Mode Handling",
+      "description": "+1 Tool Slot",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 160,
+      "layoutY": -189,
+      "requires": [
+        "new_node_17"
+      ]
+    },
+    {
+      "id": "new_node_19",
+      "title": "Mechanist",
+      "description": "+1 Tool Slot\n",
+      "type": "mastery",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 160,
+      "layoutY": -253,
+      "requires": [
+        "new_node_18"
+      ]
+    },
+    {
+      "id": "new_node_20",
+      "title": "Quick Access",
+      "description": "Reopen last interacted machine instantly",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 97,
+      "layoutY": -253,
+      "requires": [
+        "new_node_17"
+      ]
+    },
+    {
+      "id": "new_node_21",
+      "title": "Architect",
+      "description": "Quick Access becomes a persistent recall system\n",
+      "type": "trait",
+      "cost": 1,
+      "requiredSkillLevel": 0,
+      "layoutX": 97,
+      "layoutY": -318,
+      "requires": [
+        "new_node_20"
+      ]
+    }
+  ]
+}

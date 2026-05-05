@@ -1,30 +1,450 @@
 {
   "skill": "levelrpg:delving",
   "title": "Delving Mastery",
-  "summary": "Delving branches between underground extraction and underwater discovery. Both branches reward going where most players won't — and finding what's there.",
-  "minSkillLevel": 1,
-  "thresholds": [
-    { "id": "first_descent", "level": 1, "points": 1, "title": "First Descent", "description": "Choose whether your mastery favors the cave or the sea." },
-    { "id": "steady_excavation", "level": 5, "points": 1, "title": "Steady Excavation", "description": "Your chosen route changes the pace and safety of a run." },
-    { "id": "ore_sense", "level": 10, "points": 1, "title": "Ore Sense", "description": "A committed specialist now feels distinct in the deep." },
-    { "id": "deep_delver", "level": 18, "points": 1, "title": "Deep Delver", "description": "Late mastery turns your branch into a full Delving identity." }
-  ],
+  "summary": "Delving branches between underground extraction and underwater discovery. Both branches reward going where most players won\u0027t — and finding what\u0027s there.",
+  "minRank": 1,
   "nodes": [
-    { "id": "delving_first_charter", "title": "First Charter", "description": "The charter states that earth and tide yield only to those who read their silence.", "branch": "core", "cost": 1, "requiredSkillLevel": 1, "requires": [], "layoutX": 0, "layoutY": 0, "iconKey": "minecraft:map" },
-
-    { "id": "spelunker_lantern_oath", "title": "Lantern Oath", "description": "Cave notes praise the delver who carries light as if it were another pick.", "branch": "spelunker", "cost": 1, "requiredSkillLevel": 1, "requires": ["delving_first_charter"], "layoutX": -120, "layoutY": 120, "iconKey": "minecraft:lantern" },
-    { "id": "diver_tide_breath", "title": "Tide Breath", "description": "The diver margin teaches a calm lung and slower pulse before the water closes overhead.", "branch": "diver", "cost": 1, "requiredSkillLevel": 1, "requires": ["delving_first_charter"], "layoutX": 120, "layoutY": 120, "iconKey": "minecraft:turtle_helmet" },
-
-    { "id": "spelunker_ore_scent", "title": "Ore Scent", "description": "A scratched line claims stone changes tone when metal sleeps behind it.", "branch": "spelunker", "cost": 1, "requiredSkillLevel": 6, "requires": ["spelunker_lantern_oath"], "layoutX": -120, "layoutY": 240, "iconKey": "minecraft:iron_ore" },
-    { "id": "diver_ruin_compass", "title": "Ruin Compass", "description": "The diver's chapter describes currents that whisper the way to drowned halls.", "branch": "diver", "cost": 1, "requiredSkillLevel": 6, "requires": ["diver_tide_breath"], "layoutX": 120, "layoutY": 240, "iconKey": "minecraft:heart_of_the_sea" },
-    { "id": "delving_dual_survey", "title": "Dual Survey", "description": "This center note binds cavern instinct and tidecraft into one method of discovery.", "branch": "cross", "cost": 2, "requiredSkillLevel": 6, "requires": ["spelunker_ore_scent", "diver_ruin_compass"], "layoutX": 0, "layoutY": 240, "iconKey": "minecraft:compass" },
-
-    { "id": "spelunker_deep_claim", "title": "Deep Claim", "description": "The inner spelunker pages teach carving safe paths where hostile depths once ruled.", "branch": "spelunker", "cost": 2, "requiredSkillLevel": 12, "requires": ["spelunker_ore_scent"], "layoutX": -120, "layoutY": 360, "iconKey": "minecraft:diamond_pickaxe" },
-    { "id": "spelunker_stone_memory", "title": "Stone Memory", "description": "Outer cave passages describe reading strata like a script written over ages.", "branch": "spelunker", "cost": 2, "requiredSkillLevel": 12, "requires": ["spelunker_ore_scent"], "layoutX": -240, "layoutY": 360, "iconKey": "minecraft:emerald_ore" },
-    { "id": "diver_abyssal_route", "title": "Abyssal Route", "description": "The diver's inner chart preserves routes through monument gloom where panic drowns crews.", "branch": "diver", "cost": 2, "requiredSkillLevel": 12, "requires": ["diver_ruin_compass"], "layoutX": 120, "layoutY": 360, "iconKey": "minecraft:prismarine_shard" },
-    { "id": "diver_pressure_ward", "title": "Pressure Ward", "description": "Outer watercraft notes describe charms and habits that keep bones and courage intact.", "branch": "diver", "cost": 2, "requiredSkillLevel": 12, "requires": ["diver_ruin_compass"], "layoutX": 240, "layoutY": 360, "iconKey": "minecraft:water_bucket" },
-
-    { "id": "spelunker_kings_vein", "title": "King's Vein", "description": "Hidden beneath wax, this note names a seam that crowns any miner bold enough to descend.", "branch": "spelunker", "cost": 3, "requiredSkillLevel": 20, "requires": ["spelunker_deep_claim", "spelunker_stone_memory"], "layoutX": -300, "layoutY": 480, "iconKey": "minecraft:ancient_debris", "visibility": "obfuscated" },
-    { "id": "diver_sunken_crown", "title": "Sunken Crown", "description": "A sealed sea-folio whispers of treasure courts that sleep beneath black water.", "branch": "diver", "cost": 3, "requiredSkillLevel": 20, "requires": ["diver_abyssal_route", "diver_pressure_ward"], "layoutX": 300, "layoutY": 480, "iconKey": "minecraft:trident", "visibility": "obfuscated" }
+    {
+      "id": "delving_overdrive",
+      "title": "Overdrive",
+      "description": "Mining and Swimming builds Momentum. Higher Momentum grants stacking Haste",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": 0,
+      "requirement": {
+        "mode": "all",
+        "nodes": []
+      }
+    },
+    {
+      "id": "delving_prospector",
+      "title": "Prospector I / II",
+      "description": "Ores have a 10% / 20% chance to drop +1 raw material",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -64,
+      "layoutY": -66,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_overdrive"
+        ]
+      },
+      "requires": [
+        "delving_overdrive"
+      ]
+    },
+    {
+      "id": "delving_water_adaptation",
+      "title": "Water Adaptation I / II",
+      "description": "+10 / +20 seconds air underwater",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -66,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_overdrive"
+        ]
+      },
+      "requires": [
+        "delving_overdrive"
+      ]
+    },
+    {
+      "id": "delving_deepcutter",
+      "title": "Deepcutter I / II",
+      "description": "Deepslate mining speed:\n I → matches stone\n II → 25% faster",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -129,
+      "layoutY": -66,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_prospector"
+        ]
+      },
+      "requires": [
+        "delving_prospector"
+      ]
+    },
+    {
+      "id": "delving_current_control",
+      "title": "Current Control",
+      "description": "Water currents affect you 80% less",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 130,
+      "layoutY": -66,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_water_adaptation"
+        ]
+      },
+      "requires": [
+        "delving_water_adaptation"
+      ]
+    },
+    {
+      "id": "delving_tide_dash",
+      "title": "Tide Dash",
+      "description": "Burst forward underwater (2s)\nCost: 10 Momentum",
+      "type": "technique",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 130,
+      "layoutY": -128,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_current_control"
+        ]
+      },
+      "requires": [
+        "delving_current_control"
+      ]
+    },
+    {
+      "id": "delving_treasure_instinct",
+      "title": "Treasure Instinct",
+      "description": "First time opening a generated chest:\n +1 bonus loot roll",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -128,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_water_adaptation"
+        ]
+      },
+      "requires": [
+        "delving_water_adaptation"
+      ]
+    },
+    {
+      "id": "delving_aqua_mining",
+      "title": "Aqua Mining",
+      "description": "No mining speed penalty underwater",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -192,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_treasure_instinct"
+        ]
+      },
+      "requires": [
+        "delving_treasure_instinct"
+      ]
+    },
+    {
+      "id": "delving_aqua_mobility",
+      "title": "Aqua Mobility I / II",
+      "description": "Swim speed +10% / +20%",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 130,
+      "layoutY": -192,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_tide_dash",
+          "delving_aqua_mining"
+        ]
+      },
+      "requires": [
+        "delving_tide_dash",
+        "delving_aqua_mining"
+      ]
+    },
+    {
+      "id": "delving_neutral_buoyancy",
+      "title": "Neutral Buoyancy",
+      "description": "You no longer sink while idle underwater",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 194,
+      "layoutY": -192,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_aqua_mobility"
+        ]
+      },
+      "requires": [
+        "delving_aqua_mobility"
+      ]
+    },
+    {
+      "id": "delving_abyssal_form",
+      "title": "Abyssal Form",
+      "description": "You fully embrace the deep.\n Momentum regenerates underwater\n Movement +30% underwater\n No current effects\nTradeoff:\n Movement -15% on land",
+      "type": "axiom",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 194,
+      "layoutY": -381,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_neutral_buoyancy"
+        ]
+      },
+      "requires": [
+        "delving_neutral_buoyancy"
+      ]
+    },
+    {
+      "id": "delving_anchor_drop",
+      "title": "Charging Jump",
+      "description": "Hold sneak underwater to charge up a vertical launch, then release to rocket upward",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -256,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_aqua_mining",
+          "delving_aqua_mobility"
+        ]
+      },
+      "requires": [
+        "delving_aqua_mining",
+        "delving_aqua_mobility"
+      ]
+    },
+    {
+      "id": "delving_abyss_dweller",
+      "title": "Abyss Dweller",
+      "description": "Water becomes your natural environment.\n No air depletion underwater\n Momentum regenerates slowly underwater\n Aqua Mobility +1 level",
+      "type": "manifestation",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 65,
+      "layoutY": -321,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_anchor_drop"
+        ]
+      },
+      "requires": [
+        "delving_anchor_drop"
+      ]
+    },
+    {
+      "id": "delving_enduring_labor",
+      "title": "Enduring Labor I / II",
+      "description": "-10% / -20% hunger exhaustion from mining",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -64,
+      "layoutY": -128,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_prospector"
+        ]
+      },
+      "requires": [
+        "delving_prospector"
+      ]
+    },
+    {
+      "id": "delving_vein_miner",
+      "title": "Vein Miner I / II / III",
+      "description": "Sneak + break ore:\n I → 8 blocks\n II → 16 blocks\n III → 24 blocks\nCost:\n 5 Momentum per extra block",
+      "type": "technique",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -129,
+      "layoutY": -128,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_enduring_labor",
+          "delving_deepcutter"
+        ]
+      },
+      "requires": [
+        "delving_enduring_labor",
+        "delving_deepcutter"
+      ]
+    },
+    {
+      "id": "delving_stone_reservoir",
+      "title": "Stone Reservoir",
+      "description": "Mining stone/deepslate grants +1 Momentum",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -129,
+      "layoutY": -192,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_vein_miner"
+        ]
+      },
+      "requires": [
+        "delving_vein_miner"
+      ]
+    },
+    {
+      "id": "delving_momentum_reservoir",
+      "title": "Momentum Reservoir",
+      "description": "+50 max Momentum",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -64,
+      "layoutY": -192,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_aqua_mining",
+          "delving_stone_reservoir"
+        ]
+      },
+      "requires": [
+        "delving_aqua_mining",
+        "delving_stone_reservoir"
+      ]
+    },
+    {
+      "id": "delving_reinforced_lungs",
+      "title": "Reinforced Lungs",
+      "description": "Suffocation damage reduced by 50%",
+      "type": "trait",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -193,
+      "layoutY": -192,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_stone_reservoir"
+        ]
+      },
+      "requires": [
+        "delving_stone_reservoir"
+      ]
+    },
+    {
+      "id": "delving_hammer_strike",
+      "title": "Hammer Strike",
+      "description": "Mine a 3x3 area\nCost: 20 Momentum",
+      "type": "technique",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -193,
+      "layoutY": -256,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_reinforced_lungs"
+        ]
+      },
+      "requires": [
+        "delving_reinforced_lungs"
+      ]
+    },
+    {
+      "id": "delving_momentum_core",
+      "title": "Momentum Core",
+      "description": "You become a living engine.\n Momentum does not decay\n Ability costs doubled",
+      "type": "axiom",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -129,
+      "layoutY": -256,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_hammer_strike"
+        ]
+      },
+      "requires": [
+        "delving_hammer_strike"
+      ]
+    },
+    {
+      "id": "delving_earthbreaker",
+      "title": "Earthbreaker",
+      "description": "Mining becomes highly efficient.\n Momentum gain +50% from mining\n Vein Miner +1 level\n Ability costs -20%",
+      "type": "manifestation",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -129,
+      "layoutY": -321,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_hammer_strike"
+        ]
+      },
+      "requires": [
+        "delving_hammer_strike"
+      ]
+    },
+    {
+      "id": "delving_deep_sight",
+      "title": "Deep Sight",
+      "description": "You see as those below do.\n Permanent Night Vision underground (Y \u003c 40)\n Above ground:\n Gradual Darkness effect",
+      "type": "axiom",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": -64,
+      "layoutY": -256,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_momentum_reservoir"
+        ]
+      },
+      "requires": [
+        "delving_momentum_reservoir"
+      ]
+    },
+    {
+      "id": "delving_deep_delver",
+      "title": "Deep Delver",
+      "description": "You sustain long expeditions.\n Momentum cap +50\n Momentum decay reduced by 50%",
+      "type": "manifestation",
+      "cost": 1,
+      "requiredRank": 0,
+      "layoutX": 0,
+      "layoutY": -381,
+      "requirement": {
+        "mode": "all",
+        "nodes": [
+          "delving_momentum_core",
+          "delving_abyssal_form"
+        ]
+      },
+      "requires": [
+        "delving_momentum_core",
+        "delving_abyssal_form"
+      ]
+    }
   ]
 }

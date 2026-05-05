@@ -8,61 +8,61 @@ import net.zoogle.levelrpg.profile.LevelProfile;
 import net.zoogle.levelrpg.profile.SkillXpResult;
 
 /**
- * Deprecated XP-named wrapper over {@link SkillMasteryRules}.
+ * Deprecated XP-named wrapper over {@link SkillProficiencyRules}.
  */
 @Deprecated
 public final class SkillXpRules {
     private SkillXpRules() {}
 
     public static SkillXpResult awardDelvingForBlockBreak(ServerPlayer player, LevelProfile profile, BlockState state) {
-        return wrap(SkillMasteryRules.awardDelvingForBlockBreak(player, profile, state));
+        return wrap(SkillProficiencyRules.awardDelvingForBlockBreak(player, profile, state));
     }
 
     public static SkillXpResult awardValorForDamage(ServerPlayer player, LevelProfile profile, LivingEntity target, float damageDealt) {
-        return wrap(SkillMasteryRules.awardValorForDamage(player, profile, target, damageDealt));
+        return wrap(SkillProficiencyRules.awardValorForDamage(player, profile, target, damageDealt));
     }
 
     public static SkillXpResult awardValorGritForDamageTaken(ServerPlayer player, LevelProfile profile, net.minecraft.world.damagesource.DamageSource source, float damageTaken) {
-        return wrap(SkillMasteryRules.awardValorGritForDamageTaken(player, profile, source, damageTaken));
+        return wrap(SkillProficiencyRules.awardValorGritForDamageTaken(player, profile, source, damageTaken));
     }
 
     public static SkillXpResult awardValorForKill(ServerPlayer player, LevelProfile profile, LivingEntity target) {
-        return wrap(SkillMasteryRules.awardValorForKill(player, profile, target));
+        return wrap(SkillProficiencyRules.awardValorForKill(player, profile, target));
     }
 
     public static SkillXpResult awardHearthForCraft(ServerPlayer player, LevelProfile profile, ItemStack result) {
-        return wrap(SkillMasteryRules.awardHearthForCraft(player, profile, result));
+        return wrap(SkillProficiencyRules.awardHearthForCraft(player, profile, result));
     }
 
     public static SkillXpResult awardHearthForSmelt(ServerPlayer player, LevelProfile profile, ItemStack result) {
-        return wrap(SkillMasteryRules.awardHearthForSmelt(player, profile, result));
+        return wrap(SkillProficiencyRules.awardHearthForSmelt(player, profile, result));
     }
 
     public static SkillXpResult awardForgingForCraft(ServerPlayer player, LevelProfile profile, ItemStack result) {
-        return wrap(SkillMasteryRules.awardForgingForCraft(player, profile, result));
+        return wrap(SkillProficiencyRules.awardForgingForCraft(player, profile, result));
     }
 
     public static SkillXpResult awardArtificingForCraft(ServerPlayer player, LevelProfile profile, ItemStack result) {
-        return wrap(SkillMasteryRules.awardArtificingForCraft(player, profile, result));
+        return wrap(SkillProficiencyRules.awardArtificingForCraft(player, profile, result));
     }
 
     public static SkillXpResult awardArtificingForSmelt(ServerPlayer player, LevelProfile profile, ItemStack result) {
-        return wrap(SkillMasteryRules.awardArtificingForSmelt(player, profile, result));
+        return wrap(SkillProficiencyRules.awardArtificingForSmelt(player, profile, result));
     }
 
     public static SkillXpResult awardArcanaForCraft(ServerPlayer player, LevelProfile profile, ItemStack result) {
-        return wrap(SkillMasteryRules.awardArcanaForCraft(player, profile, result));
+        return wrap(SkillProficiencyRules.awardArcanaForCraft(player, profile, result));
     }
 
     public static SkillXpResult awardArcanaForOpenMenu(ServerPlayer player, LevelProfile profile) {
-        return wrap(SkillMasteryRules.awardArcanaForOpenMenu(player, profile));
+        return wrap(SkillProficiencyRules.awardArcanaForOpenMenu(player, profile));
     }
 
     public static SkillXpResult awardFinesseForMovement(ServerPlayer player, LevelProfile profile) {
-        return wrap(SkillMasteryRules.awardFinesseForMovement(player, profile));
+        return wrap(SkillProficiencyRules.awardFinesseForMovement(player, profile));
     }
 
-    private static SkillXpResult wrap(net.zoogle.levelrpg.profile.MasteryAwardResult result) {
+    private static SkillXpResult wrap(net.zoogle.levelrpg.profile.ProficiencyAwardResult result) {
         return result == null ? null : SkillXpResult.from(result);
     }
 }

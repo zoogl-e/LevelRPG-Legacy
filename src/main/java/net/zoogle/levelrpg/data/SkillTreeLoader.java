@@ -12,6 +12,7 @@ import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.zoogle.levelrpg.LevelRPG;
 import net.zoogle.levelrpg.profile.ProgressionSkill;
+import net.zoogle.levelrpg.skilltree.effect.SkillNodeEffect;
 import org.slf4j.Logger;
 
 import java.util.LinkedHashMap;
@@ -28,7 +29,7 @@ public class SkillTreeLoader extends SimpleJsonResourceReloadListener {
 
     @Override
     protected void apply(Map<ResourceLocation, JsonElement> object, ResourceManager resourceManager, ProfilerFiller profiler) {
-        LinkedHashMap<ResourceLocation, SkillTreeDefinition> loaded = new LinkedHashMap<>();
+        LinkedHashMap<ResourceLocation, SkillTreeCanonicalDefinition> loaded = new LinkedHashMap<>();
         for (Map.Entry<ResourceLocation, JsonElement> entry : object.entrySet()) {
             ResourceLocation fileId = entry.getKey();
             try {
@@ -42,27 +43,11 @@ public class SkillTreeLoader extends SimpleJsonResourceReloadListener {
                     continue;
                 }
 
-                int minSkillLevel = root.has("minSkillLevel") ? root.get("minSkillLevel").getAsInt() : 0;
+                int minRank = root.has("minRank") ? root.get("minRank").getAsInt() : 0;
                 String title = root.has("title") ? root.get("title").getAsString() : "";
                 String summary = root.has("summary") ? root.get("summary").getAsString() : "";
 
-                java.util.ArrayList<SkillTreeDefinition.Threshold> thresholds = new java.util.ArrayList<>();
-                if (root.has("thresholds") && root.get("thresholds").isJsonArray()) {
-                    JsonArray arr = root.getAsJsonArray("thresholds");
-                    for (JsonElement el : arr) {
-                        if (!el.isJsonObject()) continue;
-                        JsonObject thresholdJson = el.getAsJsonObject();
-                        int level = thresholdJson.has("level") ? thresholdJson.get("level").getAsInt() : 0;
-                        int points = thresholdJson.has("points") ? thresholdJson.get("points").getAsInt() : 0;
-                        if (points <= 0) continue;
-                        String id = thresholdJson.has("id") ? thresholdJson.get("id").getAsString() : "level_" + level;
-                        String thresholdTitle = thresholdJson.has("title") ? thresholdJson.get("title").getAsString() : "";
-                        String description = thresholdJson.has("description") ? thresholdJson.get("description").getAsString() : "";
-                        thresholds.add(new SkillTreeDefinition.Threshold(id, level, points, thresholdTitle, description));
-                    }
-                }
-
-                LinkedHashMap<String, SkillTreeDefinition.Node> nodes = new LinkedHashMap<>();
+                LinkedHashMap<String, SkillTreeCanonicalDefinition.Node> nodes = new LinkedHashMap<>();
                 if (root.has("nodes") && root.get("nodes").isJsonArray()) {
                     JsonArray arr = root.getAsJsonArray("nodes");
                     for (JsonElement el : arr) {
@@ -78,8 +63,9 @@ public class SkillTreeLoader extends SimpleJsonResourceReloadListener {
                             for (JsonElement re : req) list.add(re.getAsString());
                             requires = java.util.List.copyOf(list);
                         }
-                        int requiredSkillLevel = n.has("requiredSkillLevel") ? n.get("requiredSkillLevel").getAsInt() : minSkillLevel;
+                        int requiredRank = n.has("requiredRank") ? n.get("requiredRank").getAsInt() : minRank;
                         String branch = n.has("branch") ? n.get("branch").getAsString() : "";
+                        String type = n.has("type") ? n.get("type").getAsString() : "";
                         String nodeTitle = n.has("title") ? n.get("title").getAsString() : "";
                         String description = n.has("description") ? n.get("description").getAsString() : "";
                         int layoutX = n.has("layoutX") ? n.get("layoutX").getAsInt() : SkillTreeGraphLayout.AUTO;
@@ -88,29 +74,47 @@ public class SkillTreeLoader extends SimpleJsonResourceReloadListener {
                         SkillTreeNodeVisibility visibility = SkillTreeNodeVisibility.fromJson(
                                 n.has("visibility") ? n.get("visibility").getAsString() : null
                         );
-                        SkillTreeDefinition.Node node = new SkillTreeDefinition.Node(
+                        java.util.ArrayList<SkillNodeEffect> effects = new java.util.ArrayList<>();
+                        if (n.has("effects") && n.get("effects").isJsonArray()) {
+                            for (JsonElement effectElement : n.getAsJsonArray("effects")) {
+                                if (!effectElement.isJsonObject()) {
+                                    continue;
+                                }
+                                JsonObject effectJson = effectElement.getAsJsonObject();
+                                if (!effectJson.has("type") || !effectJson.has("id")) {
+                                    continue;
+                                }
+                                ResourceLocation effectType = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(effectJson.get("type").getAsString(), LevelRPG.MODID);
+                                ResourceLocation effectId = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(effectJson.get("id").getAsString(), LevelRPG.MODID);
+                                if (effectType != null && effectId != null) {
+                                    effects.add(new SkillNodeEffect(effectType, effectId));
+                                }
+                            }
+                        }
+                        SkillTreeCanonicalDefinition.Node node = new SkillTreeCanonicalDefinition.Node(
                                 id,
                                 cost,
                                 requires,
-                                requiredSkillLevel,
+                                requiredRank,
                                 branch,
+                                type,
                                 nodeTitle,
                                 description,
                                 layoutX,
                                 layoutY,
                                 iconKey,
-                                visibility
+                                visibility,
+                                List.copyOf(effects)
                         );
                         nodes.put(id, node);
                     }
                 }
 
-                SkillTreeDefinition def = new SkillTreeDefinition(
+                SkillTreeCanonicalDefinition def = new SkillTreeCanonicalDefinition(
                         skillId,
-                        minSkillLevel,
+                        minRank,
                         title,
                         summary,
-                        List.copyOf(thresholds),
                         nodes
                 );
                 loaded.put(skillId, def);
@@ -119,6 +123,7 @@ public class SkillTreeLoader extends SimpleJsonResourceReloadListener {
             }
         }
         SkillTreeRegistry.clearAndPutAll(loaded);
+        net.zoogle.levelrpg.skilltree.SkillTreeRegistry.invalidateAdaptedCache();
         LOGGER.info("Loaded canonical skill trees: {}.", loaded.size());
     }
 }

@@ -23,6 +23,7 @@ public final class ArchetypeRegistry {
                 "A martial start focused on direct combat, resilience, and basic smithing.",
                 Map.of(
                         ProgressionSkill.VALOR, 4,
+                        ProgressionSkill.HEARTH, 1,
                         ProgressionSkill.FORGING, 1,
                         ProgressionSkill.FINESSE, 1
                 )
@@ -36,6 +37,115 @@ public final class ArchetypeRegistry {
                         ProgressionSkill.FORGING, 2,
                         ProgressionSkill.DELVING, 1,
                         ProgressionSkill.ARCANA, 1
+                )
+        );
+        register(
+                "warden",
+                "Warden",
+                "A steadfast protector who endures pressure, controls chokepoints, and thrives on the long haul.",
+                Map.of(
+                        ProgressionSkill.VALOR, 3,
+                        ProgressionSkill.HEARTH, 2,
+                        ProgressionSkill.DELVING, 1,
+                        ProgressionSkill.FORGING, 1
+                )
+        );
+        register(
+                "spellblade",
+                "Spellblade",
+                "A duelist who interleaves steel and spellcraft to punish openings in close quarters.",
+                Map.of(
+                        ProgressionSkill.VALOR, 3,
+                        ProgressionSkill.ARCANA, 2,
+                        ProgressionSkill.FINESSE, 2
+                )
+        );
+        register(
+                "runesmith",
+                "Runesmith",
+                "A precision artisan of etched power, blending warding craft with practical battle utility.",
+                Map.of(
+                        ProgressionSkill.FORGING, 3,
+                        ProgressionSkill.ARTIFICING, 2,
+                        ProgressionSkill.ARCANA, 1,
+                        ProgressionSkill.HEARTH, 1
+                )
+        );
+        register(
+                "alchemist",
+                "Alchemist",
+                "A prepared specialist who turns ingredients into tactical advantage, sustain, and disruption.",
+                Map.of(
+                        ProgressionSkill.ARTIFICING, 3,
+                        ProgressionSkill.ARCANA, 2,
+                        ProgressionSkill.HEARTH, 1,
+                        ProgressionSkill.DELVING, 1
+                )
+        );
+        register(
+                "wayfarer",
+                "Wayfarer",
+                "A mobile explorer tuned for pathfinding, survival, and reliable gains from dangerous routes.",
+                Map.of(
+                        ProgressionSkill.DELVING, 3,
+                        ProgressionSkill.FINESSE, 2,
+                        ProgressionSkill.HEARTH, 1,
+                        ProgressionSkill.VALOR, 1
+                )
+        );
+        register(
+                "templar",
+                "Templar",
+                "A disciplined guardian who anchors allies with conviction, wards, and measured force.",
+                Map.of(
+                        ProgressionSkill.VALOR, 3,
+                        ProgressionSkill.HEARTH, 2,
+                        ProgressionSkill.ARCANA, 1,
+                        ProgressionSkill.FORGING, 1
+                )
+        );
+        register(
+                "saboteur",
+                "Saboteur",
+                "A control-minded opportunist specializing in setup, disruption, and punishing bad positioning.",
+                Map.of(
+                        ProgressionSkill.FINESSE, 3,
+                        ProgressionSkill.ARTIFICING, 2,
+                        ProgressionSkill.DELVING, 1,
+                        ProgressionSkill.ARCANA, 1
+                )
+        );
+        register(
+                "beastmarshal",
+                "Beastmarshal",
+                "A field leader whose rhythm favors sustained pressure, adaptability, and terrain mastery.",
+                Map.of(
+                        ProgressionSkill.HEARTH, 3,
+                        ProgressionSkill.VALOR, 2,
+                        ProgressionSkill.DELVING, 1,
+                        ProgressionSkill.FINESSE, 1
+                )
+        );
+        register(
+                "arcanist",
+                "Arcanist",
+                "A high-focus scholar of raw magic who leverages precision and preparation over brute force.",
+                Map.of(
+                        ProgressionSkill.ARCANA, 4,
+                        ProgressionSkill.FINESSE, 1,
+                        ProgressionSkill.ARTIFICING, 1,
+                        ProgressionSkill.HEARTH, 1
+                )
+        );
+        register(
+                "master_crafter",
+                "Master Crafter",
+                "A production-minded specialist with broad crafting literacy and dependable workshop momentum.",
+                Map.of(
+                        ProgressionSkill.FORGING, 3,
+                        ProgressionSkill.ARTIFICING, 2,
+                        ProgressionSkill.HEARTH, 1,
+                        ProgressionSkill.DELVING, 1
                 )
         );
         register(

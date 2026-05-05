@@ -5,7 +5,7 @@ import net.minecraft.resources.ResourceLocation;
 /**
  * Deprecated compatibility result for older XP-named award code.
  *
- * New code should consume {@link MasteryAwardResult} instead.
+ * New code should consume {@link ProficiencyAwardResult} instead.
  */
 @Deprecated
 public record SkillXpResult(
@@ -16,14 +16,14 @@ public record SkillXpResult(
         long resultingXp,
         long xpToNextLevel
 ) {
-    public static SkillXpResult from(MasteryAwardResult result) {
+    public static SkillXpResult from(ProficiencyAwardResult result) {
         return new SkillXpResult(
                 result.skillId(),
-                result.masteryAwarded(),
-                result.masteryLevelsGained(),
-                result.resultingMasteryLevel(),
-                result.resultingMasteryProgress(),
-                result.masteryRequiredForNextLevel()
+                result.proficiencyAwarded(),
+                result.rankLevelsGained(),
+                result.resultingRank(),
+                result.resultingProficiency(),
+                result.proficiencyRequiredForNextLevel()
         );
     }
 
