@@ -19,6 +19,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Loads canonical discipline tree definitions from {@code data/<ns>/skill_trees/}. The JSON root key
+ * {@code "skill"} holds the discipline id; {@code "discipline"} is accepted as an alias (see
+ * {@link ProgressionJsonAliases#readDisciplineIdFromTreeRoot}). Node {@code "type"} strings support legacy
+ * aliases {@code keystone}→{@code axiom} and {@code mastery}→{@code manifestation}.
+ */
 public class SkillTreeLoader extends SimpleJsonResourceReloadListener {
     private static final Gson GSON = new GsonBuilder().create();
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -36,7 +42,7 @@ public class SkillTreeLoader extends SimpleJsonResourceReloadListener {
                 JsonObject root = entry.getValue().getAsJsonObject();
                 if (root.has("disabled") && root.get("disabled").getAsBoolean()) continue;
 
-                String skillStr = root.has("skill") ? root.get("skill").getAsString() : (LevelRPG.MODID + ":" + fileId.getPath());
+                String skillStr = ProgressionJsonAliases.readDisciplineIdFromTreeRoot(root, fileId);
                 ResourceLocation skillId = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(skillStr, LevelRPG.MODID);
                 if (!ProgressionSkill.isCanonicalId(skillId)) {
                     LOGGER.warn("Ignoring legacy/non-canonical skill tree json {} -> {}", fileId, skillId);
@@ -65,7 +71,9 @@ public class SkillTreeLoader extends SimpleJsonResourceReloadListener {
                         }
                         int requiredRank = n.has("requiredRank") ? n.get("requiredRank").getAsInt() : minRank;
                         String branch = n.has("branch") ? n.get("branch").getAsString() : "";
-                        String type = n.has("type") ? n.get("type").getAsString() : "";
+                        String type = n.has("type")
+                                ? ProgressionJsonAliases.normalizeSkillTreeNodeType(n.get("type").getAsString())
+                                : "";
                         String nodeTitle = n.has("title") ? n.get("title").getAsString() : "";
                         String description = n.has("description") ? n.get("description").getAsString() : "";
                         int layoutX = n.has("layoutX") ? n.get("layoutX").getAsInt() : SkillTreeGraphLayout.AUTO;

@@ -6,6 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.resources.ResourceLocation;
+import net.zoogle.levelrpg.data.ProgressionJsonAliases;
 import net.zoogle.levelrpg.skilltree.NodeVisibilityMode;
 import net.zoogle.levelrpg.skilltree.RequirementSpec;
 import net.zoogle.levelrpg.skilltree.SkillTreePresentationDefinition;
@@ -548,8 +549,13 @@ public final class SkillTreeEditorDraft {
             return jsonName;
         }
 
+        /**
+         * Accepts legacy JSON type strings {@code keystone}→{@link NodeType#AXIOM} and {@code mastery}→{@link NodeType#MANIFESTATION}
+         * (same normalization as server {@link ProgressionJsonAliases#normalizeSkillTreeNodeType}).
+         */
         public static NodeType fromJson(String value) {
-            String normalized = value == null ? "" : value.trim().toLowerCase();
+            String raw = value == null ? "" : value.trim();
+            String normalized = ProgressionJsonAliases.normalizeSkillTreeNodeType(raw).toLowerCase();
             for (NodeType type : values()) {
                 if (type.jsonName.equals(normalized) || type.label.toLowerCase().equals(normalized)) {
                     return type;

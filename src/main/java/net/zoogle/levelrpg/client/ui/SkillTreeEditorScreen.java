@@ -156,7 +156,7 @@ public class SkillTreeEditorScreen extends Screen {
     }
 
     public SkillTreeEditorScreen(ResourceLocation skillId, int returnBookSpreadIndex) {
-        super(Component.literal("LevelRPG Skill Tree"));
+        super(Component.literal("LevelRPG Discipline Tree"));
         this.returnBookSpreadIndex = returnBookSpreadIndex;
         this.chamber = new SkillChamberViewState(skillId);
     }
@@ -562,17 +562,17 @@ public class SkillTreeEditorScreen extends Screen {
         if (treeDefinition == null) {
             return null;
         }
-        int rank = 0;
+        int investedDisciplineLevel = 0;
         SkillState skillState = ClientProfileCache.getSkillsView().get(skillId);
         if (skillState != null) {
-            rank = Math.max(0, skillState.level);
+            investedDisciplineLevel = Math.max(0, skillState.level);
         }
         int earned = SpecializationProgression.gainedInsightForTotalLevels(ClientProfileCache.totalInvestedLevelsAcrossSkills())
                 + ClientProfileCache.getBonusSpecializationPoints();
         int spent = ClientProfileCache.totalSpecializationSpentAcrossTrees();
         int available = Math.max(0, earned - spent);
         Set<String> unlocked = ClientProfileCache.getTreeUnlockedNodes(skillId);
-        return SkillTreeStateResolver.resolve(skillId, treeDefinition, rank, available, unlocked);
+        return SkillTreeStateResolver.resolve(skillId, treeDefinition, investedDisciplineLevel, available, unlocked);
     }
 
     private void populateNodeViews(
@@ -645,7 +645,7 @@ public class SkillTreeEditorScreen extends Screen {
         ));
         descriptionField.setCharacterLimit(512);
         costField = addRenderableWidget(new EditBox(font, 0, 0, 52, 18, Component.literal("Cost")));
-        levelField = addRenderableWidget(new EditBox(font, 0, 0, 52, 18, Component.literal("Level")));
+        levelField = addRenderableWidget(new EditBox(font, 0, 0, 52, 18, Component.literal("Disc. Lv.")));
         iconField = addRenderableWidget(new EditBox(font, 0, 0, fieldW, 18, Component.literal("Icon")));
         iconField.setMaxLength(160);
         typeButton = addRenderableWidget(CycleButton.builder((NodeType type) -> Component.literal(type.label()))
@@ -1189,10 +1189,10 @@ public class SkillTreeEditorScreen extends Screen {
     }
 
     private void drawHeader(GuiGraphics graphics) {
-        String title = definition == null ? "Skill Tree: " + activeSkillId() : definition.title();
+        String title = definition == null ? "Discipline Tree: " + activeSkillId() : definition.title();
         String subtitle = "A/D rotate  |  Drag to pan  |  Esc to close";
         int available = state == null ? 0 : state.insight();
-        String points = "Unspent: " + available;
+        String points = "Unspent Insight: " + available;
         graphics.drawString(font, title, OUTER_MARGIN + 12, OUTER_MARGIN + 8, 0xFFFFE0A3, false);
         graphics.drawString(font, subtitle, OUTER_MARGIN + 12 + font.width(title) + 14, OUTER_MARGIN + 8, 0xFF9F9587, false);
         graphics.drawString(font, points, width - OUTER_MARGIN - 12 - font.width(points), OUTER_MARGIN + 8, 0xFF8DFF8D, false);
@@ -1234,7 +1234,7 @@ public class SkillTreeEditorScreen extends Screen {
         graphics.drawString(font, "Title", tx, fieldY + 15, 0xFFB8A98E, false);
         graphics.drawString(font, "Description", tx, fieldY + 40, 0xFFB8A98E, false);
         graphics.drawString(font, "Cost", tx, fieldY + 103, 0xFFB8A98E, false);
-        graphics.drawString(font, "Level", tx + 64, fieldY + 103, 0xFFB8A98E, false);
+        graphics.drawString(font, "Disc. Lv.", tx + 64, fieldY + 103, 0xFFB8A98E, false);
         graphics.drawString(font, "Node Type", tx + 128, fieldY + 103, 0xFFB8A98E, false);
         graphics.drawString(font, "Icon", tx, fieldY + 135, 0xFFB8A98E, false);
         graphics.drawString(font, "Visibility / Requirement Target", tx, fieldY + 168, 0xFFB8A98E, false);

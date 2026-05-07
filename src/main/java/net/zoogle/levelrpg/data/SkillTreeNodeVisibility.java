@@ -1,7 +1,7 @@
 package net.zoogle.levelrpg.data;
 
 /**
- * How a mastery node is presented in the panning skill map (advancement-style).
+ * How a discipline tree node is presented in the panning map (advancement-style).
  */
 public enum SkillTreeNodeVisibility {
     /** Always shown with normal title and tooltip. */

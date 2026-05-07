@@ -14,8 +14,6 @@ import net.zoogle.levelrpg.profile.SkillProgressView;
 import net.zoogle.levelrpg.progression.PassiveSkillScalingService;
 import net.zoogle.levelrpg.progression.PassiveSkillSummary;
 import net.zoogle.levelrpg.progression.RecipeUnlockService;
-import net.zoogle.levelrpg.progression.SpecializationProgression;
-import net.zoogle.levelrpg.progression.SkillPointProgression;
 import net.zoogle.levelrpg.progression.SkillTreeProgression;
 
 import java.util.ArrayList;
@@ -49,14 +47,17 @@ public final class LevelRpgJournalSnapshotFactory {
         ArchetypeDefinition archetype = profile.getSelectedArchetype();
         String archetypeName = archetype != null ? safe(archetype.displayName()) : "";
         String archetypeDescription = archetype != null ? safe(archetype.description()) : "";
-        int totalSkillLevels = SpecializationProgression.totalCanonicalLevels(profile);
+        int totalSkillLevels = profile.totalInvestedDisciplineLevels();
         int totalMasteryLevels = totalMasteryLevels(profile);
-        int earnedSkillPoints = SkillPointProgression.earnedPoints(profile);
-        int spentSkillPoints = SkillPointProgression.spentPoints(profile);
-        int availableSkillPoints = SkillPointProgression.insight(profile);
-        int earnedSpecializationPoints = SpecializationProgression.gainedInsight(profile);
-        int spentSpecializationPoints = SpecializationProgression.inscribedPoints(profile);
-        int availableSpecializationPoints = SpecializationProgression.insight(profile);
+        // TODO(essence-journal): these legacy skill-point ledger fields are compatibility-only.
+        // Essence is now the active Discipline investment currency; a future journal copy/model pass
+        // should surface Essence explicitly and avoid presenting this legacy pool as current leveling currency.
+        int earnedSkillPoints = profile.totalDisciplineInvestmentPointsEarned();
+        int spentSkillPoints = profile.spentDisciplineInvestmentPoints();
+        int availableSkillPoints = profile.uncommittedDisciplineInvestmentPoints();
+        int earnedSpecializationPoints = profile.globalInsightEarned();
+        int spentSpecializationPoints = profile.globalInsightInscribed();
+        int availableSpecializationPoints = profile.globalInsightAvailable();
 
         ArrayList<JournalCharacterLedgerSnapshot.Row> rows = new ArrayList<>(ProgressionSkill.values().length);
         for (ProgressionSkill skill : ProgressionSkill.values()) {
@@ -168,7 +169,7 @@ public final class LevelRpgJournalSnapshotFactory {
         );
     }
 
-    private static List<JournalUnlockSnapshot> buildRecipeUnlocks(LevelProfile profile, ResourceLocation skillId, int rank) {
+    private static List<JournalUnlockSnapshot> buildRecipeUnlocks(LevelProfile profile, ResourceLocation skillId, int investedDisciplineLevel) {
         ArrayList<JournalUnlockSnapshot> unlocks = new ArrayList<>();
         for (Map.Entry<ResourceLocation, RecipeUnlockDefinition> entry : RecipeUnlockRegistry.entries()) {
             RecipeUnlockDefinition definition = entry.getValue();
@@ -192,7 +193,7 @@ public final class LevelRpgJournalSnapshotFactory {
                     entry.getKey().toString(),
                     humanize(entry.getKey().getPath()),
                     describeRecipeRequirements(definition, skillId),
-                    rank,
+                    investedDisciplineLevel,
                     matchingRequirement.minLevel(),
                     unlocked
             ));

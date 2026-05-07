@@ -1,6 +1,7 @@
 package net.zoogle.levelrpg.net;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.resources.ResourceLocation;
@@ -14,12 +15,16 @@ import net.zoogle.levelrpg.client.gauge.ClientGaugeCache;
 import net.zoogle.levelrpg.gauge.PlayerGauges;
 import net.zoogle.levelrpg.net.payload.BindArchetypeRequestPayload;
 import net.zoogle.levelrpg.net.payload.BindArchetypeResultPayload;
+import net.zoogle.levelrpg.net.payload.AbandonSoloBountyPayload;
+import net.zoogle.levelrpg.net.payload.ClaimBountyOfferPayload;
 import net.zoogle.levelrpg.net.payload.ActivateTechniqueSlotPayload;
 import net.zoogle.levelrpg.net.payload.CameraShakePayload;
 import net.zoogle.levelrpg.net.payload.CrescentSlashCameraSpinPayload;
 import net.zoogle.levelrpg.net.payload.GaugeSyncPayload;
+import net.zoogle.levelrpg.net.payload.IndexDisciplineInvestRequestPayload;
 import net.zoogle.levelrpg.net.payload.MarkFistCombatIntentPayload;
 import net.zoogle.levelrpg.net.payload.MarkFistWeakSpotIntentPayload;
+import net.zoogle.levelrpg.net.payload.OpenIndexInvestmentScreenPayload;
 import net.zoogle.levelrpg.net.payload.OpenSkillTreeEditorScreenPayload;
 import net.zoogle.levelrpg.net.payload.RecklessChargeStatePayload;
 import net.zoogle.levelrpg.net.payload.SelectTechniqueSlotPayload;
@@ -48,7 +53,11 @@ import net.zoogle.levelrpg.finesse.FinessePassiveModifiers;
 import net.zoogle.levelrpg.finesse.FinesseTechniqueActivations;
 import net.zoogle.levelrpg.finesse.FinesseUnarmedCombat;
 import net.zoogle.levelrpg.progression.PassiveSkillScalingService;
-import net.zoogle.levelrpg.progression.SkillPointProgression;
+import net.zoogle.levelrpg.progression.DisciplineInvestmentProgression;
+import net.zoogle.levelrpg.progression.DisciplineInvestmentSource;
+import net.zoogle.levelrpg.bounty.BountyClaimService;
+import net.zoogle.levelrpg.bounty.BountyProgressionService;
+import net.zoogle.levelrpg.client.ui.IndexInvestmentScreen;
 import net.zoogle.levelrpg.client.ui.SkillTreeEditorScreen;
 import net.zoogle.levelrpg.client.valor.ClientCrescentSlashCamera;
 import net.zoogle.levelrpg.client.valor.ClientRecklessChargeState;
@@ -97,6 +106,12 @@ public class Network {
                                 payload.availableSkillPoints(),
                                 payload.spentSkillPoints(),
                                 payload.bonusSpecializationPoints(),
+                                payload.essence(),
+                                payload.activeSoloBountyId(),
+                                payload.activeSoloBountyObjectiveMet(),
+                                payload.activeSoloBountyProgress(),
+                                payload.bountyOfferTier(),
+                                payload.completedBountiesSet(),
                                 payload.archetypeId(),
                                 payload.archetypeApplied()
                         );
@@ -114,10 +129,22 @@ public class Network {
                                 payload.masteryLevel(),
                                 payload.masteryXp(),
                                 payload.availableSkillPoints(),
-                                payload.spentSkillPoints()
+                                payload.spentSkillPoints(),
+                                payload.essence()
                         );
                     });
                 }
+        );
+        registrar.playToClient(
+                OpenIndexInvestmentScreenPayload.TYPE,
+                OpenIndexInvestmentScreenPayload.STREAM_CODEC,
+                (payload, context) -> context.enqueueWork(() -> {
+                    Minecraft minecraft = Minecraft.getInstance();
+                    if (minecraft.player == null || minecraft.screen != null) {
+                        return;
+                    }
+                    minecraft.setScreen(new IndexInvestmentScreen());
+                })
         );
         registrar.playToClient(
                 OpenSkillTreeEditorScreenPayload.TYPE,
@@ -128,7 +155,7 @@ public class Network {
                         return;
                     }
                     if (net.zoogle.levelrpg.skilltree.SkillTreeRegistry.get(payload.skillId()) == null) {
-                        minecraft.player.displayClientMessage(Component.literal("No tree found for " + payload.skillId()), true);
+                        minecraft.player.displayClientMessage(Component.literal("No discipline tree found for " + payload.skillId()), true);
                         return;
                     }
                     minecraft.setScreen(new SkillTreeEditorScreen(payload.skillId()));
@@ -203,6 +230,60 @@ public class Network {
                 }
         );
         registrar.playToServer(
+                AbandonSoloBountyPayload.TYPE,
+                AbandonSoloBountyPayload.STREAM_CODEC,
+                (payload, context) -> {
+                    if (!(context.player() instanceof ServerPlayer player)) {
+                        return;
+                    }
+                    LevelProfile profile = LevelProfile.get(player);
+                    BountyClaimService.AbandonResult result = BountyClaimService.abandonSoloBounty(profile);
+                    switch (result) {
+                        case SUCCESS -> {
+                            LevelProfile.save(player, profile);
+                            sendSync(player, profile);
+                            player.displayClientMessage(Component.literal("The Bookmark releases the path."), true);
+                        }
+                        case NO_ACTIVE_BOUNTY -> player.displayClientMessage(
+                                Component.literal("No active Bounty is inscribed."), true
+                        );
+                        case INVALID_STATE -> player.displayClientMessage(
+                                Component.literal("Bounty abandon failed due to invalid state."), true
+                        );
+                    }
+                }
+        );
+        registrar.playToServer(
+                ClaimBountyOfferPayload.TYPE,
+                ClaimBountyOfferPayload.STREAM_CODEC,
+                (payload, context) -> {
+                    if (!(context.player() instanceof ServerPlayer player)) {
+                        return;
+                    }
+                    LevelProfile profile = LevelProfile.get(player);
+                    BountyClaimService.ClaimResult result = BountyClaimService.claimSoloBounty(profile, payload.bountyId());
+                    switch (result) {
+                        case SUCCESS -> {
+                            LevelProfile.save(player, profile);
+                            sendSync(player, profile);
+                            player.displayClientMessage(Component.literal("The Bookmark inscribes your chosen path."), true);
+                        }
+                        case ALREADY_HAS_ACTIVE_BOUNTY -> player.displayClientMessage(
+                                Component.literal("You already carry an active solo bounty."), true
+                        );
+                        case UNKNOWN_BOUNTY -> player.displayClientMessage(
+                                Component.literal("That bounty inscription is unknown."), true
+                        );
+                        case OBJECTIVE_NOT_IMPLEMENTED -> player.displayClientMessage(
+                                Component.literal("The Bookmark cannot yet read the end of this path."), true
+                        );
+                        case INVALID_STATE -> player.displayClientMessage(
+                                Component.literal("Bounty claim failed due to invalid state."), true
+                        );
+                    }
+                }
+        );
+        registrar.playToServer(
                 SpendSkillPointRequestPayload.TYPE,
                 SpendSkillPointRequestPayload.STREAM_CODEC,
                 (payload, context) -> {
@@ -210,7 +291,13 @@ public class Network {
                         return;
                     }
                     LevelProfile profile = LevelProfile.get(player);
-                    SkillPointProgression.SkillPointSpendResult result = profile.spendSkillPoint(payload.skillId());
+                    // Legacy payload name kept for compatibility. Treat this as BOOK source so
+                    // future Index-gating config can control non-Index player-facing investment.
+                    // TODO(index): once The Index interaction exists, route INDEX source from that path.
+                    DisciplineInvestmentProgression.InvestmentResult result = profile.spendEssenceForDisciplineLevel(
+                            payload.skillId(),
+                            DisciplineInvestmentSource.BOOK
+                    );
                     if (!result.success()) {
                         player.displayClientMessage(Component.literal(result.message()), true);
                         return;
@@ -219,12 +306,57 @@ public class Network {
                     LevelProfile.save(player, profile);
                     sendDelta(player, profile, payload.skillId());
                     player.displayClientMessage(Component.literal(
-                            "Invested 1 Skill Point into "
+                            "Spent " + result.essenceSpent() + " Essence in "
                                     + displayNameForSkill(payload.skillId())
-                                    + ". Skill Level is now "
-                                    + result.resultingSkillLevel()
+                                    + ". Discipline Level is now "
+                                    + result.resultingDisciplineLevel()
                                     + "."
                     ), true);
+                }
+        );
+        registrar.playToServer(
+                IndexDisciplineInvestRequestPayload.TYPE,
+                IndexDisciplineInvestRequestPayload.STREAM_CODEC,
+                (payload, context) -> {
+                    if (!(context.player() instanceof ServerPlayer player)) {
+                        return;
+                    }
+                    LevelProfile profile = LevelProfile.get(player);
+                    DisciplineInvestmentProgression.InvestmentResult result = profile.spendEssenceForDisciplineLevel(
+                            payload.skillId(),
+                            DisciplineInvestmentSource.INDEX
+                    );
+                    if (!result.success()) {
+                        player.displayClientMessage(Component.literal(result.message()), true);
+                        return;
+                    }
+                    PassiveSkillScalingService.applyIfChanged(player, profile);
+                    BountyProgressionService.CompletionResult bountyCompletion =
+                            BountyProgressionService.onSuccessfulIndexInvestment(player, profile);
+                    LevelProfile.save(player, profile);
+                    if (bountyCompletion.completed()) {
+                        sendSync(player, profile);
+                    } else {
+                        sendDelta(player, profile, payload.skillId());
+                    }
+                    player.displayClientMessage(Component.literal(
+                            "The Index inscribes " + result.essenceSpent() + " Essence in "
+                                    + displayNameForSkill(payload.skillId())
+                                    + ". Discipline Level is now "
+                                    + result.resultingDisciplineLevel()
+                                    + "."
+                    ), true);
+                    if (bountyCompletion.completed()) {
+                        String rewardLine = bountyCompletion.firstCompletion()
+                                ? bountyCompletion.baseRewardEssence() + " Essence (+" + bountyCompletion.firstCompletionBonusEssence() + " first inscription bonus)"
+                                : bountyCompletion.totalRewardEssence() + " Essence";
+                        player.displayClientMessage(
+                                Component.literal("The Bookmark records your first inscription. +"
+                                        + rewardLine + ".")
+                                        .withStyle(ChatFormatting.AQUA),
+                                true
+                        );
+                    }
                 }
         );
         registrar.playToServer(
@@ -257,7 +389,7 @@ public class Network {
                                     + nodeId
                                     + " in "
                                     + displayNameForSkill(payload.skillId())
-                                    + ". Specialization "
+                                    + ". Insight "
                                     + res.insight
                                     + " / "
                                     + res.gainedInsight
@@ -411,7 +543,8 @@ public class Network {
                 sp.rank,
                 sp.proficiency,
                 profile.availableSkillPoints,
-                profile.spentSkillPoints
+                profile.spentSkillPoints,
+                profile.essence()
         );
         target.connection.send(new ClientboundCustomPayloadPacket(payload));
     }
@@ -430,5 +563,12 @@ public class Network {
             return;
         }
         target.connection.send(new ClientboundCustomPayloadPacket(new OpenSkillTreeEditorScreenPayload(skillId)));
+    }
+
+    public static void openIndexInvestmentScreen(ServerPlayer target) {
+        if (target == null) {
+            return;
+        }
+        target.connection.send(new ClientboundCustomPayloadPacket(OpenIndexInvestmentScreenPayload.INSTANCE));
     }
 }

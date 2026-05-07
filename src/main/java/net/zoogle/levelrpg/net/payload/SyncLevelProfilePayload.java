@@ -23,6 +23,12 @@ public record SyncLevelProfilePayload(
         int availableSkillPoints,
         int spentSkillPoints,
         int bonusSpecializationPoints,
+        int essence,
+        @Nullable ResourceLocation activeSoloBountyId,
+        boolean activeSoloBountyObjectiveMet,
+        int activeSoloBountyProgress,
+        int bountyOfferTier,
+        List<ResourceLocation> completedBounties,
         @Nullable ResourceLocation archetypeId,
         boolean archetypeApplied
 )
@@ -45,6 +51,18 @@ public record SyncLevelProfilePayload(
                         buf.writeVarInt(payload.availableSkillPoints());
                         buf.writeVarInt(payload.spentSkillPoints());
                         buf.writeVarInt(payload.bonusSpecializationPoints());
+                        buf.writeVarInt(payload.essence());
+                        buf.writeBoolean(payload.activeSoloBountyId() != null);
+                        if (payload.activeSoloBountyId() != null) {
+                            ResourceLocation.STREAM_CODEC.encode(buf, payload.activeSoloBountyId());
+                        }
+                        buf.writeBoolean(payload.activeSoloBountyObjectiveMet());
+                        buf.writeVarInt(payload.activeSoloBountyProgress());
+                        buf.writeVarInt(payload.bountyOfferTier());
+                        buf.writeVarInt(payload.completedBounties().size());
+                        for (ResourceLocation bountyId : payload.completedBounties()) {
+                            ResourceLocation.STREAM_CODEC.encode(buf, bountyId);
+                        }
                         buf.writeBoolean(payload.archetypeId() != null);
                         if (payload.archetypeId() != null) {
                             ResourceLocation.STREAM_CODEC.encode(buf, payload.archetypeId());
@@ -65,6 +83,16 @@ public record SyncLevelProfilePayload(
                         int availableSkillPoints = buf.readVarInt();
                         int spentSkillPoints = buf.readVarInt();
                         int bonusSpecializationPoints = buf.readVarInt();
+                        int essence = buf.readVarInt();
+                        ResourceLocation activeSoloBountyId = buf.readBoolean() ? ResourceLocation.STREAM_CODEC.decode(buf) : null;
+                        boolean activeSoloBountyObjectiveMet = buf.readBoolean();
+                        int activeSoloBountyProgress = Math.max(0, buf.readVarInt());
+                        int bountyOfferTier = Math.clamp(buf.readVarInt(), 1, 3);
+                        int completedCount = Math.min(512, Math.max(0, buf.readVarInt()));
+                        ArrayList<ResourceLocation> completedBounties = new ArrayList<>(completedCount);
+                        for (int i = 0; i < completedCount; i++) {
+                            completedBounties.add(ResourceLocation.STREAM_CODEC.decode(buf));
+                        }
                         ResourceLocation archetypeId = buf.readBoolean() ? ResourceLocation.STREAM_CODEC.decode(buf) : null;
                         boolean archetypeApplied = buf.readBoolean();
                         return new SyncLevelProfilePayload(
@@ -73,6 +101,12 @@ public record SyncLevelProfilePayload(
                                 availableSkillPoints,
                                 spentSkillPoints,
                                 bonusSpecializationPoints,
+                                essence,
+                                activeSoloBountyId,
+                                activeSoloBountyObjectiveMet,
+                                activeSoloBountyProgress,
+                                bountyOfferTier,
+                                List.copyOf(completedBounties),
                                 archetypeId,
                                 archetypeApplied
                         );
@@ -101,6 +135,12 @@ public record SyncLevelProfilePayload(
                 profile.availableSkillPoints,
                 profile.spentSkillPoints,
                 profile.bonusSpecializationPoints,
+                profile.essence(),
+                profile.activeSoloBountyId(),
+                profile.activeSoloBountyObjectiveMet(),
+                profile.activeSoloBountyProgress(),
+                profile.bountyOfferTier(),
+                List.copyOf(profile.completedBounties()),
                 profile.archetype.id,
                 profile.hasAppliedStartingArchetype()
         );
@@ -132,6 +172,10 @@ public record SyncLevelProfilePayload(
             map.put(tree.id(), Set.copyOf(tree.unlockedNodes()));
         }
         return map;
+    }
+
+    public Set<ResourceLocation> completedBountiesSet() {
+        return Set.copyOf(completedBounties);
     }
 
     public record Entry(ResourceLocation id, int level, int rank, long proficiency) {

@@ -15,8 +15,11 @@ import java.util.Set;
 
 // Server-side: uses data.SkillTreeCanonicalDefinition (JSON-loaded). Client rendering uses skilltree.SkillTreePresentationDefinition via SkillTreeRegistry.
 /**
- * Central evaluator for mastery tree state so commands, journal guidance, and
- * client presentation all read the same unlock logic.
+ * Central evaluator for discipline tree unlock state so commands, journal guidance, and client presentation
+ * share the same logic. Tree unlock currency is {@link SpecializationProgression} (design: <b>Insight</b>);
+ * node availability vs invested Discipline Level uses the {@code investedSkillLevel} argument to
+ * {@link #snapshot(ResourceLocation, SkillTreeCanonicalDefinition, int, Set, int, int)} (same backing as
+ * {@link net.zoogle.levelrpg.profile.LevelProfile#investedDisciplineLevel}; not practice rank).
  */
 public final class SkillTreeProgression {
     private SkillTreeProgression() {}
@@ -25,8 +28,8 @@ public final class SkillTreeProgression {
         SkillTreeCanonicalDefinition tree = SkillTreeRegistry.get(skillId);
         SkillState skillProgress = profile.getSkill(skillId);
         Set<String> inscribedNodes = profile.getUnlockedTreeNodes(skillId);
-        int gainedInsight = SpecializationProgression.gainedInsight(profile);
-        int inscribedPoints = SpecializationProgression.inscribedPoints(profile);
+        int gainedInsight = profile.globalInsightEarned();
+        int inscribedPoints = profile.globalInsightInscribed();
         return snapshot(skillId, tree, skillProgress.level, inscribedNodes, gainedInsight, inscribedPoints);
     }
 
@@ -65,7 +68,14 @@ public final class SkillTreeProgression {
                 continue;
             }
             List<String> missingRequirements = tree.missingRequirements(nodeId, unlockedNodesForSkill);
-            NodeStatus status = resolveStatus(tree, node, investedSkillLevel, insight, unlockedNodesForSkill, missingRequirements);
+            NodeStatus status = resolveStatus(
+                    tree,
+                    node,
+                    investedSkillLevel,
+                    insight,
+                    unlockedNodesForSkill,
+                    missingRequirements
+            );
             nodeSnapshots.add(new NodeSnapshot(node, status, missingRequirements));
         }
 
@@ -95,7 +105,7 @@ public final class SkillTreeProgression {
     private static NodeStatus resolveStatus(
             SkillTreeCanonicalDefinition tree,
             SkillTreeCanonicalDefinition.Node node,
-            int rank,
+            int investedDisciplineLevel,
             int insight,
             Set<String> inscribedNodes,
             List<String> missingRequirements
@@ -103,7 +113,7 @@ public final class SkillTreeProgression {
         if (inscribedNodes.contains(node.id())) {
             return NodeStatus.INSCRIBED;
         }
-        if (rank < requiredLevelFor(tree, node)) {
+        if (investedDisciplineLevel < requiredLevelFor(tree, node)) {
             return NodeStatus.LOCKED_SKILL_LEVEL;
         }
         if (!missingRequirements.isEmpty()) {
@@ -140,6 +150,9 @@ public final class SkillTreeProgression {
     public record TreeSnapshot(
             ResourceLocation skillId,
             SkillTreeCanonicalDefinition tree,
+            /**
+             * Invested Discipline Level used for tree availability (not practice rank).
+             */
             int rank,
             int gainedInsight,
             int inscribedPoints,

@@ -1,5 +1,7 @@
 package net.zoogle.levelrpg.events;
 
+import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.advancements.AdvancementType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -25,7 +27,9 @@ import net.zoogle.levelrpg.progression.MagickXpRules;
 import net.zoogle.levelrpg.progression.MiningXpRules;
 import net.zoogle.levelrpg.progression.PassiveSkillScalingService;
 import net.zoogle.levelrpg.progression.SkillProficiencyRules;
+import net.zoogle.levelrpg.progression.AdvancementEssenceRewards;
 import net.zoogle.levelrpg.progression.ValorXpRules;
+import net.zoogle.levelrpg.bounty.BountyProgressionService;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -40,6 +44,21 @@ public class ActivityEvents {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
 
         LevelProfile profile = LevelProfile.get(sp);
+        BountyProgressionService.CompletionResult bountyCompletion =
+                BountyProgressionService.evaluateActiveSoloBountyDepthProgress(sp, profile);
+        if (bountyCompletion.completed()) {
+            LevelProfile.save(sp, profile);
+            Network.sendSync(sp, profile);
+            String rewardLine = bountyCompletion.firstCompletion()
+                    ? bountyCompletion.baseRewardEssence() + " Essence (+" + bountyCompletion.firstCompletionBonusEssence() + " first inscription bonus)"
+                    : bountyCompletion.totalRewardEssence() + " Essence";
+            sp.displayClientMessage(
+                    Component.literal("The Bookmark exhales. Bounty complete. +"
+                            + rewardLine + ".")
+                            .withStyle(ChatFormatting.AQUA),
+                    true
+            );
+        }
         ProficiencyAwardResult arcanaAward = SkillProficiencyRules.awardArcanaForOpenMenu(sp, profile);
         if (arcanaAward != null) {
             PassiveSkillScalingService.applyIfChanged(sp, profile);
@@ -75,7 +94,12 @@ public class ActivityEvents {
         ProficiencyAwardResult delvingAward = SkillProficiencyRules.awardDelvingForBlockBreak(sp, profile, state);
         collectCanonicalAward(delvingAward, changedSkills, leveledUp);
 
-        if (ActivityRules.breakBlockRules().isEmpty() && changedSkills.isEmpty()) return;
+        BountyProgressionService.ObjectiveHookResult bountyMine =
+                BountyProgressionService.onOreBlockBrokenByPlayer(sp, profile, state, event.getPos());
+
+        if (ActivityRules.breakBlockRules().isEmpty() && changedSkills.isEmpty() && !bountyMine.needsProfileSync()) {
+            return;
+        }
 
         for (ActivityRules.BreakBlockRule rule : ActivityRules.breakBlockRules()) {
             if (MiningXpRules.SKILL_ID.equals(rule.skill) || ArtificingXpRules.SKILL_ID.equals(rule.skill)) continue;
@@ -94,6 +118,12 @@ public class ActivityEvents {
             for (ResourceLocation id : leveledUp) {
                 sendLevelUp(sp, profile, id);
             }
+        }
+        if (bountyMine.needsProfileSync()) {
+            PassiveSkillScalingService.applyIfChanged(sp, profile);
+            LevelProfile.save(sp, profile);
+            Network.sendSync(sp, profile);
+            notifyBountyCompletionIfNeeded(sp, bountyMine);
         }
     }
 
@@ -154,6 +184,8 @@ public class ActivityEvents {
             }
             collectCanonicalAward(profile.awardProficiency(rule.skill, rule.xp), changed, leveledUp);
         }
+        BountyProgressionService.ObjectiveHookResult bountyKill =
+                BountyProgressionService.onHostileMobKilledByPlayer(sp, profile, victim);
         if (!changed.isEmpty()) {
             PassiveSkillScalingService.applyIfChanged(sp, profile);
             LevelProfile.save(sp, profile);
@@ -164,6 +196,12 @@ public class ActivityEvents {
             for (ResourceLocation id : leveledUp) {
                 sendLevelUp(sp, profile, id);
             }
+        }
+        if (bountyKill.needsProfileSync()) {
+            PassiveSkillScalingService.applyIfChanged(sp, profile);
+            LevelProfile.save(sp, profile);
+            Network.sendSync(sp, profile);
+            notifyBountyCompletionIfNeeded(sp, bountyKill);
         }
     }
 
@@ -244,6 +282,40 @@ public class ActivityEvents {
         }
     }
 
+    @SubscribeEvent
+    public void onAdvancementEarned(net.neoforged.neoforge.event.entity.player.AdvancementEvent.AdvancementEarnEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        AdvancementHolder advancement = event.getAdvancement();
+        if (advancement == null || advancement.id() == null) return;
+
+        LevelProfile profile = LevelProfile.get(sp);
+        AdvancementEssenceRewards.Result result = AdvancementEssenceRewards.claim(profile, advancement);
+        if (!result.awarded()) {
+            return;
+        }
+
+        LevelProfile.save(sp, profile);
+        Network.sendSync(sp, profile);
+        sp.displayClientMessage(Component.literal(frameFlavorLine(advancement, result.essenceAwarded()))
+                .withStyle(ChatFormatting.LIGHT_PURPLE), true);
+    }
+
+    private static void notifyBountyCompletionIfNeeded(ServerPlayer sp, BountyProgressionService.ObjectiveHookResult hook) {
+        if (hook.completion() == null || !hook.completion().completed()) {
+            return;
+        }
+        BountyProgressionService.CompletionResult bountyCompletion = hook.completion();
+        String rewardLine = bountyCompletion.firstCompletion()
+                ? bountyCompletion.baseRewardEssence() + " Essence (+" + bountyCompletion.firstCompletionBonusEssence() + " first inscription bonus)"
+                : bountyCompletion.totalRewardEssence() + " Essence";
+        sp.displayClientMessage(
+                Component.literal("The Bookmark exhales. Bounty complete. +"
+                        + rewardLine + ".")
+                        .withStyle(ChatFormatting.AQUA),
+                true
+        );
+    }
+
     private static void collectCanonicalAward(ProficiencyAwardResult result, Set<ResourceLocation> changedSkills, Set<ResourceLocation> leveledUp) {
         if (result == null) return;
         changedSkills.add(result.skillId());
@@ -258,7 +330,7 @@ public class ActivityEvents {
         long needed = net.zoogle.levelrpg.progression.MasteryLeveling.xpToNextLevel(skillId, spSkill.rank);
         String name = displayNameForSkill(skillId);
         sp.displayClientMessage(Component.literal(
-                name + " proficiency " + spSkill.proficiency + "/" + needed + " (Rank " + spSkill.rank + ")"
+                name + " proficiency " + spSkill.proficiency + "/" + needed + " (practice rank " + spSkill.rank + ")"
         ).withStyle(ChatFormatting.GOLD), true);
     }
 
@@ -267,7 +339,7 @@ public class ActivityEvents {
         if (spSkill == null) return;
         String name = displayNameForSkill(skillId);
         sp.sendSystemMessage(Component.literal(
-                name + " discipline ranked up to Rank " + spSkill.rank + ". Gained 1 Skill Point."
+                name + " practice ranked up to rank " + spSkill.rank + ". Potential increased."
         ).withStyle(ChatFormatting.GREEN));
     }
 
@@ -278,5 +350,16 @@ public class ActivityEvents {
         }
         String s = skillId.getPath().replace('_', ' ');
         return s.isEmpty() ? skillId.toString() : Character.toUpperCase(s.charAt(0)) + s.substring(1);
+    }
+
+    private static String frameFlavorLine(AdvancementHolder advancement, int amount) {
+        AdvancementType frameType = advancement.value().display().map(display -> display.getType()).orElse(null);
+        if (frameType == AdvancementType.CHALLENGE) {
+            return "Challenge inscribed. +" + amount + " Essence.";
+        }
+        if (frameType == AdvancementType.GOAL) {
+            return "Milestone recorded. +" + amount + " Essence.";
+        }
+        return "The Bookmark stirs. +" + amount + " Essence.";
     }
 }

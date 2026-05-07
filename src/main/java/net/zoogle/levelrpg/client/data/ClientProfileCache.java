@@ -23,6 +23,12 @@ public final class ClientProfileCache {
     private static int availableSkillPoints;
     private static int spentSkillPoints;
     private static int bonusSpecializationPoints;
+    private static int essence;
+    private static ResourceLocation activeSoloBountyId;
+    private static boolean activeSoloBountyObjectiveMet;
+    private static int activeSoloBountyProgress;
+    private static int bountyOfferTier = 1;
+    private static final java.util.LinkedHashSet<ResourceLocation> completedBounties = new java.util.LinkedHashSet<>();
     private static ResourceLocation archetypeId;
     private static boolean archetypeApplied;
     private static long lastUpdatedMs;
@@ -43,6 +49,12 @@ public final class ClientProfileCache {
             int insight,
             int spentPoints,
             int bonusSpecPoints,
+            int syncedEssence,
+            ResourceLocation syncedActiveSoloBountyId,
+            boolean syncedActiveSoloBountyObjectiveMet,
+            int syncedActiveSoloBountyProgress,
+            int syncedBountyOfferTier,
+            Set<ResourceLocation> syncedCompletedBounties,
             ResourceLocation selectedArchetypeId,
             boolean selectedArchetypeApplied
     ) {
@@ -68,6 +80,15 @@ public final class ClientProfileCache {
         availableSkillPoints = Math.max(0, insight);
         spentSkillPoints = Math.max(0, spentPoints);
         bonusSpecializationPoints = Math.max(0, bonusSpecPoints);
+        essence = Math.max(0, syncedEssence);
+        activeSoloBountyId = syncedActiveSoloBountyId;
+        activeSoloBountyObjectiveMet = syncedActiveSoloBountyObjectiveMet;
+        activeSoloBountyProgress = Math.max(0, syncedActiveSoloBountyProgress);
+        bountyOfferTier = Math.clamp(syncedBountyOfferTier, 1, 3);
+        completedBounties.clear();
+        if (syncedCompletedBounties != null) {
+            completedBounties.addAll(syncedCompletedBounties);
+        }
         archetypeId = selectedArchetypeId;
         archetypeApplied = selectedArchetypeApplied;
         lastUpdatedMs = System.currentTimeMillis();
@@ -83,7 +104,7 @@ public final class ClientProfileCache {
         );
     }
 
-    public static void applyDelta(ResourceLocation skillId, int level, int masteryLevel, long masteryXp, int insight, int spentPoints) {
+    public static void applyDelta(ResourceLocation skillId, int level, int masteryLevel, long masteryXp, int insight, int spentPoints, int syncedEssence) {
         if (!ProgressionSkill.isCanonicalId(skillId)) {
             LOGGER.warn("Ignoring non-canonical LevelRPG client profile delta for {}", skillId);
             return;
@@ -98,6 +119,7 @@ public final class ClientProfileCache {
         sp.proficiency = masteryXp;
         availableSkillPoints = Math.max(0, insight);
         spentSkillPoints = Math.max(0, spentPoints);
+        essence = Math.max(0, syncedEssence);
         lastUpdatedMs = System.currentTimeMillis();
         lastSkillId = skillId;
         ready = true;
@@ -120,6 +142,17 @@ public final class ClientProfileCache {
     public static int getAvailableSkillPoints() { return availableSkillPoints; }
     public static int getSpentSkillPoints() { return spentSkillPoints; }
     public static int getBonusSpecializationPoints() { return bonusSpecializationPoints; }
+    public static int getEssence() { return essence; }
+    public static ResourceLocation getActiveSoloBountyId() { return activeSoloBountyId; }
+    public static boolean isActiveSoloBountyObjectiveMet() { return activeSoloBountyObjectiveMet; }
+    public static int getActiveSoloBountyProgress() { return Math.max(0, activeSoloBountyProgress); }
+    public static int getBountyOfferTier() { return Math.clamp(bountyOfferTier, 1, 3); }
+    public static boolean hasCompletedBounty(ResourceLocation bountyId) {
+        return bountyId != null && completedBounties.contains(bountyId);
+    }
+    public static Set<ResourceLocation> getCompletedBounties() {
+        return Collections.unmodifiableSet(completedBounties);
+    }
     public static ResourceLocation getArchetypeId() { return archetypeId; }
     public static boolean isArchetypeApplied() { return archetypeApplied; }
     public static long getBindResultVersion() { return bindResultVersion; }
@@ -134,7 +167,7 @@ public final class ClientProfileCache {
         bindResultVersion++;
     }
 
-    /** Sum of invested skill levels across all canonical skills (specialization thresholds use this). */
+    /** Sum of Discipline Levels across all canonical disciplines (Insight thresholds use this). */
     public static int totalInvestedLevelsAcrossSkills() {
         int total = 0;
         for (SkillState state : skills.values()) {
@@ -143,7 +176,7 @@ public final class ClientProfileCache {
         return total;
     }
 
-    /** Sum of mastery-tree points spent in every discipline. */
+    /** Sum of Insight spent (inscribed) across every discipline tree. */
     public static int totalSpecializationSpentAcrossTrees() {
         int spent = 0;
         for (int v : treePointsSpent.values()) {

@@ -41,7 +41,6 @@ public final class ProficiencyProgressionService {
         while (state.proficiency >= (needed = MasteryLeveling.xpToNextLevel(skillId, state.rank))) {
             state.proficiency -= needed;
             state.rank += 1;
-            SkillPointProgression.grantPoint(profile, 1);
             levelsGained += 1;
         }
 

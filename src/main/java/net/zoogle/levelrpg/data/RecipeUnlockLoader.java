@@ -31,6 +31,9 @@ import java.util.Map;
  *     { "skill": "levelrpg:forging", "minLevel": 3 }
  *   ]
  * }
+ *
+ * <p>Each requirement object uses {@code "skill"} for the canonical <b>discipline</b> id; {@code "discipline"}
+ * is accepted as an alias (see {@link ProgressionJsonAliases#disciplineIdElementFromRule}).
  */
 public class RecipeUnlockLoader extends SimpleJsonResourceReloadListener {
     private static final Gson GSON = new GsonBuilder().create();
@@ -82,10 +85,11 @@ public class RecipeUnlockLoader extends SimpleJsonResourceReloadListener {
                 continue;
             }
             JsonObject req = element.getAsJsonObject();
-            if (!req.has("skill")) {
+            JsonElement disciplineId = ProgressionJsonAliases.disciplineIdElementFromRule(req);
+            if (disciplineId == null || !disciplineId.isJsonPrimitive()) {
                 continue;
             }
-            ResourceLocation skillId = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(req.get("skill").getAsString(), LevelRPG.MODID);
+            ResourceLocation skillId = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(disciplineId.getAsString(), LevelRPG.MODID);
             if (!ProgressionSkill.isCanonicalId(skillId)) {
                 LOGGER.warn("Ignoring legacy/non-canonical recipe unlock requirement for skill {}", skillId);
                 continue;

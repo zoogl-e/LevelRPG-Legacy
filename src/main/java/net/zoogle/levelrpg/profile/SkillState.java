@@ -3,20 +3,26 @@ package net.zoogle.levelrpg.profile;
 import net.minecraft.nbt.CompoundTag;
 
 /**
- * Explicit per-skill progression state. This is the canonical profile-layer
+ * Per-discipline progression state (Java/API name still “skill” for compatibility). Canonical profile-layer
  * state used by progression, sync, UI, and recipe unlock checks.
+ *
+ * <p>Semantic mapping (see {@code docs/LEVELRPG_PROGRESSION_DESIGN.md}): {@link #proficiency} is <b>practice
+ * progress</b>; {@link #rank} is <b>practice rank</b> (temporary stand-in for future per-discipline
+ * <b>Potential</b>); {@link #level} is invested <b>Discipline Level</b>. {@link #rank} is not Discipline Level.
  */
 public class SkillState {
     /**
-     * Build-facing invested level. Players raise this by spending earned skill points.
+     * Invested Discipline Level (chosen build). Raised by spending the profile’s discipline-investment pool
+     * ({@link LevelProfile#availableSkillPoints} / {@link LevelProfile#uncommittedDisciplineInvestmentPoints()}),
+     * which is <b>not</b> design Essence.
      */
     public int level;
     /**
-     * Practice-facing passive rank. Gameplay actions raise this automatically.
+     * Practice rank (organic track); NBT mirrors include {@code masteryLevel}. Not {@link #level}.
      */
     public int rank;
     /**
-     * Practice-facing proficiency progress toward the next rank.
+     * Practice progress toward the next practice rank; NBT mirrors include {@code masteryXp}.
      */
     public long proficiency;
 

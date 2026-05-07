@@ -5,7 +5,11 @@ import net.minecraft.resources.ResourceLocation;
 /**
  * Intention-revealing read model for UI and journal code.
  *
- * Skill level is invested build choice. Rank is earned through practice (proficiency).
+ * <p>Discipline Level is the invested build choice. Practice rank is earned through proficiency.
+ *
+ * @apiNote Record component names mirror older journal payloads. For design vocabulary aligned with the
+ * current server model, prefer {@link LevelProfile#investedDisciplineLevel}, {@link LevelProfile#practiceRank},
+ * {@link LevelProfile#practiceProgress}, and global Insight accessors on {@link LevelProfile}.
  */
 public record SkillProgressView(
         ResourceLocation skillId,

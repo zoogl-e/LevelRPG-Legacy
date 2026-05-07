@@ -8,13 +8,20 @@ import net.zoogle.levelrpg.profile.SkillState;
 import java.util.Objects;
 
 /**
- * Central spendable skill-point logic. Mastery awards points here; future UIs
- * and menus should spend through this class rather than mutating skill levels
- * directly.
+ * Spendable pool for raising invested <b>discipline level</b> ({@link net.zoogle.levelrpg.profile.LevelProfile#availableSkillPoints}).
+ * Practice rank-ups grant into this pool. This is unrelated to tree-unlock <b>Insight</b>
+ * ({@link SpecializationProgression#insight(net.zoogle.levelrpg.profile.LevelProfile)} — specialization totals).
  */
 public final class SkillPointProgression {
     private SkillPointProgression() {}
 
+    /**
+     * @return {@link net.zoogle.levelrpg.profile.LevelProfile#availableSkillPoints} — the <b>discipline
+     * investment</b> pool (uncommitted points that raise {@link net.zoogle.levelrpg.profile.SkillState#level}).
+     * Despite the historical
+     * method name {@code insight}, this is <b>not</b> tree {@link net.zoogle.levelrpg.profile.LevelProfile#globalInsightAvailable()}.
+     * Prefer {@link net.zoogle.levelrpg.profile.LevelProfile#uncommittedDisciplineInvestmentPoints()} on new call paths.
+     */
     public static int insight(LevelProfile profile) {
         return profile == null ? 0 : Math.max(0, profile.availableSkillPoints);
     }
@@ -34,6 +41,12 @@ public final class SkillPointProgression {
         return insight(profile) > 0;
     }
 
+    /**
+     * @deprecated Legacy/debug pool writer only. Practice rank-up no longer uses this.
+     * Active Discipline investment now spends global Essence via
+     * {@link net.zoogle.levelrpg.profile.LevelProfile#spendEssenceForDisciplineLevel(net.minecraft.resources.ResourceLocation, DisciplineInvestmentSource)}.
+     */
+    @Deprecated
     public static void grantPoint(LevelProfile profile, int amount) {
         if (profile == null || amount <= 0) {
             return;
@@ -41,14 +54,22 @@ public final class SkillPointProgression {
         profile.availableSkillPoints = Math.max(0, profile.availableSkillPoints + amount);
     }
 
+    /**
+     * @deprecated Legacy compatibility/debug spend path. This consumes
+     * {@link net.zoogle.levelrpg.profile.LevelProfile#availableSkillPoints} and is not
+     * the active gameplay investment route. New gameplay code should use
+     * {@link net.zoogle.levelrpg.profile.LevelProfile#spendEssenceForDisciplineLevel(net.minecraft.resources.ResourceLocation, DisciplineInvestmentSource)}
+     * or {@link DisciplineInvestmentProgression}.
+     */
+    @Deprecated
     public static SkillPointSpendResult spendPoint(LevelProfile profile, ResourceLocation skillId) {
         Objects.requireNonNull(profile, "profile");
         Objects.requireNonNull(skillId, "skillId");
         if (!ProgressionSkill.isCanonicalId(skillId)) {
-            return SkillPointSpendResult.failure(skillId, "Unknown canonical skill");
+            return SkillPointSpendResult.failure(skillId, "Unknown canonical discipline");
         }
         if (profile.availableSkillPoints <= 0) {
-            return SkillPointSpendResult.failure(skillId, "No skill points available");
+            return SkillPointSpendResult.failure(skillId, "No discipline investment points available");
         }
 
         SkillState state = profile.getSkill(skillId);

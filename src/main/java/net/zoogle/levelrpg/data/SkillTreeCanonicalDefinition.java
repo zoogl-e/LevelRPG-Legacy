@@ -9,15 +9,17 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * <b> Authoritative Skill Tree Definition.</b>
+ * Authoritative <b>discipline tree</b> definition (historically named “skill tree” in code and datapacks).
  *
- * <p>The primary source of truth for a skill tree, loaded directly from JSON assets.
+ * <p>The record component {@code skill} holds the canonical <b>discipline</b> {@link ResourceLocation}
+ * (JSON root key {@code "skill"}, with {@code "discipline"} accepted as an alias at load time).
  * This structure is used for all server-side logic, progression validation, and persistence.
  *
  * <p>This class should remain independent of client-only rendering concerns (such as pixel
  * coordinates or screen states), which are handled by the presentation layer.
  */
 public record SkillTreeCanonicalDefinition(
+        /** Canonical discipline id this tree belongs to. */
         ResourceLocation skill,
         int minRank,
         String title,
@@ -54,6 +56,7 @@ public record SkillTreeCanonicalDefinition(
             List<String> requires,
             int requiredRank,
             String branch,
+            /** Node kind string from JSON (e.g. core, trait, technique, axiom, manifestation); legacy {@code keystone}/{@code mastery} normalized at load. */
             String type,
             String title,
             String description,

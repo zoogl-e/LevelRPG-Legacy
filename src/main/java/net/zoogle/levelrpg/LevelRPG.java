@@ -17,6 +17,7 @@ import net.zoogle.levelrpg.gauge.FinesseRhythmGaugeModifiers;
 import net.zoogle.levelrpg.gauge.GaugeModifiers;
 import net.zoogle.levelrpg.gauge.ValorResolveGaugeModifiers;
 import net.zoogle.levelrpg.net.Network;
+import net.zoogle.levelrpg.registry.LevelRpgBlocks;
 import net.zoogle.levelrpg.technique.TechniqueRegistry;
 
 @Mod(LevelRPG.MODID)
@@ -28,6 +29,7 @@ public class LevelRPG {
         // GeckoLib 4.x no longer requires explicit initialize() call for NeoForge.
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(net.zoogle.levelrpg.net.Network::registerPayloadHandlers);
+        LevelRpgBlocks.register(modEventBus);
         TechniqueRegistry.init();
         GaugeModifiers.register(new DelvingMomentumGaugeModifiers());
         GaugeModifiers.register(new ValorResolveGaugeModifiers());
@@ -50,6 +52,7 @@ public class LevelRPG {
         NeoForge.EVENT_BUS.register(new LevelCommands());
         NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.data.DataEvents());
         NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.events.GateEvents());
+        NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.events.IndexPlacementEvents());
 
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
     }

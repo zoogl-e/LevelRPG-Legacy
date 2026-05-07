@@ -149,7 +149,7 @@ public final class PlayerTechniques {
             return TechniqueResult.success("Unlocked");
         }
         if (!SkillUnlockQuery.hasNode(profile, technique.requiredSkillId(), technique.requiredNodeId())) {
-            return TechniqueResult.failure("Requires " + technique.requiredSkillId().getPath() + " node " + technique.requiredNodeId());
+            return TechniqueResult.failure("Requires discipline tree unlock " + technique.requiredSkillId() + "#" + technique.requiredNodeId());
         }
         return TechniqueResult.success("Unlocked");
     }

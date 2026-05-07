@@ -14,9 +14,15 @@ import org.slf4j.Logger;
 import java.util.*;
 
 /**
- * Loads activity rules from datapacks to award mastery based on events.
- * Folder: data/<ns>/activity_rules/*.json
+ * Loads activity rules from datapacks to award practice progression (proficiency toward rank) based on events.
+ * Folder: data/{@literal <}ns{@literal >}/activity_rules/*.json
  * Schema supports either an object with a "rules" array, or a single rule object per file.
+ *
+ * <p>Each rule identifies a canonical <b>discipline</b> id. JSON historically used the key {@code "skill"};
+ * {@code "discipline"} is accepted as an alias (see {@link ProgressionJsonAliases#disciplineIdElementFromRule}).
+ *
+ * <p>Practice rank and proficiency on the profile are legacy names for the organic side of progression; the
+ * design doc’s <b>Potential</b> concept will further separate caps from this path in a later phase.
  *
  * Supported rule types:
  * - break_block: { "type":"break_block", "block_tag":"minecraft:logs", "skill":"levelrpg:woodcutting", "xp":3 }
@@ -138,26 +144,42 @@ public class ActivityRules extends SimpleJsonResourceReloadListener {
     private static void parseRule(JsonObject obj) {
         String type = obj.has("type") ? obj.get("type").getAsString() : "";
         if ("break_block".equalsIgnoreCase(type)) {
-            ResourceLocation skill = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(obj.get("skill").getAsString(), net.zoogle.levelrpg.LevelRPG.MODID);
+            JsonElement disciplineId = ProgressionJsonAliases.disciplineIdElementFromRule(obj);
+            if (disciplineId == null || !disciplineId.isJsonPrimitive()) {
+                return;
+            }
+            ResourceLocation skill = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(disciplineId.getAsString(), net.zoogle.levelrpg.LevelRPG.MODID);
             if (!ProgressionSkill.isCanonicalId(skill)) return;
             int xp = obj.get("xp").getAsInt();
             ResourceLocation blockTag = ResourceLocation.parse(obj.get("block_tag").getAsString());
             BREAK_BLOCK_RULES.add(new BreakBlockRule(skill, xp, blockTag));
         } else if ("kill_entity".equalsIgnoreCase(type)) {
-            ResourceLocation skill = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(obj.get("skill").getAsString(), net.zoogle.levelrpg.LevelRPG.MODID);
+            JsonElement disciplineId = ProgressionJsonAliases.disciplineIdElementFromRule(obj);
+            if (disciplineId == null || !disciplineId.isJsonPrimitive()) {
+                return;
+            }
+            ResourceLocation skill = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(disciplineId.getAsString(), net.zoogle.levelrpg.LevelRPG.MODID);
             if (!ProgressionSkill.isCanonicalId(skill)) return;
             int xp = obj.get("xp").getAsInt();
             ResourceLocation entityTag = ResourceLocation.parse(obj.get("entity_tag").getAsString());
             ResourceLocation weapon = obj.has("weapon_tag") ? ResourceLocation.parse(obj.get("weapon_tag").getAsString()) : null;
             KILL_ENTITY_RULES.add(new KillEntityRule(skill, xp, entityTag, weapon));
         } else if ("craft_item".equalsIgnoreCase(type)) {
-            ResourceLocation skill = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(obj.get("skill").getAsString(), net.zoogle.levelrpg.LevelRPG.MODID);
+            JsonElement disciplineId = ProgressionJsonAliases.disciplineIdElementFromRule(obj);
+            if (disciplineId == null || !disciplineId.isJsonPrimitive()) {
+                return;
+            }
+            ResourceLocation skill = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(disciplineId.getAsString(), net.zoogle.levelrpg.LevelRPG.MODID);
             if (!ProgressionSkill.isCanonicalId(skill)) return;
             int xp = obj.get("xp").getAsInt();
             ResourceLocation itemTag = ResourceLocation.parse(obj.get("item_tag").getAsString());
             CRAFT_ITEM_RULES.add(new CraftItemRule(skill, xp, itemTag));
         } else if ("smelt_item".equalsIgnoreCase(type)) {
-            ResourceLocation skill = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(obj.get("skill").getAsString(), net.zoogle.levelrpg.LevelRPG.MODID);
+            JsonElement disciplineId = ProgressionJsonAliases.disciplineIdElementFromRule(obj);
+            if (disciplineId == null || !disciplineId.isJsonPrimitive()) {
+                return;
+            }
+            ResourceLocation skill = net.zoogle.levelrpg.util.IdUtil.parseWithDefaultNamespace(disciplineId.getAsString(), net.zoogle.levelrpg.LevelRPG.MODID);
             if (!ProgressionSkill.isCanonicalId(skill)) return;
             int xp = obj.get("xp").getAsInt();
             ResourceLocation itemTag = ResourceLocation.parse(obj.get("item_tag").getAsString());

@@ -33,7 +33,7 @@ public final class SkillTreeTooltipRenderer {
             lines.add(Component.literal(definition.description()).withStyle(ChatFormatting.GRAY));
         }
         lines.add(statusText(node.status(), definition).withStyle(statusStyle(node.status())));
-        lines.add(Component.literal("Cost: " + definition.cost() + " specialization point" + (definition.cost() == 1 ? "" : "s")).withStyle(ChatFormatting.AQUA));
+        lines.add(Component.literal("Cost: " + definition.cost() + " Insight").withStyle(ChatFormatting.AQUA));
         if (!node.obfuscated() && !SkillNodeImplementationRegistry.isImplemented(skillId, definition)) {
             lines.add(Component.literal("Unimplemented: this node has no gameplay effect yet.").withStyle(ChatFormatting.DARK_RED));
         }
@@ -85,8 +85,8 @@ public final class SkillTreeTooltipRenderer {
     private static MutableComponent statusText(SkillNodeStatus status, SkillTreeNodeDefinition node) {
         return switch (status) {
             case HIDDEN -> Component.literal("Requirement: hidden");
-            case LOCKED_LEVEL -> Component.literal("Requires Valor level " + node.requiredRank());
-            case LOCKED_POINTS -> Component.literal("Requires more specialization points");
+            case LOCKED_LEVEL -> Component.literal("Requires Discipline Level " + node.requiredRank());
+            case LOCKED_POINTS -> Component.literal("Requires more Insight");
             case LOCKED_PARENT -> Component.literal("Requires connected parent unlock");
             case AVAILABLE -> Component.literal("Available: click to inscribe");
             case INSCRIBED -> Component.literal("Inscribed");

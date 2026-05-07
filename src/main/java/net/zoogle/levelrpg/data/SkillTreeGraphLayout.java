@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Resolves graph coordinates for skill tree nodes. Explicit {@link SkillTreeCanonicalDefinition.Node#layoutX()}
+ * Resolves graph coordinates for discipline tree nodes. Explicit {@link SkillTreeCanonicalDefinition.Node#layoutX()}
  * / {@code layoutY} win; otherwise a layered layout is derived from prerequisite edges.
  */
 public final class SkillTreeGraphLayout {

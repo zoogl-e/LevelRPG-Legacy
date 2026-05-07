@@ -7,6 +7,9 @@ import java.util.Set;
 
 public record SkillTreeState(
         ResourceLocation skillId,
+        /**
+         * Invested Discipline Level used for tree gates (not practice rank).
+         */
         int rank,
         int insight,
         Set<String> unlockedNodeIds,

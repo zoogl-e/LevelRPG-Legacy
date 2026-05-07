@@ -13,7 +13,7 @@ public final class SkillTreeStateResolver {
     public static SkillTreeState resolve(
             ResourceLocation skillId,
             SkillTreePresentationDefinition tree,
-            int rank,
+            int investedDisciplineLevel,
             int insight,
             Set<String> unlockedNodeIds
     ) {
@@ -22,7 +22,7 @@ public final class SkillTreeStateResolver {
         LinkedHashMap<String, Boolean> rendered = new LinkedHashMap<>();
         LinkedHashMap<String, Boolean> obfuscated = new LinkedHashMap<>();
         if (tree == null) {
-            return new SkillTreeState(skillId, rank, insight, unlockedNodeIds, statuses, revealed, rendered, obfuscated);
+            return new SkillTreeState(skillId, investedDisciplineLevel, insight, unlockedNodeIds, statuses, revealed, rendered, obfuscated);
         }
 
         for (SkillTreeNodeDefinition node : tree.nodes().values()) {
@@ -32,21 +32,21 @@ public final class SkillTreeStateResolver {
             revealed.put(node.id(), isRevealed);
             rendered.put(node.id(), isRendered);
             obfuscated.put(node.id(), isObfuscated);
-            statuses.put(node.id(), isRendered ? resolveNode(node, rank, insight, unlockedNodeIds) : SkillNodeStatus.HIDDEN);
+            statuses.put(node.id(), isRendered ? resolveNode(node, investedDisciplineLevel, insight, unlockedNodeIds) : SkillNodeStatus.HIDDEN);
         }
-        return new SkillTreeState(skillId, rank, insight, unlockedNodeIds, statuses, revealed, rendered, obfuscated);
+        return new SkillTreeState(skillId, investedDisciplineLevel, insight, unlockedNodeIds, statuses, revealed, rendered, obfuscated);
     }
 
     private static SkillNodeStatus resolveNode(
             SkillTreeNodeDefinition node,
-            int rank,
+            int investedDisciplineLevel,
             int insight,
             Set<String> unlockedNodeIds
     ) {
         if (unlockedNodeIds.contains(node.id())) {
             return SkillNodeStatus.INSCRIBED;
         }
-        if (rank < node.requiredRank()) {
+        if (investedDisciplineLevel < node.requiredRank()) {
             return SkillNodeStatus.LOCKED_LEVEL;
         }
         if (!node.requirement().isSatisfied(unlockedNodeIds)) {

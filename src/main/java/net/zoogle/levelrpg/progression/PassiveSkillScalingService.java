@@ -26,8 +26,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Central baseline progression scaling. This is the always-on counterpart to
- * mastery node effects: canonical skill levels grant predictable passive
- * benefits here, while mastery remains in its own dedicated layer.
+ * discipline tree manifestation effects: Discipline Levels grant predictable passive
+ * benefits here, while tree nodes remain in their own dedicated layer.
  */
 public final class PassiveSkillScalingService {
     private static final ResourceLocation MODIFIER_VALOR_MAX_HEALTH = id("baseline_valor_max_health");
@@ -68,7 +68,7 @@ public final class PassiveSkillScalingService {
             case VALOR -> new PassiveSkillSummary(
                     skill.id(),
                     "Valor Baseline",
-                    "Combat mastery sharpens your offense and hardens your body.",
+                    "Combat practice sharpens your offense and hardens your body.",
                     true,
                     List.of(
                             new PassiveSkillSummary.Entry(
@@ -81,7 +81,7 @@ public final class PassiveSkillScalingService {
                                     "Armor",
                                     formatSignedFlat(clampedLevel * VALOR_ARMOR_PER_LEVEL),
                                     clampedLevel * VALOR_ARMOR_PER_LEVEL,
-                                    "Always-on armor granted by Valor level."
+                                    "Always-on armor granted by Valor Discipline Level."
                             ),
                             new PassiveSkillSummary.Entry(
                                     "Knockback Resist",
@@ -100,7 +100,7 @@ public final class PassiveSkillScalingService {
                             "Movement Speed",
                             formatPercent(clampedLevel * FINESSE_MOVEMENT_SPEED_PER_LEVEL),
                             clampedLevel * FINESSE_MOVEMENT_SPEED_PER_LEVEL,
-                            "Always-on movement speed granted by Finesse level."
+                            "Always-on movement speed granted by Finesse Discipline Level."
                     ))
             );
             case FORGING -> new PassiveSkillSummary(
@@ -112,13 +112,13 @@ public final class PassiveSkillScalingService {
                             "Armor Toughness",
                             formatSignedFlat(clampedLevel * FORGING_ARMOR_TOUGHNESS_PER_LEVEL),
                             clampedLevel * FORGING_ARMOR_TOUGHNESS_PER_LEVEL,
-                            "Always-on armor toughness granted by Forging level."
+                            "Always-on armor toughness granted by Forging Discipline Level."
                     ))
             );
             case DELVING -> new PassiveSkillSummary(
                     skill.id(),
                     "Delving Baseline",
-                    "Mastery of the hidden and submerged improves your extraction pace.",
+                    "Practice in the hidden and submerged improves your extraction pace.",
                     true,
                     List.of(new PassiveSkillSummary.Entry(
                             "Break Speed",

@@ -3,12 +3,15 @@ package net.zoogle.levelrpg.journal;
 import java.util.List;
 
 /**
- * Journal-facing mastery tree projection for one skill.
+ * Journal-facing discipline tree projection for one canonical discipline.
  */
 public record JournalMasterySnapshot(
         boolean hasTree,
         String title,
         String summary,
+        /**
+         * Invested Discipline Level for this discipline at snapshot time (not practice rank).
+         */
         int rank,
         int unlockedTierCount,
         int earnedPoints,

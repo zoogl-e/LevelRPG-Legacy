@@ -34,6 +34,9 @@ public final class ClientJournalSnapshotFactory {
             profile.treePointsSpent.put(skill.id(), ClientProfileCache.getTreePointsSpent(skill.id()));
             profile.treeUnlockedNodes.put(skill.id(), new java.util.HashSet<>(safeSet(ClientProfileCache.getTreeUnlockedNodes(skill.id()))));
         }
+        // TODO(essence-journal): these legacy compatibility fields are copied so the current
+        // journal snapshot shape remains stable. Essence is now the active Discipline investment
+        // currency and should be represented directly in a future journal copy/model pass.
         profile.availableSkillPoints = ClientProfileCache.getAvailableSkillPoints();
         profile.spentSkillPoints = ClientProfileCache.getSpentSkillPoints();
         profile.setArchetype(ClientProfileCache.getArchetypeId(), ClientProfileCache.isArchetypeApplied());

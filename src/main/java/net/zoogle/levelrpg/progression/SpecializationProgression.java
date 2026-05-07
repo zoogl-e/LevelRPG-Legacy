@@ -6,9 +6,16 @@ import net.zoogle.levelrpg.profile.ProgressionSkill;
 import net.zoogle.levelrpg.profile.SkillState;
 
 /**
- * Global specialization-point progression. Skill levels still reflect what the
- * player has practiced, while this pool defines how many meaningful mastery
- * choices they can commit to overall.
+ * <b>Global</b> tree-unlock currency (design term: <b>Insight</b>). Earned and spent totals are <b>derived</b>
+ * from invested Discipline Levels across canonical disciplines and per-tree inscribed costs; there is
+ * <b>no</b> per-discipline Insight pool in persistence yet (see design doc §11).
+ *
+ * <p>Persisted fields still use legacy names ({@code bonusSpecializationPoints}, per-tree spent maps). For
+ * read-model vocabulary, prefer {@link net.zoogle.levelrpg.profile.LevelProfile#globalInsightAvailable()} and
+ * siblings on {@link net.zoogle.levelrpg.profile.LevelProfile}.
+ *
+ * <p>This layer is separate from {@link net.zoogle.levelrpg.profile.LevelProfile#availableSkillPoints}, which
+ * backs the discipline-investment pool for raising {@link SkillState#level}, not tree unlocks.
  */
 public final class SpecializationProgression {
     // One point every 5 total canonical levels, capped so players cannot
