@@ -11,6 +11,9 @@
   "msg.levelrpg.level_up": "%s Discipline Level is now Lv %s!",
   "hud.levelrpg.skill_xp": "%s practice: %s/%s (rank %s)",
   "block.levelrpg.the_index": "The Index",
+  "block.levelrpg.enchantment_glyph_barrier": "Enchantment Glyph Barrier",
+  "block.levelrpg.dormant_index_core": "Dormant Index Core",
+  "item.levelrpg.index_key": "Index Key",
   "screen.levelrpg.index.title": "The Index",
   "screen.levelrpg.index.essence": "Essence: %s",
   "screen.levelrpg.index.total_level": "Discipline Levels: %s/%s",
@@ -24,5 +27,14 @@
   "screen.levelrpg.index.blocked.not_enough_essence": "Not enough Essence",
   "screen.levelrpg.index.blocked.potential_cap": "Potential cap reached",
   "screen.levelrpg.index.blocked.character_cap": "Character level cap reached",
-  "msg.levelrpg.index.requires_binding": "The missing page stirs, but your Enchiridion has not been bound."
+  "msg.levelrpg.index.requires_binding": "The missing page stirs, but your Enchiridion has not been bound.",
+  "msg.levelrpg.index.vault_sealed": "The Index Vault is sealed.",
+  "msg.levelrpg.index.vault_open": "The Index has already awakened.",
+  "msg.levelrpg.index.chamber_activated": "The Index awakens.",
+  "msg.levelrpg.index.key_awarded": "The chamber yields an Index Key.",
+  "msg.levelrpg.index.trial_started": "The trial begins.",
+  "msg.levelrpg.index.trial_active": "The trial is still unfolding.",
+  "msg.levelrpg.index.trial_completed": "The trial is complete.",
+  "msg.levelrpg.index.core_sleeping": "The Index sleeps behind the seal.",
+  "msg.levelrpg.index.inactive": "The Index is dormant."
 }

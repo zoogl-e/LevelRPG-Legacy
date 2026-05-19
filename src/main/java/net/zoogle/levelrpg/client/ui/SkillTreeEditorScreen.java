@@ -10,9 +10,14 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.MultiLineEditBox;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.zoogle.levelrpg.LevelRPG;
 import net.zoogle.levelrpg.client.EnchiridionJournalOpener;
@@ -26,20 +31,27 @@ import net.zoogle.levelrpg.client.skilltree.SkillTreeEditorDraft.RequirementTarg
 import net.zoogle.levelrpg.client.skilltree.SkillTreeInputState;
 import net.zoogle.levelrpg.client.skilltree.SkillTreeNodeView;
 import net.zoogle.levelrpg.client.skilltree.SkillTreeRenderer;
+import net.zoogle.levelrpg.client.skilltree.SkillTreeScene;
+import net.zoogle.levelrpg.client.skilltree.SkillTreeSceneFactory;
 import net.zoogle.levelrpg.client.skilltree.SkillTreeTooltipRenderer;
+import net.zoogle.levelrpg.client.skilltree.SkillTreeVisibilityView;
+import net.zoogle.levelrpg.client.skilltree.SkillTreeViewportController;
+import net.zoogle.levelrpg.client.skilltree.SkillTreeViewMode;
 import net.zoogle.levelrpg.net.payload.RequestProfileSyncPayload;
 import net.zoogle.levelrpg.net.payload.UnlockTreeNodeRequestPayload;
-import net.zoogle.levelrpg.profile.SkillState;
-import net.zoogle.levelrpg.progression.SpecializationProgression;
+import net.zoogle.levelrpg.net.payload.AssignTechniqueSlotPayload;
+import net.zoogle.levelrpg.client.technique.ClientTechniqueCache;
+import net.zoogle.levelrpg.technique.TechniqueDefinition;
+import net.zoogle.levelrpg.technique.TechniqueRegistry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.zoogle.levelrpg.skilltree.NodeVisibilityMode;
 import net.zoogle.levelrpg.skilltree.RequirementSpec;
 import net.zoogle.levelrpg.skilltree.SkillNodeImplementationRegistry;
 import net.zoogle.levelrpg.skilltree.SkillNodeStatus;
+import net.zoogle.levelrpg.skilltree.SkillTreeEdge;
 import net.zoogle.levelrpg.skilltree.SkillTreePresentationDefinition;
 import net.zoogle.levelrpg.skilltree.SkillTreeNodeDefinition;
-import net.zoogle.levelrpg.skilltree.SkillTreeRegistry;
 import net.zoogle.levelrpg.skilltree.SkillTreeState;
-import net.zoogle.levelrpg.skilltree.SkillTreeStateResolver;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 
@@ -50,14 +62,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
- * <b>Developer / editor tool</b> – a 2-D, advancement-graph–style view of a single LevelRPG skill
+ * <b>Developer / editor tool</b> â€“ a 2-D, advancement-graphâ€“style view of a single LevelRPG skill
  * tree that doubles as a live JSON editor.
  *
  * <p><b>Entry point:</b> the server-side command {@code /levelrpg tree open <skill>} sends an
@@ -83,6 +93,18 @@ public class SkillTreeEditorScreen extends Screen {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final int OUTER_MARGIN = 10;
     private static final int HEADER_HEIGHT = 28;
+    private static final int PLAYER_FOOTER_HEIGHT = 34;
+    private static final int PLAYER_TREE_TOP_PADDING = 84;
+    private static final int PLAYER_TREE_RIGHT_PADDING = 60;
+    private static final int PLAYER_TREE_BOTTOM_PADDING = 92;
+    private static final int PLAYER_TREE_LEFT_PADDING = 60;
+    private static final int PLAYER_ZOOM_OVERVIEW = 1;
+    private static final int PLAYER_ZOOM_BROWSING = 2;
+    private static final int PLAYER_ZOOM_SELECTED = 3;
+    private static final float PLAYER_OVERVIEW_MAX_ZOOM = 0.92f;
+    private static final float PLAYER_BROWSING_ZOOM = 1.0f;
+    private static final float PLAYER_SELECTED_MIN_ZOOM = 1.18f;
+    private static final float PLAYER_SELECTED_MAX_ZOOM = 1.48f;
     private static final int NODE_SIZE = 30;
     private static final int EDITOR_PANEL_WIDTH = 320;
     private static final int EDITOR_CONTENT_HEIGHT = 430;
@@ -90,20 +112,27 @@ public class SkillTreeEditorScreen extends Screen {
     private static final float TREE_FADE_OUT_PER_TICK = 0.30f;
     private static final float TREE_FADE_IN_PER_TICK = 0.18f;
     private static final float TREE_FADE_EPSILON = 0.01f;
+    private static final int REVEAL_PULSE_TICKS = 34;
+    private static final int INSCRIBE_HOLD_TICKS = 22;
+    private static final int UNLOCK_BURST_TICKS = 28;
+    private static final int HOVER_SOUND_COOLDOWN_TICKS = 3;
+    private static final int PAN_SOUND_INTERVAL_TICKS = 8;
     private static final Map<ResourceLocation, SkillTreePresentationDefinition> SAVED_PREVIEW_DEFINITIONS = new LinkedHashMap<>();
 
+    private final SkillTreeViewMode viewMode;
     private final int returnBookSpreadIndex;
     private final SkillChamberViewState chamber;
     private final SkillChamberRenderer chamberRenderer = new SkillChamberRenderer();
     private final SkillTreeRenderer renderer = new SkillTreeRenderer();
     private final SkillTreeTooltipRenderer tooltipRenderer = new SkillTreeTooltipRenderer();
-    private final SkillTreeInputState input = new SkillTreeInputState();
-    private final List<SkillTreeNodeView> nodeViews = new ArrayList<>();
-    private final Map<String, SkillTreeNodeView> nodeViewById = new LinkedHashMap<>();
-    private final Map<ResourceLocation, ChamberTreeView> chamberTreeViews = new LinkedHashMap<>();
+    private final SkillTreeViewportController viewport = new SkillTreeViewportController();
+    private final SkillTreeSceneFactory sceneFactory = new SkillTreeSceneFactory(NODE_SIZE);
+    private final Map<ResourceLocation, SkillTreeScene> chamberTreeViews = new LinkedHashMap<>();
+    private final Map<ResourceLocation, List<String>> lastVisibleNodeIdsBySkill = new LinkedHashMap<>();
+    private final Map<String, Integer> revealPulseTicks = new LinkedHashMap<>();
+    private final Map<String, Integer> unlockBurstTicks = new LinkedHashMap<>();
 
-    private SkillTreePresentationDefinition definition;
-    private SkillTreeState state;
+    private SkillTreeScene activeScene;
     private SkillTreePresentationDefinition exportedPreviewDefinition;
     private SkillTreePresentationDefinition metadataBaseDefinition;
     private SkillTreePresentationDefinition metadataMergedDefinition;
@@ -118,18 +147,25 @@ public class SkillTreeEditorScreen extends Screen {
     private boolean draggingNode;
     private boolean syncingEditorFields;
     private int editorScroll;
+    private int playerZoomLevel = PLAYER_ZOOM_OVERVIEW;
+    private int hoverSoundCooldown;
+    private int panSoundCooldown;
     private String selectedNodeId;
+    private String lastHoveredSoundNodeId;
     private SkillTreeEditorDraft editorDraft;
     private String editorStatus = "";
     private double nodeDragOffsetX;
     private double nodeDragOffsetY;
+    private String draggingTechniqueId;
+    private ItemStack draggingTechniqueIcon = ItemStack.EMPTY;
+    private int draggingTechniqueSourceSlot = -1;
 
     /** Rebuild skill definitions / chamber views only when set (avoids clearing maps every render frame). */
     private boolean treeDirty = true;
     private long lastSeenProfileRevision = Long.MIN_VALUE;
     private TreeTransitionState treeTransitionState = TreeTransitionState.STABLE;
-    private ChamberTreeView outgoingTreeView;
-    private ChamberTreeView incomingTreeView;
+    private SkillTreeScene outgoingTreeView;
+    private SkillTreeScene incomingTreeView;
     private float outgoingTreeAlpha = 1.0f;
     private float incomingTreeAlpha = 1.0f;
 
@@ -150,13 +186,19 @@ public class SkillTreeEditorScreen extends Screen {
     private CycleButton<RequirementSpec.Mode> requirementModeButton;
     private EditBox requirementCountField;
     private EditBox requirementNodesField;
+    private Button inscribeButton;
 
     public SkillTreeEditorScreen(ResourceLocation skillId) {
-        this(skillId, -1);
+        this(skillId, -1, SkillTreeViewMode.EDITOR);
     }
 
     public SkillTreeEditorScreen(ResourceLocation skillId, int returnBookSpreadIndex) {
+        this(skillId, returnBookSpreadIndex, SkillTreeViewMode.PLAYER_VIEW);
+    }
+
+    public SkillTreeEditorScreen(ResourceLocation skillId, int returnBookSpreadIndex, SkillTreeViewMode viewMode) {
         super(Component.literal("LevelRPG Discipline Tree"));
+        this.viewMode = viewMode == null ? SkillTreeViewMode.PLAYER_VIEW : viewMode;
         this.returnBookSpreadIndex = returnBookSpreadIndex;
         this.chamber = new SkillChamberViewState(skillId);
     }
@@ -204,52 +246,124 @@ public class SkillTreeEditorScreen extends Screen {
         return false;
     }
 
+    private static final int PLAYER_PANEL_W = 220;
+    private static final int PLAYER_PANEL_MIN_H = 86;
+    private static final int PLAYER_PANEL_MAX_H = 172;
+
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (editorMode && insideEditorPanel(mouseX, mouseY)) {
-            return super.mouseClicked(mouseX, mouseY, button);
-        }
-        if (button == 0 && insideViewport(mouseX, mouseY)) {
-            if (isTreeTransitioning() && !editorMode) {
-                return true;
-            }
-            hoveredNode = findHoveredNode(mouseX, mouseY);
-            if (editorMode) {
-                handleEditorViewportClick(mouseX, mouseY, hoveredNode);
-                return true;
-            }
-            if (hoveredNode != null && hoveredNode.status() == SkillNodeStatus.AVAILABLE) {
-                requestUnlockNode(activeSkillId(), hoveredNode.definition().id());
-                return true;
-            }
-            input.beginDrag(mouseX, mouseY);
+        // Widgets are checked first, but PLAYER_VIEW only allows actual visible
+        // player controls to consume input. Hidden/stale editor widgets must not
+        // create dead zones over the tree.
+        if (playerWidgetClicked(mouseX, mouseY, button)) {
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        if (!isPlayerView() && super.mouseClicked(mouseX, mouseY, button)) {
+            return true;
+        }
+        if (editorMode && insideEditorPanel(mouseX, mouseY)) {
+            return true;
+        }
+        if (button != 0 || !insideViewport(mouseX, mouseY)) {
+            return false;
+        }
+
+        // Always record the press so drag can start if the mouse moves.
+        viewport.press(mouseX, mouseY);
+
+        if (isPlayerView() && button == 0) {
+            int hoveredSlot = getHoveredHotbarSlot(mouseX, mouseY);
+            if (hoveredSlot >= 0) {
+                ResourceLocation techId = ClientTechniqueCache.slot(hoveredSlot);
+                if (techId != null) {
+                    draggingTechniqueId = techId.toString();
+                    draggingTechniqueSourceSlot = hoveredSlot;
+                    TechniqueDefinition def = TechniqueRegistry.get(techId);
+                    if (def != null && def.icon() != null) {
+                        draggingTechniqueIcon = new ItemStack(BuiltInRegistries.ITEM.get(def.icon()));
+                    } else {
+                        draggingTechniqueIcon = ItemStack.EMPTY;
+                    }
+                }
+                return true;
+            }
+        }
+
+        // Node hit test â€” runs before the panel check so nodes panned under
+        // the panel area are still selectable.
+        hoveredNode = hoveredNode(mouseX, mouseY);
+        if (editorMode) {
+            handleEditorViewportClick(mouseX, mouseY, hoveredNode);
+            return true;
+        }
+        if (hoveredNode != null) {
+            String clickedNodeId = hoveredNode.definition().id();
+            
+            if (isPlayerView()) {
+                SkillTreeState state = state();
+                if (state != null && state.status(clickedNodeId) == SkillNodeStatus.INSCRIBED) {
+                    ResourceLocation techId = resolveNodeTechniqueId(clickedNodeId);
+                    if (techId != null) {
+                        draggingTechniqueId = techId.toString();
+                        draggingTechniqueSourceSlot = -1;
+                        draggingTechniqueIcon = SkillTreeRenderer.resolveNodeIconStack(hoveredNode.definition());
+                    }
+                }
+            }
+
+            boolean alreadySelected = clickedNodeId.equals(selectedNodeId);
+            selectNode(clickedNodeId);
+            if (isPlayerView()) {
+                playNodeClickSound(alreadySelected);
+            }
+            if (isPlayerView()) {
+                int clickZoomLevel = alreadySelected || playerZoomLevel == PLAYER_ZOOM_SELECTED
+                        ? PLAYER_ZOOM_SELECTED
+                        : PLAYER_ZOOM_BROWSING;
+                applyPlayerZoomLevel(clickZoomLevel, hoveredNode);
+            }
+        } else if (isPlayerView()) {
+            selectNode(null);
+        }
+        return true;
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (button == 0 && draggingNode) {
-            draggingNode = false;
+        if (button == 0 && draggingTechniqueId != null) {
+            handleTechniqueDrop(mouseX, mouseY);
+            draggingTechniqueId = null;
+            draggingTechniqueSourceSlot = -1;
+            draggingTechniqueIcon = ItemStack.EMPTY;
+            viewport.release();
             return true;
         }
-        if (button == 0 && input.isDragging()) {
-            input.endDrag();
+        if (button == 0 && draggingNode) {
+            draggingNode = false;
+            viewport.release();
             return true;
+        }
+        if (button == 0) {
+            viewport.release();
         }
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (button == 0 && draggingTechniqueId != null) {
+            return true;
+        }
         if (button == 0 && draggingNode) {
             dragSelectedNodeTo(mouseX, mouseY);
             return true;
         }
-        if (button == 0 && input.isDragging()) {
-            input.dragTo(mouseX, mouseY);
-            return true;
+        if (button == 0) {
+            // onDrag returns true only after the threshold is crossed.
+            if (viewport.drag(mouseX, mouseY)) {
+                playPanSound();
+                return true;
+            }
         }
         return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
@@ -264,10 +378,14 @@ public class SkillTreeEditorScreen extends Screen {
         if (!insideViewport(mouseX, mouseY)) {
             return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
         }
+        if (isPlayerView()) {
+            handlePlayerViewScroll(mouseX, mouseY, scrollY);
+            return true;
+        }
         if (Screen.hasShiftDown()) {
-            input.panVertically(scrollY * 24.0);
+            viewport.panVertically(scrollY * 24.0);
         } else {
-            input.zoomAround(mouseX, mouseY, viewportX, viewportY, scrollY);
+            viewport.zoomAround(mouseX, mouseY, scrollY);
         }
         return true;
     }
@@ -317,29 +435,45 @@ public class SkillTreeEditorScreen extends Screen {
         if (chamber.isRotating()) {
             chamber.updateAnimation(1.0f);
         }
+        if (hoverSoundCooldown > 0) {
+            hoverSoundCooldown--;
+        }
+        if (panSoundCooldown > 0) {
+            panSoundCooldown--;
+        }
+        viewport.tickCameraAnimation();
+        tickRevealPulses();
+        tickUnlockBursts();
+        if (inscribeButton instanceof InscribeButton holdButton) {
+            holdButton.tickHold();
+        }
         updateTreeTransition();
     }
 
     private void rotateChamberPrevious() {
-        ChamberTreeView previous = chamberTreeViews.get(activeSkillId());
+        SkillTreeScene previous = chamberTreeViews.get(activeSkillId());
         if (chamber.rotatePrevious()) {
             prepareFocusedSkillChange(previous);
         }
     }
 
     private void rotateChamberNext() {
-        ChamberTreeView previous = chamberTreeViews.get(activeSkillId());
+        SkillTreeScene previous = chamberTreeViews.get(activeSkillId());
         if (chamber.rotateNext()) {
             prepareFocusedSkillChange(previous);
         }
     }
 
-    private void prepareFocusedSkillChange(ChamberTreeView previousView) {
+    private void prepareFocusedSkillChange(SkillTreeScene previousView) {
         hoveredNode = null;
         selectedNodeId = null;
+        playerZoomLevel = PLAYER_ZOOM_OVERVIEW;
         connectMode = false;
         draggingNode = false;
-        input.endDrag();
+        revealPulseTicks.clear();
+        unlockBurstTicks.clear();
+        viewport.release();
+        viewport.cancelCameraAnimation();
         exportedPreviewDefinition = null;
         editorDraft = editorMode ? createDraftFromCurrent() : null;
         metadataBaseDefinition = null;
@@ -356,7 +490,15 @@ public class SkillTreeEditorScreen extends Screen {
         return chamber.getFocusedSkill();
     }
 
-    private SkillTreeCameraTransform chamberTransform(ChamberTreeView treeView, SkillTreeCameraTransform focusedCameraTransform, boolean focused) {
+    private SkillTreePresentationDefinition definition() {
+        return activeScene == null ? null : activeScene.definition();
+    }
+
+    private SkillTreeState state() {
+        return activeScene == null ? null : activeScene.state();
+    }
+
+    private SkillTreeCameraTransform chamberTransform(SkillTreeScene treeView, SkillTreeCameraTransform focusedCameraTransform, boolean focused) {
         SkillChamberViewState.Viewport viewport = new SkillChamberViewState.Viewport(viewportX, viewportY, viewportW, viewportH);
         SkillChamberViewState.ScreenPosition position = chamber.getSkillTreeScreenPosition(treeView.skillId(), viewport);
         int centerX = viewportX + viewportW / 2;
@@ -375,20 +517,43 @@ public class SkillTreeEditorScreen extends Screen {
     }
 
     private SkillTreeCameraTransform activeTreeTransform() {
-        return input.transform(viewportX, viewportY);
+        return viewport.transform();
     }
 
-    private double[] centeredPan(ChamberTreeView treeView) {
-        if (treeView == null || treeView.nodes().isEmpty()) {
+    private double[] centeredPan(SkillTreeScene treeView) {
+        if (treeView == null || treeView.nodeViews().isEmpty()) {
             return new double[]{viewportW / 2.0, Math.max(54.0, viewportH / 2.0)};
         }
-        int minX = treeView.nodes().stream().mapToInt(SkillTreeNodeView::x).min().orElse(0);
-        int maxX = treeView.nodes().stream().mapToInt(SkillTreeNodeView::x).max().orElse(0);
-        int minY = treeView.nodes().stream().mapToInt(SkillTreeNodeView::y).min().orElse(0);
-        int maxY = treeView.nodes().stream().mapToInt(SkillTreeNodeView::y).max().orElse(0);
+        SkillTreeScene.Bounds bounds = treeView.bounds();
+        int minX = bounds.minX();
+        int maxX = bounds.maxX();
+        int minY = bounds.minY();
+        int maxY = bounds.maxY();
         int contentCenterX = (minX + maxX) / 2;
         int contentCenterY = (minY + maxY) / 2;
         return new double[]{viewportW / 2.0 - contentCenterX, Math.max(54.0, viewportH / 2.0 - contentCenterY)};
+    }
+
+    private int[] getDisciplineVoidColors() {
+        String discipline = activeSkillId() == null ? "" : activeSkillId().getPath();
+        return switch (discipline) {
+            case "valor" -> new int[]{0xDD1A0505, 0xEE331010};
+            case "finesse" -> new int[]{0xDD051A0A, 0xEE0D3314};
+            case "arcana" -> new int[]{0xDD140520, 0xEE2A1040};
+            case "delving" -> new int[]{0xDD181005, 0xEE30200A};
+            case "forging" -> new int[]{0xDD200A05, 0xEE40140A};
+            case "artificing" -> new int[]{0xDD051A20, 0xEE0A3340};
+            case "hearth" -> new int[]{0xDD1A1810, 0xEE333020};
+            default -> new int[]{0xDD04060A, 0xEE101625};
+        };
+    }
+
+    private void drawPlayerViewBackdrop(GuiGraphics graphics) {
+        graphics.fill(0, 0, width, height, 0x33000000);
+        graphics.fill(0, 0, width, viewportY + 4, 0x66000000);
+        graphics.fill(0, viewportY + viewportH - 32, width, height, 0x55000000);
+        graphics.fill(0, 0, viewportX + 32, height, 0x33000000);
+        graphics.fill(viewportX + viewportW - 32, 0, width, height, 0x33000000);
     }
 
     @Override
@@ -397,34 +562,44 @@ public class SkillTreeEditorScreen extends Screen {
         flushTreeIfDirty();
         layoutViewport();
         layoutEditorWidgets();
+        layoutPlayerWidgets();
         centerViewOnce();
-        SkillTreeCameraTransform focusedTransform = input.transform(viewportX, viewportY);
-        hoveredNode = insideViewport(mouseX, mouseY) && !isTreeTransitioning() ? findHoveredNode(mouseX, mouseY) : null;
+        SkillTreeCameraTransform focusedTransform = viewport.transform();
+        hoveredNode = hoveredNode(mouseX, mouseY);
+        updateHoverSound();
 
-        graphics.fill(0, 0, width, height, 0xD0100D0A);
-        drawPanel(graphics);
+        if (isPlayerView()) {
+            int[] voidColors = getDisciplineVoidColors();
+            graphics.fillGradient(0, 0, width, height, voidColors[0], voidColors[1]);
+            drawPlayerViewBackdrop(graphics);
+        } else {
+            graphics.fill(0, 0, width, height, 0xD0100D0A);
+        }
+        if (!isPlayerView()) {
+            drawPanel(graphics);
+        }
         drawHeader(graphics);
         drawFooter(graphics);
-        if (editorMode) {
+        if (editorMode && !isPlayerView()) {
             drawEditorPanel(graphics);
         }
 
-        if (definition == null) {
-            chamberRenderer.render(graphics, font, chamber, viewportX, viewportY, viewportW, viewportH);
+        if (definition() == null) {
+            chamberRenderer.render(graphics, font, chamber, viewportX, viewportY, viewportW, viewportH, isPlayerView());
             drawMissingTree(graphics);
             super.render(graphics, mouseX, mouseY, partialTick);
             return;
         }
 
-        chamberRenderer.render(graphics, font, chamber, viewportX, viewportY, viewportW, viewportH);
+        chamberRenderer.render(graphics, font, chamber, viewportX, viewportY, viewportW, viewportH, isPlayerView());
         renderer.render(graphics, font, null, List.of(), Map.of(), viewportX, viewportY, viewportW, viewportH, focusedTransform, null, null, false, true, false);
-        ChamberTreeView focusedTreeView = chamberTreeViews.get(activeSkillId());
+        SkillTreeScene focusedTreeView = chamberTreeViews.get(activeSkillId());
         if (treeTransitionState == TreeTransitionState.FADING_OUT && outgoingTreeView != null) {
             renderer.render(
                     graphics,
                     font,
                     outgoingTreeView.definition(),
-                    outgoingTreeView.nodes(),
+                    outgoingTreeView.nodeViews(),
                     outgoingTreeView.nodeById(),
                     viewportX,
                     viewportY,
@@ -443,7 +618,7 @@ public class SkillTreeEditorScreen extends Screen {
                     graphics,
                     font,
                     incomingTreeView.definition(),
-                    incomingTreeView.nodes(),
+                    incomingTreeView.nodeViews(),
                     incomingTreeView.nodeById(),
                     viewportX,
                     viewportY,
@@ -458,11 +633,23 @@ public class SkillTreeEditorScreen extends Screen {
                     incomingTreeAlpha
             );
         } else if (focusedTreeView != null) {
+            if (isPlayerView()) {
+                renderer.renderFogHints(
+                        graphics,
+                        SkillTreeVisibilityView.fogHints(focusedTreeView),
+                        focusedTreeView.nodeById(),
+                        viewportX,
+                        viewportY,
+                        viewportW,
+                        viewportH,
+                        focusedTransform
+                );
+            }
             renderer.render(
                     graphics,
                     font,
                     focusedTreeView.definition(),
-                    focusedTreeView.nodes(),
+                    focusedTreeView.nodeViews(),
                     focusedTreeView.nodeById(),
                     viewportX,
                     viewportY,
@@ -474,11 +661,22 @@ public class SkillTreeEditorScreen extends Screen {
                     connectMode,
                     false,
                     false,
-                    1.0f
+                    1.0f,
+                    node -> shockwaveNodeOffset(focusedTreeView, node, focusedTransform)
             );
         }
-        if (hoveredNode != null && !isTreeTransitioning()) {
+        drawRevealPulses(graphics, focusedTreeView, focusedTransform);
+        drawUnlockBursts(graphics, focusedTreeView, focusedTransform);
+        drawInscribeChargePulse(graphics, focusedTransform);
+        if (hoveredNode != null && (!isPlayerView() || !hoveredNode.definition().id().equals(selectedNodeId))) {
             tooltipRenderer.render(graphics, font, activeSkillId(), hoveredNode, width, height, focusedTransform);
+        }
+        drawPlayerNodeDetailsPanel(graphics);
+        if (draggingTechniqueId != null && !draggingTechniqueIcon.isEmpty()) {
+            graphics.pose().pushPose();
+            graphics.pose().translate(0, 0, 400);
+            graphics.renderItem(draggingTechniqueIcon, mouseX - 8, mouseY - 8);
+            graphics.pose().popPose();
         }
         super.render(graphics, mouseX, mouseY, partialTick);
     }
@@ -505,117 +703,245 @@ public class SkillTreeEditorScreen extends Screen {
 
     private void rebuildTreeData() {
         ResourceLocation activeSkillId = activeSkillId();
+        activeScene = null;
         chamberTreeViews.clear();
-        SkillTreePresentationDefinition loaded = exportedPreviewDefinition != null
-                ? exportedPreviewDefinition
-                : SAVED_PREVIEW_DEFINITIONS.getOrDefault(activeSkillId, SkillTreeRegistry.get(activeSkillId));
+        SkillTreePresentationDefinition loaded = sceneFactory.resolveDefinition(
+                activeSkillId,
+                exportedPreviewDefinition,
+                SAVED_PREVIEW_DEFINITIONS
+        );
         loaded = mergeSourceMetadata(loaded);
         if (editorMode) {
             if (editorDraft == null) {
                 editorDraft = createDraftFromCurrent();
             }
-            definition = editorDraft.toDefinition();
-            LinkedHashMap<String, SkillNodeStatus> statuses = new LinkedHashMap<>();
-            for (String nodeId : definition.nodes().keySet()) {
-                statuses.put(nodeId, SkillNodeStatus.AVAILABLE);
-            }
-            LinkedHashMap<String, Boolean> revealed = new LinkedHashMap<>();
-            LinkedHashMap<String, Boolean> rendered = new LinkedHashMap<>();
-            LinkedHashMap<String, Boolean> obfuscated = new LinkedHashMap<>();
-            for (String nodeId : definition.nodes().keySet()) {
-                revealed.put(nodeId, true);
-                rendered.put(nodeId, true);
-                obfuscated.put(nodeId, false);
-            }
-            state = new SkillTreeState(activeSkillId, 0, 0, Set.of(), statuses, revealed, rendered, obfuscated);
-            rebuildViews();
+            activeScene = sceneFactory.createEditorScene(activeSkillId, editorDraft);
         } else {
-            definition = loaded;
-            state = resolveTreeState(activeSkillId, definition);
-            rebuildViews();
+            activeScene = sceneFactory.createPlayerScene(activeSkillId, loaded);
+            activeScene = SkillTreeVisibilityView.localReveal(activeScene);
         }
-    }
-
-    private void rebuildViews() {
-        nodeViews.clear();
-        nodeViewById.clear();
-        if (definition == null) {
+        if (activeScene == null) {
             return;
         }
-        populateNodeViews(definition, state, nodeViews, nodeViewById);
-        chamberTreeViews.put(activeSkillId(), new ChamberTreeView(activeSkillId(), definition, state, List.copyOf(nodeViews), Map.copyOf(nodeViewById)));
+        updateRevealPulses(activeSkillId, activeScene);
+        chamberTreeViews.put(activeSkillId, activeScene);
     }
 
-    private ChamberTreeView buildReadonlyTreeView(ResourceLocation skillId) {
-        SkillTreePresentationDefinition treeDefinition = SAVED_PREVIEW_DEFINITIONS.getOrDefault(skillId, SkillTreeRegistry.get(skillId));
-        if (treeDefinition == null) {
-            return null;
-        }
-        SkillTreeState treeState = resolveTreeState(skillId, treeDefinition);
-        ArrayList<SkillTreeNodeView> views = new ArrayList<>();
-        LinkedHashMap<String, SkillTreeNodeView> viewsById = new LinkedHashMap<>();
-        populateNodeViews(treeDefinition, treeState, views, viewsById);
-        return new ChamberTreeView(skillId, treeDefinition, treeState, List.copyOf(views), Map.copyOf(viewsById));
+    private SkillTreeScene buildReadonlyTreeView(ResourceLocation skillId) {
+        SkillTreePresentationDefinition treeDefinition = sceneFactory.resolveDefinition(skillId, null, SAVED_PREVIEW_DEFINITIONS);
+        return SkillTreeVisibilityView.localReveal(sceneFactory.createPlayerScene(skillId, treeDefinition));
     }
 
-    private SkillTreeState resolveTreeState(ResourceLocation skillId, SkillTreePresentationDefinition treeDefinition) {
-        if (treeDefinition == null) {
-            return null;
+    private void updateRevealPulses(ResourceLocation skillId, SkillTreeScene scene) {
+        if (!isPlayerView() || skillId == null || scene == null) {
+            return;
         }
-        int investedDisciplineLevel = 0;
-        SkillState skillState = ClientProfileCache.getSkillsView().get(skillId);
-        if (skillState != null) {
-            investedDisciplineLevel = Math.max(0, skillState.level);
+        ArrayList<String> current = visibleNodeIds(scene);
+        List<String> previous = lastVisibleNodeIdsBySkill.put(skillId, List.copyOf(current));
+        if (previous == null) {
+            return;
         }
-        int earned = SpecializationProgression.gainedInsightForTotalLevels(ClientProfileCache.totalInvestedLevelsAcrossSkills())
-                + ClientProfileCache.getBonusSpecializationPoints();
-        int spent = ClientProfileCache.totalSpecializationSpentAcrossTrees();
-        int available = Math.max(0, earned - spent);
-        Set<String> unlocked = ClientProfileCache.getTreeUnlockedNodes(skillId);
-        return SkillTreeStateResolver.resolve(skillId, treeDefinition, investedDisciplineLevel, available, unlocked);
+        for (String nodeId : current) {
+            if (!previous.contains(nodeId)) {
+                revealPulseTicks.put(nodeId, REVEAL_PULSE_TICKS);
+            }
+        }
     }
 
-    private void populateNodeViews(
-            SkillTreePresentationDefinition treeDefinition,
-            SkillTreeState treeState,
-            List<SkillTreeNodeView> views,
-            Map<String, SkillTreeNodeView> viewsById
-    ) {
-        for (SkillTreeNodeDefinition node : treeDefinition.nodes().values()) {
-            SkillTreeNodeView view = new SkillTreeNodeView(
-                    node,
-                    treeState.status(node.id()),
-                    node.x(),
-                    node.y(),
-                    NODE_SIZE,
-                    treeState.isRendered(node.id()),
-                    treeState.isRevealed(node.id()),
-                    treeState.isObfuscated(node.id())
-            );
-            views.add(view);
-            viewsById.put(node.id(), view);
+    private static ArrayList<String> visibleNodeIds(SkillTreeScene scene) {
+        ArrayList<String> result = new ArrayList<>();
+        for (SkillTreeNodeView view : scene.nodeViews()) {
+            result.add(view.definition().id());
         }
-        views.sort(Comparator.comparingInt(view -> view.status() == SkillNodeStatus.HIDDEN ? 1 : 0));
+        return result;
+    }
+
+    private void tickRevealPulses() {
+        if (revealPulseTicks.isEmpty()) {
+            return;
+        }
+        for (String nodeId : new ArrayList<>(revealPulseTicks.keySet())) {
+            int next = revealPulseTicks.getOrDefault(nodeId, 0) - 1;
+            if (next <= 0) {
+                revealPulseTicks.remove(nodeId);
+            } else {
+                revealPulseTicks.put(nodeId, next);
+            }
+        }
+    }
+
+    private void tickUnlockBursts() {
+        if (unlockBurstTicks.isEmpty()) {
+            return;
+        }
+        for (String nodeId : new ArrayList<>(unlockBurstTicks.keySet())) {
+            int next = unlockBurstTicks.getOrDefault(nodeId, 0) - 1;
+            if (next <= 0) {
+                unlockBurstTicks.remove(nodeId);
+            } else {
+                unlockBurstTicks.put(nodeId, next);
+            }
+        }
     }
 
     private void layoutViewport() {
         viewportX = OUTER_MARGIN + 6;
         viewportY = OUTER_MARGIN + HEADER_HEIGHT;
         int editorInset = editorMode ? EDITOR_PANEL_WIDTH + 8 : 0;
+        int footerInset = isPlayerView() ? PLAYER_FOOTER_HEIGHT : 0;
         viewportW = Math.max(40, width - (OUTER_MARGIN + 6) * 2 - editorInset);
-        viewportH = Math.max(40, height - viewportY - OUTER_MARGIN - 6);
+        viewportH = Math.max(40, height - viewportY - OUTER_MARGIN - 6 - footerInset);
+        viewport.setViewport(viewportX, viewportY, viewportW, viewportH);
     }
 
     private void centerViewOnce() {
-        if (centered || definition == null || nodeViews.isEmpty()) {
+        if (centered || activeScene == null || !activeScene.hasNodes()) {
             return;
         }
-        int minX = nodeViews.stream().mapToInt(SkillTreeNodeView::x).min().orElse(0);
-        int maxX = nodeViews.stream().mapToInt(SkillTreeNodeView::x).max().orElse(0);
-        int minY = nodeViews.stream().mapToInt(SkillTreeNodeView::y).min().orElse(0);
-        int maxY = nodeViews.stream().mapToInt(SkillTreeNodeView::y).max().orElse(0);
-        input.centerOn(viewportW, viewportH, minX, minY, maxX, maxY);
+        if (isPlayerView()) {
+            playerZoomLevel = PLAYER_ZOOM_OVERVIEW;
+            viewport.fitToScene(
+                    activeScene,
+                    PLAYER_TREE_TOP_PADDING,
+                    PLAYER_TREE_RIGHT_PADDING,
+                    PLAYER_TREE_BOTTOM_PADDING,
+                    PLAYER_TREE_LEFT_PADDING,
+                    PLAYER_OVERVIEW_MAX_ZOOM
+            );
+        } else {
+            viewport.fitToScene(activeScene);
+        }
         centered = true;
+    }
+
+    private void applyPlayerZoomLevel(int level, SkillTreeNodeView target) {
+        if (!isPlayerView()) {
+            return;
+        }
+        int previousLevel = playerZoomLevel;
+        playerZoomLevel = Math.max(PLAYER_ZOOM_OVERVIEW, Math.min(PLAYER_ZOOM_SELECTED, level));
+        if (playerZoomLevel != previousLevel) {
+            playZoomLevelSound(playerZoomLevel);
+        }
+        if (playerZoomLevel == PLAYER_ZOOM_OVERVIEW) {
+            focusPlayerOverview();
+            return;
+        }
+        SkillTreeNodeView focusTarget = target == null ? selectedNodeView() : target;
+        if (focusTarget == null && activeScene != null) {
+            focusTarget = activeScene.rootNode();
+        }
+        if (focusTarget == null) {
+            return;
+        }
+        if (playerZoomLevel == PLAYER_ZOOM_BROWSING) {
+            focusPlayerBrowsing(focusTarget);
+        } else {
+            focusPlayerSelected(focusTarget);
+        }
+    }
+
+    private void focusPlayerOverview() {
+        if (!isPlayerView() || activeScene == null || !activeScene.hasNodes()) {
+            return;
+        }
+        viewport.animateToNodes(
+                activeScene.nodeViews(),
+                PLAYER_TREE_TOP_PADDING,
+                PLAYER_TREE_RIGHT_PADDING,
+                PLAYER_TREE_BOTTOM_PADDING,
+                PLAYER_TREE_LEFT_PADDING,
+                SkillTreeInputState.MIN_ZOOM,
+                PLAYER_OVERVIEW_MAX_ZOOM
+        );
+    }
+
+    private void focusPlayerBrowsing(SkillTreeNodeView node) {
+        if (!isPlayerView() || node == null) {
+            return;
+        }
+        viewport.animateToNodes(
+                playerFocusNodes(node),
+                PLAYER_TREE_TOP_PADDING,
+                PLAYER_TREE_RIGHT_PADDING,
+                PLAYER_TREE_BOTTOM_PADDING,
+                PLAYER_TREE_LEFT_PADDING,
+                PLAYER_BROWSING_ZOOM,
+                PLAYER_BROWSING_ZOOM
+        );
+    }
+
+    private void focusPlayerSelected(SkillTreeNodeView node) {
+        if (!isPlayerView() || node == null) {
+            return;
+        }
+        viewport.animateToNodes(
+                List.of(node),
+                PLAYER_TREE_TOP_PADDING,
+                PLAYER_TREE_RIGHT_PADDING,
+                PLAYER_TREE_BOTTOM_PADDING,
+                PLAYER_TREE_LEFT_PADDING,
+                PLAYER_SELECTED_MIN_ZOOM,
+                PLAYER_SELECTED_MAX_ZOOM
+        );
+    }
+
+    private void handlePlayerViewScroll(double mouseX, double mouseY, double scrollY) {
+        SkillTreeNodeView target = selectedNodeView();
+        if (target == null) {
+            target = hoveredNode(mouseX, mouseY);
+        }
+        if (target == null && activeScene != null) {
+            target = activeScene.rootNode();
+        }
+        if (scrollY > 0.0) {
+            applyPlayerZoomLevel(playerZoomLevel + 1, target);
+        } else if (scrollY < 0.0) {
+            applyPlayerZoomLevel(playerZoomLevel - 1, target);
+        }
+    }
+
+    private List<SkillTreeNodeView> playerFocusNodes(SkillTreeNodeView node) {
+        if (activeScene == null || activeScene.definition() == null || node == null) {
+            return node == null ? List.of() : List.of(node);
+        }
+        LinkedHashMap<String, SkillTreeNodeView> focusNodes = new LinkedHashMap<>();
+        String nodeId = node.definition().id();
+        focusNodes.put(nodeId, node);
+        for (SkillTreeEdge edge : activeScene.definition().edges()) {
+            if (edge.parentId().equals(nodeId)) {
+                addVisibleFocusNode(focusNodes, edge.childId());
+            } else if (edge.childId().equals(nodeId)) {
+                addVisibleFocusNode(focusNodes, edge.parentId());
+            }
+        }
+        return List.copyOf(focusNodes.values());
+    }
+
+    private void addVisibleFocusNode(Map<String, SkillTreeNodeView> focusNodes, String nodeId) {
+        if (activeScene == null || nodeId == null || focusNodes.containsKey(nodeId)) {
+            return;
+        }
+        SkillTreeNodeView view = activeScene.nodeById(nodeId);
+        if (view != null && view.rendered() && view.status() != SkillNodeStatus.HIDDEN) {
+            focusNodes.put(nodeId, view);
+        }
+    }
+
+    private void playZoomLevelSound(int level) {
+        if (!isPlayerView()) {
+            return;
+        }
+        switch (level) {
+            case PLAYER_ZOOM_OVERVIEW -> playUiSound(SoundEvents.SPYGLASS_USE, 0.62f, 0.24f);
+            case PLAYER_ZOOM_BROWSING -> playUiSound(SoundEvents.SPYGLASS_USE, 0.95f, 0.30f);
+            case PLAYER_ZOOM_SELECTED -> {
+                playUiSound(SoundEvents.SPYGLASS_USE, 1.18f, 0.34f);
+                playUiSound(SoundEvents.AMETHYST_BLOCK_CHIME, 1.45f, 0.18f);
+            }
+            default -> {
+            }
+        }
     }
 
     private void resetDefaultView() {
@@ -676,6 +1002,13 @@ public class SkillTreeEditorScreen extends Screen {
         requirementCountField.setResponder(unused -> applyEditorFields());
         requirementNodesField.setResponder(unused -> applyEditorFields());
 
+        inscribeButton = addRenderableWidget(new InscribeButton(Component.literal("Hold to Inscribe"), button -> {
+            SkillTreeState state = state();
+            if (selectedNodeId != null && state != null && state.status(selectedNodeId) == SkillNodeStatus.AVAILABLE) {
+                requestUnlockNode(activeSkillId(), selectedNodeId);
+            }
+        }));
+        inscribeButton.visible = false;
         newNodeButton = addRenderableWidget(Button.builder(Component.literal("New"), button -> createNodeAtViewCenter()).bounds(0, 0, 78, 20).build());
         deleteNodeButton = addRenderableWidget(Button.builder(Component.literal("Delete"), button -> deleteSelectedNode()).bounds(0, 0, 78, 20).build());
         connectButton = addRenderableWidget(Button.builder(Component.literal("Connect"), button -> toggleConnectMode()).bounds(0, 0, 132, 20).build());
@@ -719,6 +1052,8 @@ public class SkillTreeEditorScreen extends Screen {
         editorMode = enabled;
         connectMode = false;
         draggingNode = false;
+        revealPulseTicks.clear();
+        unlockBurstTicks.clear();
         if (enabled && editorDraft == null) {
             editorDraft = createDraftFromCurrent();
         }
@@ -735,6 +1070,7 @@ public class SkillTreeEditorScreen extends Screen {
     }
 
     private void setEditorWidgetsVisible(boolean visible) {
+        visible = visible && !isPlayerView();
         titleField.visible = visible;
         titleField.active = visible;
         idField.visible = visible;
@@ -810,7 +1146,7 @@ public class SkillTreeEditorScreen extends Screen {
             draggingNode = true;
             return;
         }
-        input.beginDrag(mouseX, mouseY);
+        viewport.press(mouseX, mouseY);
     }
 
     private void selectNode(String nodeId) {
@@ -836,6 +1172,7 @@ public class SkillTreeEditorScreen extends Screen {
     }
 
     private int[] snapToNearbyAlignment(int x, int y) {
+        SkillTreePresentationDefinition definition = definition();
         if (definition == null || selectedNodeId == null) {
             return new int[]{x, y};
         }
@@ -865,9 +1202,8 @@ public class SkillTreeEditorScreen extends Screen {
         if (!editorMode || editorDraft == null) {
             return;
         }
-        SkillTreeCameraTransform transform = activeTreeTransform();
-        int x = editorDraft.isEmpty() ? 0 : (int) Math.round(transform.screenToGraphX(viewportX + viewportW / 2.0));
-        int y = editorDraft.isEmpty() ? 0 : (int) Math.round(transform.screenToGraphY(viewportY + viewportH / 2.0));
+        int x = editorDraft.isEmpty() ? 0 : (int) Math.round(viewport.screenToGraphX(viewportX + viewportW / 2.0));
+        int y = editorDraft.isEmpty() ? 0 : (int) Math.round(viewport.screenToGraphY(viewportY + viewportH / 2.0));
         selectNode(editorDraft.createNode(x, y));
         editorStatus = "Created " + selectedNodeId;
         markTreeDirty();
@@ -1026,7 +1362,9 @@ public class SkillTreeEditorScreen extends Screen {
     }
 
     private boolean canUseEditor() {
-        return SharedConstants.IS_RUNNING_IN_IDE || !LevelRPG.class.getProtectionDomain().getCodeSource().getLocation().getPath().endsWith(".jar");
+        return !isPlayerView()
+                && (SharedConstants.IS_RUNNING_IN_IDE
+                || !LevelRPG.class.getProtectionDomain().getCodeSource().getLocation().getPath().endsWith(".jar"));
     }
 
     private boolean textFieldFocused() {
@@ -1092,9 +1430,11 @@ public class SkillTreeEditorScreen extends Screen {
 
     private SkillTreeEditorDraft createDraftFromCurrent() {
         ResourceLocation activeSkillId = activeSkillId();
-        SkillTreePresentationDefinition current = exportedPreviewDefinition != null
-                ? exportedPreviewDefinition
-                : SAVED_PREVIEW_DEFINITIONS.getOrDefault(activeSkillId, SkillTreeRegistry.get(activeSkillId));
+        SkillTreePresentationDefinition current = sceneFactory.resolveDefinition(
+                activeSkillId,
+                exportedPreviewDefinition,
+                SAVED_PREVIEW_DEFINITIONS
+        );
         current = mergeSourceMetadata(current);
         SkillTreeEditorDraft draft = SkillTreeEditorDraft.copyOf(current, activeSkillId);
         draft.applyJsonMetadata(readSourceJson());
@@ -1148,30 +1488,89 @@ public class SkillTreeEditorScreen extends Screen {
         }
     }
 
-    private SkillTreeNodeView findHoveredNode(double mouseX, double mouseY) {
-        var transform = activeTreeTransform();
-        for (int i = nodeViews.size() - 1; i >= 0; i--) {
-            SkillTreeNodeView view = nodeViews.get(i);
-            if (view.status() != SkillNodeStatus.HIDDEN
-                    && view.contains(mouseX, mouseY, transform)) {
-                return view;
-            }
+    private static int clampInt(int value, int min, int max) {
+        if (max < min) {
+            return min;
         }
-        return null;
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private SkillTreeNodeView hoveredNode(double mouseX, double mouseY) {
+        return viewport.hoveredNode(activeScene, mouseX, mouseY);
     }
 
     private boolean insideViewport(double mouseX, double mouseY) {
-        return mouseX >= viewportX && mouseX < viewportX + viewportW && mouseY >= viewportY && mouseY < viewportY + viewportH;
+        return viewport.contains(mouseX, mouseY);
+    }
+
+    private boolean playerWidgetClicked(double mouseX, double mouseY, int button) {
+        if (!isPlayerView() || button != 0 || inscribeButton == null) {
+            return false;
+        }
+        layoutPlayerWidgets();
+        return inscribeButton.visible
+                && inscribeButton.active
+                && inscribeButton.isMouseOver(mouseX, mouseY)
+                && inscribeButton.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private void updateHoverSound() {
+        if (!isPlayerView() || viewport.isDragging() || hoveredNode == null) {
+            lastHoveredSoundNodeId = hoveredNode == null ? null : lastHoveredSoundNodeId;
+            return;
+        }
+        String hoveredId = hoveredNode.definition().id();
+        if (!hoveredId.equals(lastHoveredSoundNodeId) && hoverSoundCooldown <= 0) {
+            playUiSound(SoundEvents.AMETHYST_BLOCK_CHIME, 1.62f, 0.16f);
+            playUiSound(SoundEvents.AMETHYST_BLOCK_RESONATE, 1.28f, 0.08f);
+            hoverSoundCooldown = HOVER_SOUND_COOLDOWN_TICKS;
+        }
+        lastHoveredSoundNodeId = hoveredId;
+    }
+
+    private void playNodeClickSound(boolean alreadySelected) {
+        playUiSound(SoundEvents.AMETHYST_BLOCK_RESONATE, alreadySelected ? 1.14f : 0.96f, alreadySelected ? 0.22f : 0.16f);
+        playUiSound(SoundEvents.AMETHYST_BLOCK_CHIME, alreadySelected ? 1.38f : 1.12f, alreadySelected ? 0.12f : 0.08f);
+    }
+
+    private void playPanSound() {
+        // Deliberately silent for now. Repeated vanilla click/plate-style ticks
+        // read as placeholder UI noise during continuous camera movement.
     }
 
     private void requestUnlockNode(ResourceLocation skillId, String nodeId) {
         if (Minecraft.getInstance().getConnection() != null) {
+            playUnlockFeedback(nodeId);
             PacketDistributor.sendToServer(new UnlockTreeNodeRequestPayload(skillId, nodeId));
             return;
         }
         if (Minecraft.getInstance().player != null) {
+            playUnlockFeedback(nodeId);
             Minecraft.getInstance().player.displayClientMessage(Component.literal("Unlock requested: " + nodeId), true);
         }
+    }
+
+    private void playUnlockFeedback(String nodeId) {
+        if (nodeId != null && !nodeId.isBlank()) {
+            unlockBurstTicks.put(nodeId, UNLOCK_BURST_TICKS);
+            revealPulseTicks.put(nodeId, REVEAL_PULSE_TICKS);
+        }
+        playUiSound(SoundEvents.ENCHANTMENT_TABLE_USE, 0.95f, 0.65f);
+        playUiSound(SoundEvents.EXPERIENCE_ORB_PICKUP, 1.25f, 0.45f);
+        playUiSound(SoundEvents.BEACON_POWER_SELECT, 1.35f, 0.35f);
+        playUiSound(SoundEvents.WIND_CHARGE_BURST.value(), 0.9f, 0.6f);
+    }
+
+    private void playUiSound(SoundEvent event, float pitch, float volume) {
+        Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(event, pitch, volume));
+    }
+
+    private boolean isPlayerView() {
+        return viewMode == SkillTreeViewMode.PLAYER_VIEW;
+    }
+
+    private boolean shouldRenderTreeGrid() {
+        return !isPlayerView();
     }
 
     private void drawPanel(GuiGraphics graphics) {
@@ -1182,13 +1581,454 @@ public class SkillTreeEditorScreen extends Screen {
         graphics.fill(x, y, x + w, y + h, 0xEE211810);
         graphics.fill(x + 2, y + 2, x + w - 2, y + h - 2, 0xEE3A2A18);
         graphics.fill(x + 5, y + 5, x + w - 5, y + h - 5, 0xCC221B15);
-        graphics.hLine(x, x + w, y, 0xFFE0B86A);
-        graphics.hLine(x, x + w, y + h, 0xFF4F3923);
-        graphics.vLine(x, y, y + h, 0xFFE0B86A);
-        graphics.vLine(x + w, y, y + h, 0xFF4F3923);
+        graphics.hLine(x + 8, x + w - 8, y + 8, 0x99A89154);
+        graphics.hLine(x + 8, x + w - 8, y + h, 0x664F3923);
+        graphics.vLine(x, y + 8, y + h - 8, 0x88BFA45D);
+        graphics.vLine(x + w, y + 8, y + h - 8, 0x55372D21);
+    }
+
+    private void drawRevealPulses(GuiGraphics graphics, SkillTreeScene scene, SkillTreeCameraTransform transform) {
+        if (!isPlayerView() || scene == null || revealPulseTicks.isEmpty()) {
+            return;
+        }
+        graphics.enableScissor(viewportX, viewportY, viewportX + viewportW, viewportY + viewportH);
+        for (String nodeId : new ArrayList<>(revealPulseTicks.keySet())) {
+            SkillTreeNodeView node = scene.nodeById(nodeId);
+            if (node == null) {
+                continue;
+            }
+            int ticks = revealPulseTicks.getOrDefault(nodeId, 0);
+            float age = 1.0f - ticks / (float) REVEAL_PULSE_TICKS;
+            int alpha = Math.max(0, Math.min(180, Math.round((1.0f - age) * 180.0f)));
+            int x = node.left(transform);
+            int y = node.top(transform);
+            int size = node.scaledSize(transform);
+            int basePad = Math.max(4, (int) Math.round((node.visualPadding() + 5) * transform.zoom()));
+            int outerPad = basePad + Math.max(1, Math.round(age * 20.0f * transform.zoom()));
+            int innerPad = Math.max(2, basePad / 2);
+            drawRectOutline(graphics, x - outerPad, y - outerPad, size + outerPad * 2, withAlpha(0xFFDCC76B, alpha));
+            drawRectOutline(graphics, x - innerPad, y - innerPad, size + innerPad * 2, withAlpha(0xFF9F7DFF, alpha / 2));
+        }
+        graphics.disableScissor();
+    }
+
+    private void drawUnlockBursts(GuiGraphics graphics, SkillTreeScene scene, SkillTreeCameraTransform transform) {
+        if (!isPlayerView() || scene == null || unlockBurstTicks.isEmpty()) {
+            return;
+        }
+        graphics.enableScissor(viewportX, viewportY, viewportX + viewportW, viewportY + viewportH);
+        for (String nodeId : new ArrayList<>(unlockBurstTicks.keySet())) {
+            SkillTreeNodeView node = scene.nodeById(nodeId);
+            if (node == null) {
+                continue;
+            }
+            int ticks = unlockBurstTicks.getOrDefault(nodeId, 0);
+            float age = 1.0f - ticks / (float) UNLOCK_BURST_TICKS;
+            int alpha = Math.max(0, Math.min(210, Math.round((1.0f - age) * 210.0f)));
+            int cx = node.centerX(transform);
+            int cy = node.centerY(transform);
+            int size = node.scaledSize(transform);
+            drawUnlockBeam(graphics, cx, age);
+            drawUnlockImpactFlash(graphics, node, transform, age);
+            drawUnlockShockwave(graphics, cx, cy, size, age, transform.zoom());
+            int radius = Math.max(size / 2 + 8, Math.round((size / 2.0f + 30.0f) * age));
+            drawRectOutline(graphics, cx - radius, cy - radius, radius * 2, withAlpha(0xFFFFE6A3, alpha));
+            drawUnlockRay(graphics, cx, cy, radius, 0, withAlpha(0xFFFFF3C4, alpha));
+            drawUnlockRay(graphics, cx, cy, radius, 1, withAlpha(0xFFA785FF, alpha / 2));
+            drawUnlockRay(graphics, cx, cy, radius, 2, withAlpha(0xFFFFF3C4, alpha / 2));
+            drawUnlockRay(graphics, cx, cy, radius, 3, withAlpha(0xFFA785FF, alpha / 3));
+        }
+        graphics.disableScissor();
+    }
+
+    private void drawUnlockBeam(GuiGraphics graphics, int cx, float age) {
+        if (age > 0.34f) {
+            return;
+        }
+        float fade = 1.0f - age / 0.34f;
+        float split = age / 0.34f;
+        int centerAlpha = Math.max(0, Math.min(245, Math.round(fade * fade * 245.0f)));
+        int echoAlpha = Math.max(0, Math.min(170, Math.round(fade * 170.0f)));
+        int halfHeightTop = viewportY;
+        int halfHeightBottom = viewportY + viewportH;
+        int centerWidth = age < 0.08f ? 5 : 3;
+        int spread = Math.round((6.0f + split * 34.0f) * Math.max(0.7f, viewport.zoom()));
+
+        drawVerticalBeam(graphics, cx, halfHeightTop, halfHeightBottom, centerWidth + 10, withAlpha(0xFFFFFFFF, centerAlpha / 5));
+        drawVerticalBeam(graphics, cx, halfHeightTop, halfHeightBottom, centerWidth + 4, withAlpha(0xFFFFF6D6, centerAlpha / 2));
+        drawVerticalBeam(graphics, cx, halfHeightTop, halfHeightBottom, centerWidth, withAlpha(0xFFFFFFFF, centerAlpha));
+
+        if (age > 0.04f) {
+            drawVerticalBeam(graphics, cx - spread, halfHeightTop, halfHeightBottom, 2, withAlpha(0xFFFFE6A3, echoAlpha));
+            drawVerticalBeam(graphics, cx + spread, halfHeightTop, halfHeightBottom, 2, withAlpha(0xFFFFE6A3, echoAlpha));
+            drawVerticalBeam(graphics, cx - spread / 2, halfHeightTop, halfHeightBottom, 1, withAlpha(0xFFA785FF, echoAlpha / 2));
+            drawVerticalBeam(graphics, cx + spread / 2, halfHeightTop, halfHeightBottom, 1, withAlpha(0xFFA785FF, echoAlpha / 2));
+        }
+    }
+
+    private static void drawVerticalBeam(GuiGraphics graphics, int cx, int top, int bottom, int width, int color) {
+        if (((color >>> 24) & 0xFF) <= 0 || width <= 0) {
+            return;
+        }
+        int half = Math.max(0, width / 2);
+        graphics.fill(cx - half, top, cx + half + 1, bottom, color);
+    }
+
+    private SkillTreeRenderer.NodeOffset shockwaveNodeOffset(SkillTreeScene scene, SkillTreeNodeView node, SkillTreeCameraTransform transform) {
+        if (!isPlayerView() || scene == null || node == null || unlockBurstTicks.isEmpty()) {
+            return SkillTreeRenderer.NO_OFFSET;
+        }
+        double offsetX = 0.0;
+        double offsetY = 0.0;
+        int nodeCenterX = node.centerX(transform);
+        int nodeCenterY = node.centerY(transform);
+        for (Map.Entry<String, Integer> entry : unlockBurstTicks.entrySet()) {
+            SkillTreeNodeView source = scene.nodeById(entry.getKey());
+            if (source == null) {
+                continue;
+            }
+            float age = 1.0f - entry.getValue() / (float) UNLOCK_BURST_TICKS;
+            float eased = 1.0f - (1.0f - age) * (1.0f - age);
+            int sourceX = source.centerX(transform);
+            int sourceY = source.centerY(transform);
+            double dx = nodeCenterX - sourceX;
+            double dy = nodeCenterY - sourceY;
+            double distance = Math.hypot(dx, dy);
+            int sourceSize = source.scaledSize(transform);
+            double startRadius = Math.max(10.0, sourceSize / 2.0 + 8.0 * transform.zoom());
+            double endRadius = startRadius + Math.max(56.0, 116.0 * transform.zoom());
+            double radius = startRadius + (endRadius - startRadius) * eased;
+            double bandWidth = Math.max(18.0, 34.0 * transform.zoom());
+            double wave = 1.0 - Math.abs(distance - radius) / bandWidth;
+            if (wave <= 0.0) {
+                continue;
+            }
+            double fade = (1.0 - age) * (1.0 - age);
+            double strength = Math.min(9.0, 5.5 + 2.0 * transform.zoom()) * wave * fade;
+            if (distance < 0.001) {
+                offsetY -= strength * 0.45;
+            } else {
+                offsetX += dx / distance * strength;
+                offsetY += dy / distance * strength;
+            }
+        }
+        int roundedX = (int) Math.round(offsetX);
+        int roundedY = (int) Math.round(offsetY);
+        if (roundedX == 0 && roundedY == 0) {
+            return SkillTreeRenderer.NO_OFFSET;
+        }
+        return new SkillTreeRenderer.NodeOffset(roundedX, roundedY);
+    }
+
+    private void drawUnlockImpactFlash(GuiGraphics graphics, SkillTreeNodeView node, SkillTreeCameraTransform transform, float age) {
+        if (age > 0.18f) {
+            return;
+        }
+        float flash = 1.0f - age / 0.18f;
+        int alpha = Math.max(0, Math.min(210, Math.round(flash * 210.0f)));
+        int x = node.left(transform);
+        int y = node.top(transform);
+        int size = node.scaledSize(transform);
+        int pad = Math.max(5, Math.round((node.visualPadding() + 8) * transform.zoom()));
+        int outer = size + pad * 2;
+        graphics.fill(x - pad, y - pad, x + size + pad, y + size + pad, withAlpha(0xFFFFFFFF, alpha / 3));
+        drawRectOutline(graphics, x - pad, y - pad, outer, withAlpha(0xFFFFFFFF, alpha));
+        drawRectOutline(graphics, x - pad - 3, y - pad - 3, outer + 6, withAlpha(0xFFFFE6A3, alpha / 2));
+    }
+
+    private void drawUnlockShockwave(GuiGraphics graphics, int cx, int cy, int nodeSize, float age, float zoom) {
+        float eased = 1.0f - (1.0f - age) * (1.0f - age);
+        int startRadius = Math.max(10, nodeSize / 2 + Math.round(8.0f * zoom));
+        int endRadius = startRadius + Math.max(56, Math.round(116.0f * zoom));
+        int radius = Math.round(startRadius + (endRadius - startRadius) * eased);
+        int alpha = Math.max(0, Math.min(190, Math.round((1.0f - age) * (1.0f - age) * 190.0f)));
+        int thickness = Math.max(1, Math.min(3, Math.round(2.0f * zoom)));
+
+        drawCircularRing(graphics, cx, cy, radius, thickness, withAlpha(0xFFFFF8DD, alpha));
+        if (age > 0.12f) {
+            int echoAlpha = Math.max(0, alpha / 3);
+            int echoRadius = Math.max(startRadius, radius - Math.round(14.0f * zoom));
+            drawCircularRing(graphics, cx, cy, echoRadius, Math.max(1, thickness - 1), withAlpha(0xFFA785FF, echoAlpha));
+        }
+    }
+
+    private void drawInscribeChargePulse(GuiGraphics graphics, SkillTreeCameraTransform transform) {
+        if (!isPlayerView() || !(inscribeButton instanceof InscribeButton holdButton) || !holdButton.isHolding()) {
+            return;
+        }
+        SkillTreeNodeView node = selectedNodeView();
+        if (node == null) {
+            return;
+        }
+        float progress = holdButton.holdProgress();
+        int shake = holdButton.shakeOffset();
+        int x = node.left(transform) + shake;
+        int y = node.top(transform) - shake / 2;
+        int size = node.scaledSize(transform);
+        int basePad = Math.max(4, Math.round((node.visualPadding() + 5) * transform.zoom()));
+        int pulsePad = basePad + Math.round((4.0f + progress * 18.0f) * transform.zoom());
+        int alpha = Math.max(70, Math.min(220, Math.round(95.0f + progress * 125.0f)));
+        graphics.enableScissor(viewportX, viewportY, viewportX + viewportW, viewportY + viewportH);
+        drawRectOutline(graphics, x - pulsePad, y - pulsePad, size + pulsePad * 2, withAlpha(0xFFFFF7D6, alpha));
+        drawRectOutline(graphics, x - basePad, y - basePad, size + basePad * 2, withAlpha(0xFFA785FF, alpha / 2));
+        int cx = x + size / 2;
+        int cy = y + size / 2;
+        int ray = Math.max(size / 2 + basePad + 3, Math.round(size / 2.0f + 12.0f + progress * 18.0f));
+        drawUnlockRay(graphics, cx, cy, ray, 0, withAlpha(0xFFFFF3C4, alpha / 2));
+        drawUnlockRay(graphics, cx, cy, ray, 1, withAlpha(0xFFA785FF, alpha / 3));
+        drawUnlockRay(graphics, cx, cy, ray, 2, withAlpha(0xFFFFF3C4, alpha / 3));
+        drawUnlockRay(graphics, cx, cy, ray, 3, withAlpha(0xFFA785FF, alpha / 4));
+        graphics.disableScissor();
+    }
+
+    private static void drawUnlockRay(GuiGraphics graphics, int cx, int cy, int radius, int direction, int color) {
+        int thickness = 2;
+        switch (direction) {
+            case 0 -> graphics.fill(cx - thickness, cy - radius, cx + thickness + 1, cy - 5, color);
+            case 1 -> graphics.fill(cx + 5, cy - thickness, cx + radius, cy + thickness + 1, color);
+            case 2 -> graphics.fill(cx - thickness, cy + 5, cx + thickness + 1, cy + radius, color);
+            case 3 -> graphics.fill(cx - radius, cy - thickness, cx - 5, cy + thickness + 1, color);
+            default -> {
+            }
+        }
+    }
+
+    private static void drawRectOutline(GuiGraphics graphics, int x, int y, int size, int color) {
+        graphics.fill(x, y, x + size, y + 1, color);
+        graphics.fill(x, y + size - 1, x + size, y + size, color);
+        graphics.fill(x, y + 1, x + 1, y + size - 1, color);
+        graphics.fill(x + size - 1, y + 1, x + size, y + size - 1, color);
+    }
+
+    private static void drawCircularRing(GuiGraphics graphics, int cx, int cy, int radius, int thickness, int color) {
+        if (((color >>> 24) & 0xFF) <= 0 || radius <= 0) {
+            return;
+        }
+        int samples = Math.max(28, Math.min(128, Math.round(radius * 1.35f)));
+        int half = Math.max(1, thickness / 2);
+        for (int i = 0; i < samples; i++) {
+            double angle = Math.PI * 2.0 * i / samples;
+            int x = cx + (int) Math.round(Math.cos(angle) * radius);
+            int y = cy + (int) Math.round(Math.sin(angle) * radius);
+            graphics.fill(x - half, y - half, x + half + 1, y + half + 1, color);
+        }
+    }
+
+    private static int withAlpha(int rgb, int alpha) {
+        return ((alpha & 0xFF) << 24) | (rgb & 0x00FFFFFF);
+    }
+
+    private void layoutPlayerWidgets() {
+        if (inscribeButton == null) return;
+        SkillTreePresentationDefinition definition = definition();
+        SkillTreeState state = state();
+        if (!isPlayerView() || selectedNodeId == null || state == null || definition == null) {
+            inscribeButton.visible = false;
+            inscribeButton.active = false;
+            if (inscribeButton instanceof InscribeButton holdButton) {
+                holdButton.cancelHold();
+            }
+            return;
+        }
+        SkillTreeNodeDefinition node = definition.nodes().get(selectedNodeId);
+        if (node == null) {
+            inscribeButton.visible = false;
+            inscribeButton.active = false;
+            if (inscribeButton instanceof InscribeButton holdButton) {
+                holdButton.cancelHold();
+            }
+            return;
+        }
+        SkillNodeStatus status = state.status(node.id());
+        inscribeButton.visible = status == SkillNodeStatus.AVAILABLE;
+        inscribeButton.active = status == SkillNodeStatus.AVAILABLE;
+        if (!inscribeButton.visible && inscribeButton instanceof InscribeButton holdButton) {
+            holdButton.cancelHold();
+        }
+        int panelH = playerPopoverHeight(node, status);
+        int[] bounds = selectedNodePopoverBounds(PLAYER_PANEL_W, panelH);
+        int px = bounds[0];
+        int py = bounds[1];
+        int btnPad = 10;
+        int btnW = PLAYER_PANEL_W - btnPad * 2;
+        int btnH = 22;
+        inscribeButton.setX(px + btnPad);
+        inscribeButton.setY(py + panelH - btnH - 8);
+        inscribeButton.setWidth(btnW);
+        inscribeButton.setHeight(btnH);
+    }
+
+    private void drawPlayerNodeDetailsPanel(GuiGraphics graphics) {
+        SkillTreePresentationDefinition definition = definition();
+        SkillTreeState state = state();
+        if (!isPlayerView() || selectedNodeId == null || state == null || definition == null) {
+            return;
+        }
+        SkillTreeNodeDefinition node = definition.nodes().get(selectedNodeId);
+        if (node == null) return;
+        
+        int panelW = PLAYER_PANEL_W;
+        SkillNodeStatus status = state.status(node.id());
+        int panelH = playerPopoverHeight(node, status);
+        int[] bounds = selectedNodePopoverBounds(panelW, panelH);
+        int px = bounds[0];
+        int py = bounds[1];
+
+        graphics.flush();
+        graphics.pose().pushPose();
+        graphics.pose().translate(0.0f, 0.0f, 280.0f);
+        if (inscribeButton instanceof InscribeButton holdButton && holdButton.isHolding()) {
+            int shake = holdButton.shakeOffset();
+            graphics.pose().translate(shake, shake == 0 ? 0 : -shake / 2.0f, 0.0f);
+        }
+        drawPopoverPointer(graphics, px, py, panelW, panelH);
+        drawMinecraftPanel(graphics, px, py, panelW, panelH);
+
+        int tx = px + 10;
+        int ty = py + 10;
+        drawPopoverIcon(graphics, node, tx, ty);
+        int textX = tx + 24;
+        graphics.drawString(font, trimToWidth(node.title(), panelW - 44), textX, ty + 1, 0xFFFFEAA3, true);
+        graphics.drawString(font, typeLabel(node.type()) + " - " + statusLabel(status), textX, ty + 13, statusColor(status), false);
+        ty += 32;
+        graphics.fill(px + 8, ty, px + panelW - 8, ty + 1, 0x88584B34);
+        ty += 8;
+
+        int descBottom = status == SkillNodeStatus.AVAILABLE ? py + panelH - 42 : py + panelH - 12;
+        for (FormattedCharSequence line : wrappedDescription(node, panelW - 20)) {
+            if (ty + font.lineHeight > descBottom) {
+                break;
+            }
+            graphics.drawString(font, line, tx, ty, 0xFFD0D7E0, true);
+            ty += 12;
+        }
+        ty = Math.max(ty + 2, descBottom - 18);
+        if (status == SkillNodeStatus.INSCRIBED) {
+            graphics.drawString(font, "Inscribed", tx, ty, 0xFF7FD888, true);
+        } else {
+            int insightAvailable = state.insight();
+            String cost = "Cost: " + node.cost();
+            String insight = "Insight: " + insightAvailable;
+            graphics.drawString(font, cost, tx, ty, status == SkillNodeStatus.AVAILABLE ? 0xFF9EE6D8 : 0xFF8F938C, true);
+            graphics.drawString(font, insight, px + panelW - 10 - font.width(insight), ty, insightAvailable >= node.cost() ? 0xFF7FD888 : 0xFFE05B5B, true);
+        }
+        graphics.pose().popPose();
+    }
+
+    private int playerPopoverHeight(SkillTreeNodeDefinition node, SkillNodeStatus status) {
+        int descLines = wrappedDescription(node, PLAYER_PANEL_W - 20).size();
+        int buttonSpace = status == SkillNodeStatus.AVAILABLE ? 32 : 0;
+        int contentH = 10 + 24 + 9 + Math.min(4, descLines) * 12 + 17 + buttonSpace;
+        return clampInt(contentH, PLAYER_PANEL_MIN_H, PLAYER_PANEL_MAX_H);
+    }
+
+    private List<FormattedCharSequence> wrappedDescription(SkillTreeNodeDefinition node, int width) {
+        if (node.description() == null || node.description().isBlank()) {
+            return List.of();
+        }
+        return font.split(Component.literal(node.description()), width);
+    }
+
+    private void drawPopoverIcon(GuiGraphics graphics, SkillTreeNodeDefinition node, int x, int y) {
+        ItemStack stack = SkillTreeRenderer.resolveNodeIconStack(node);
+        graphics.fill(x, y, x + 18, y + 18, 0xCC2D2A22);
+        graphics.fill(x + 1, y + 1, x + 17, y + 17, 0xCC111111);
+        if (!stack.isEmpty()) {
+            graphics.renderItem(stack, x + 1, y + 1);
+        }
+    }
+
+    private static String typeLabel(String type) {
+        if (type == null || type.isBlank()) {
+            return "Trait";
+        }
+        return switch (type.trim().toLowerCase()) {
+            case "core" -> "Core";
+            case "technique" -> "Technique";
+            case "manifestation" -> "Manifestation";
+            case "axiom" -> "Axiom";
+            default -> "Trait";
+        };
+    }
+
+    private static String statusLabel(SkillNodeStatus status) {
+        return switch (status) {
+            case INSCRIBED -> "Inscribed";
+            case AVAILABLE -> "Ready to inscribe";
+            case LOCKED_POINTS -> "Needs more Insight";
+            case LOCKED_PARENT -> "Requires connected skill";
+            case LOCKED_LEVEL -> "Requires more discipline";
+            case HIDDEN -> "Unknown";
+        };
+    }
+
+    private static int statusColor(SkillNodeStatus status) {
+        return switch (status) {
+            case INSCRIBED -> 0xFF7FD888;
+            case AVAILABLE -> 0xFFFFD25E;
+            case LOCKED_POINTS -> 0xFFE4A94F;
+            case LOCKED_PARENT, LOCKED_LEVEL, HIDDEN -> 0xFFE05B5B;
+        };
+    }
+
+    private int[] selectedNodePopoverBounds(int panelW, int panelH) {
+        SkillTreeNodeView selected = selectedNodeView();
+        if (selected == null) {
+            return new int[]{viewportX + viewportW - panelW - 10, viewportY + 10};
+        }
+        SkillTreeCameraTransform transform = activeTreeTransform();
+        int nodeSize = selected.scaledSize(transform);
+        int preferredX = selected.centerX(transform) + nodeSize / 2 + 18;
+        int x = preferredX;
+        if (x + panelW > viewportX + viewportW - 8) {
+            x = selected.left(transform) - panelW - 18;
+        }
+        x = clampInt(x, viewportX + 8, viewportX + viewportW - panelW - 8);
+        int y = selected.centerY(transform) - panelH / 2;
+        y = clampInt(y, viewportY + 8, viewportY + viewportH - panelH - 8);
+        return new int[]{x, y};
+    }
+
+    private SkillTreeNodeView selectedNodeView() {
+        return activeScene == null || selectedNodeId == null ? null : activeScene.nodeById(selectedNodeId);
+    }
+
+    private void drawPopoverPointer(GuiGraphics graphics, int panelX, int panelY, int panelW, int panelH) {
+        SkillTreeNodeView selected = selectedNodeView();
+        if (selected == null) {
+            return;
+        }
+        SkillTreeCameraTransform transform = activeTreeTransform();
+        int fromX = selected.centerX(transform);
+        int fromY = selected.centerY(transform);
+        int toX = fromX < panelX ? panelX : panelX + panelW;
+        int toY = clampInt(fromY, panelY + 12, panelY + panelH - 12);
+        graphics.fill(Math.min(fromX, toX), fromY - 1, Math.max(fromX, toX) + 1, fromY + 2, 0xBB000000);
+        graphics.fill(Math.min(fromX, toX), fromY - 2, Math.max(fromX, toX) + 1, fromY, 0xCC8B7C55);
+        if (toY != fromY) {
+            graphics.fill(toX - 1, Math.min(fromY, toY), toX + 2, Math.max(fromY, toY) + 1, 0xBB000000);
+            graphics.fill(toX - 2, Math.min(fromY, toY), toX, Math.max(fromY, toY) + 1, 0xCC8B7C55);
+        }
+    }
+
+    private void drawMinecraftPanel(GuiGraphics graphics, int x, int y, int w, int h) {
+        graphics.fill(x + 3, y + 3, x + w + 3, y + h + 3, 0x99000000);
+        graphics.fill(x, y, x + w, y + h, 0xF01F211D);
+        graphics.fill(x + 2, y + 2, x + w - 2, y + h - 2, 0xF03B3325);
+        graphics.fill(x + 4, y + 4, x + w - 4, y + h - 4, 0xE9161818);
+        graphics.hLine(x + 1, x + w - 2, y + 1, 0xFF8B7C55);
+        graphics.vLine(x + 1, y + 1, y + h - 2, 0xFF8B7C55);
+        graphics.hLine(x + 1, x + w - 2, y + h - 2, 0xFF242018);
+        graphics.vLine(x + w - 2, y + 1, y + h - 2, 0xFF242018);
     }
 
     private void drawHeader(GuiGraphics graphics) {
+        if (isPlayerView()) {
+            drawPlayerViewHeader(graphics);
+            return;
+        }
+        SkillTreePresentationDefinition definition = definition();
+        SkillTreeState state = state();
         String title = definition == null ? "Discipline Tree: " + activeSkillId() : definition.title();
         String subtitle = "A/D rotate  |  Drag to pan  |  Esc to close";
         int available = state == null ? 0 : state.insight();
@@ -1198,13 +2038,107 @@ public class SkillTreeEditorScreen extends Screen {
         graphics.drawString(font, points, width - OUTER_MARGIN - 12 - font.width(points), OUTER_MARGIN + 8, 0xFF8DFF8D, false);
     }
 
+    private void drawPlayerViewHeader(GuiGraphics graphics) {
+        SkillTreePresentationDefinition definition = definition();
+        SkillTreeState state = state();
+        String title = definition == null ? "Discipline: " + activeSkillId().getPath() : definition.title();
+        graphics.drawString(font, title, viewportX + 10, viewportY - 20, 0xFFFFEAA3, true);
+        int available = state == null ? 0 : state.insight();
+        String points = "Insight: " + available;
+        graphics.drawString(font, points, viewportX + viewportW - font.width(points) - 10, viewportY - 20, 0xFF9FF0B0, true);
+    }
+
     private void drawFooter(GuiGraphics graphics) {
-        String zoom = "Zoom: " + Math.round(input.zoom() * 100.0f) + "%";
+        if (isPlayerView()) {
+            drawPlayerViewFooter(graphics);
+            return;
+        }
+        String zoom = "Zoom: " + Math.round(viewport.zoom() * 100.0f) + "%";
         if (canUseEditor()) {
             zoom += editorMode ? "  |  E: editor on" : "  |  E: editor";
         }
         graphics.drawString(font, zoom, OUTER_MARGIN + 12, height - OUTER_MARGIN - 14, 0xFFC8B58E, false);
     }
+
+    private static final int SLOT_SIZE = 22;
+    private static final int SLOT_GAP = 2;
+
+    private void drawPlayerViewFooter(GuiGraphics graphics) {
+        String subtitle = "Drag to pan  |  Scroll zoom levels  |  Esc to close";
+        int y = height - OUTER_MARGIN - font.lineHeight - 4;
+        graphics.drawString(font, subtitle, viewportX + 10, y, 0xFFAAB5C4, true);
+
+        int totalWidth = 9 * SLOT_SIZE + 8 * SLOT_GAP;
+        int startX = width / 2 - totalWidth / 2;
+        int startY = height - OUTER_MARGIN - SLOT_SIZE - 2;
+
+        graphics.fill(startX - 2, startY - 2, startX + totalWidth + 2, startY + SLOT_SIZE + 2, 0x88000000);
+
+        for (int i = 0; i < 9; i++) {
+            int slotX = startX + i * (SLOT_SIZE + SLOT_GAP);
+            boolean isSelected = i == ClientTechniqueCache.selectedSlot();
+            graphics.fill(slotX, startY, slotX + SLOT_SIZE, startY + SLOT_SIZE, isSelected ? 0xCCB8860B : 0xCC111111);
+            graphics.fill(slotX + 1, startY + 1, slotX + SLOT_SIZE - 1, startY + SLOT_SIZE - 1, isSelected ? 0xCC3D2E04 : 0xCC2D2A22);
+            String label = Integer.toString(i + 1);
+            graphics.drawString(font, label, slotX + 2, startY + 2, isSelected ? 0xFFFFE566 : 0xFF888888, false);
+
+            ResourceLocation techId = ClientTechniqueCache.slot(i);
+            if (techId != null && (draggingTechniqueId == null || !draggingTechniqueId.equals(techId.toString()) || draggingTechniqueSourceSlot != i)) {
+                TechniqueDefinition def = TechniqueRegistry.get(techId);
+                if (def != null && def.icon() != null) {
+                    ItemStack iconStack = new ItemStack(BuiltInRegistries.ITEM.get(def.icon()));
+                    graphics.renderItem(iconStack, slotX + 3, startY + 3);
+                }
+            }
+        }
+    }
+
+    private int getHoveredHotbarSlot(double mouseX, double mouseY) {
+        int totalWidth = 9 * SLOT_SIZE + 8 * SLOT_GAP;
+        int startX = width / 2 - totalWidth / 2;
+        int startY = height - OUTER_MARGIN - SLOT_SIZE - 2;
+        
+        if (mouseY >= startY && mouseY <= startY + SLOT_SIZE) {
+            for (int i = 0; i < 9; i++) {
+                int slotX = startX + i * (SLOT_SIZE + SLOT_GAP);
+                if (mouseX >= slotX && mouseX <= slotX + SLOT_SIZE) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    private void handleTechniqueDrop(double mouseX, double mouseY) {
+        int slot = getHoveredHotbarSlot(mouseX, mouseY);
+        if (slot >= 0) {
+            ResourceLocation techId = ResourceLocation.parse(draggingTechniqueId);
+            PacketDistributor.sendToServer(new AssignTechniqueSlotPayload(slot, techId.toString()));
+        } else if (draggingTechniqueSourceSlot >= 0) {
+            PacketDistributor.sendToServer(new AssignTechniqueSlotPayload(draggingTechniqueSourceSlot, ""));
+        }
+    }
+
+
+    /** Returns the technique ResourceLocation whose required node matches nodeId under the active skill. */
+    private ResourceLocation resolveNodeTechniqueId(String nodeId) {
+        if (nodeId == null || nodeId.isBlank()) return null;
+        ResourceLocation skillId = activeSkillId();
+        String skillPath = skillId == null ? "" : skillId.getPath();
+        String bareNodeId = nodeId;
+        if (!skillPath.isEmpty() && nodeId.startsWith(skillPath + "_")) {
+            bareNodeId = nodeId.substring(skillPath.length() + 1);
+        }
+        for (TechniqueDefinition def : TechniqueRegistry.entries()) {
+            if (skillId != null && skillId.equals(def.requiredSkillId())) {
+                if (nodeId.equals(def.requiredNodeId()) || bareNodeId.equals(def.requiredNodeId())) {
+                    return def.id();
+                }
+            }
+        }
+        return null;
+    }
+
 
     private void drawEditorPanel(GuiGraphics graphics) {
         int x = editorPanelX();
@@ -1314,20 +2248,11 @@ public class SkillTreeEditorScreen extends Screen {
         graphics.drawString(font, message, x, y, 0xFFFFD2A0, false);
     }
 
-    private record ChamberTreeView(
-            ResourceLocation skillId,
-            SkillTreePresentationDefinition definition,
-            SkillTreeState state,
-            List<SkillTreeNodeView> nodes,
-            Map<String, SkillTreeNodeView> nodeById
-    ) {
-    }
-
     private boolean isTreeTransitioning() {
         return treeTransitionState != TreeTransitionState.STABLE;
     }
 
-    private void beginTreeTransition(ChamberTreeView previousView, ChamberTreeView nextView) {
+    private void beginTreeTransition(SkillTreeScene previousView, SkillTreeScene nextView) {
         if (previousView == null || nextView == null || previousView.skillId().equals(nextView.skillId())) {
             treeTransitionState = TreeTransitionState.STABLE;
             outgoingTreeView = null;
@@ -1366,5 +2291,111 @@ public class SkillTreeEditorScreen extends Screen {
         STABLE,
         FADING_OUT,
         FADING_IN
+    }
+
+    private class InscribeButton extends Button {
+        private boolean holding;
+        private boolean completedHold;
+        private int holdTicks;
+
+        public InscribeButton(Component message, OnPress onPress) {
+            super(0, 0, 100, 20, message, onPress, DEFAULT_NARRATION);
+        }
+
+        @Override
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            if (!this.active || !this.visible || button != 0 || !this.isMouseOver(mouseX, mouseY)) {
+                return false;
+            }
+            holding = true;
+            completedHold = false;
+            holdTicks = 0;
+            playUiSound(SoundEvents.RESPAWN_ANCHOR_CHARGE, 1.35f, 0.25f);
+            return true;
+        }
+
+        @Override
+        public boolean mouseReleased(double mouseX, double mouseY, int button) {
+            if (button == 0 && holding) {
+                cancelHold();
+                return true;
+            }
+            return super.mouseReleased(mouseX, mouseY, button);
+        }
+
+        public void tickHold() {
+            if (!holding || !this.active || !this.visible || completedHold) {
+                return;
+            }
+            holdTicks++;
+            if (holdTicks % 4 == 1) {
+                float progress = holdTicks / (float) INSCRIBE_HOLD_TICKS;
+                playUiSound(SoundEvents.AMETHYST_BLOCK_CHIME, 0.75f + progress * 0.7f, 0.28f);
+            }
+            if (holdTicks >= INSCRIBE_HOLD_TICKS) {
+                completedHold = true;
+                holding = false;
+                holdTicks = 0;
+                this.onPress();
+            }
+        }
+
+        public void cancelHold() {
+            holding = false;
+            completedHold = false;
+            holdTicks = 0;
+        }
+
+        public boolean isHolding() {
+            return holding;
+        }
+
+        public float holdProgress() {
+            return holding ? Math.min(1.0f, holdTicks / (float) INSCRIBE_HOLD_TICKS) : 0.0f;
+        }
+
+        public int shakeOffset() {
+            if (!holding) {
+                return 0;
+            }
+            int amplitude = holdTicks > INSCRIBE_HOLD_TICKS * 2 / 3 ? 2 : 1;
+            return switch (holdTicks % 4) {
+                case 1 -> amplitude;
+                case 3 -> -amplitude;
+                default -> 0;
+            };
+        }
+
+        @Override
+        public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+            graphics.pose().pushPose();
+            graphics.pose().translate(0.0f, 0.0f, 320.0f);
+            int shake = shakeOffset();
+            if (shake != 0) {
+                graphics.pose().translate(shake, -shake / 2.0f, 0.0f);
+            }
+            int alpha = this.active ? (this.isHovered ? 0xDD : 0x77) : 0x33;
+            int textColor = this.active ? (this.isHovered ? 0xFFFFFFFF : 0xFFBDE8E0) : 0xFF5A6B80;
+            int borderColor = this.active ? (this.isHovered ? 0xFFEAD089 : 0xFF4A6B8C) : 0xFF3D4958;
+
+            int x0 = getX(), y0 = getY(), x1 = x0 + width, y1 = y0 + height;
+
+            // Background fill
+            graphics.fillGradient(x0, y0, x1, y1, (alpha << 24) | 0x0A0F1A, (alpha << 24) | 0x0A1F1A);
+            if (holding) {
+                int progressW = Math.round(width * Math.min(1.0f, holdTicks / (float) INSCRIBE_HOLD_TICKS));
+                graphics.fill(x0 + 1, y0 + 1, x0 + 1 + progressW, y1 - 1, 0x885FBF7A);
+            }
+
+            // Border drawn with fill() so it stays exactly within the widget bounds
+            // (hLine/vLine overshoot by 1px and cause visual vs. hit-box mismatch)
+            graphics.fill(x0, y0, x1, y0 + 1, borderColor);         // top
+            graphics.fill(x0, y1 - 1, x1, y1, borderColor);         // bottom
+            graphics.fill(x0, y0 + 1, x0 + 1, y1 - 1, borderColor); // left
+            graphics.fill(x1 - 1, y0 + 1, x1, y1 - 1, borderColor); // right
+
+            graphics.drawCenteredString(font, this.getMessage(), x0 + width / 2, y0 + (height - 8) / 2, textColor);
+            graphics.pose().popPose();
+        }
     }
 }

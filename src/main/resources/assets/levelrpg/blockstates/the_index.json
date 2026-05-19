@@ -1,8 +1,19 @@
 {
   "variants": {
-    "": {
+    "facing=east": {
+      "model": "levelrpg:block/the_index",
+      "y": 90
+    },
+    "facing=north": {
       "model": "levelrpg:block/the_index"
+    },
+    "facing=south": {
+      "model": "levelrpg:block/the_index",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "levelrpg:block/the_index",
+      "y": 270
     }
   }
 }
-

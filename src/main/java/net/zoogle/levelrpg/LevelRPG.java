@@ -17,6 +17,7 @@ import net.zoogle.levelrpg.gauge.FinesseRhythmGaugeModifiers;
 import net.zoogle.levelrpg.gauge.GaugeModifiers;
 import net.zoogle.levelrpg.gauge.ValorResolveGaugeModifiers;
 import net.zoogle.levelrpg.net.Network;
+import net.zoogle.levelrpg.registry.LevelRpgBlockEntities;
 import net.zoogle.levelrpg.registry.LevelRpgBlocks;
 import net.zoogle.levelrpg.technique.TechniqueRegistry;
 
@@ -30,6 +31,7 @@ public class LevelRPG {
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(net.zoogle.levelrpg.net.Network::registerPayloadHandlers);
         LevelRpgBlocks.register(modEventBus);
+        LevelRpgBlockEntities.register(modEventBus);
         TechniqueRegistry.init();
         GaugeModifiers.register(new DelvingMomentumGaugeModifiers());
         GaugeModifiers.register(new ValorResolveGaugeModifiers());
@@ -53,6 +55,7 @@ public class LevelRPG {
         NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.data.DataEvents());
         NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.events.GateEvents());
         NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.events.IndexPlacementEvents());
+        NeoForge.EVENT_BUS.register(new net.zoogle.levelrpg.events.IndexTrialEvents());
 
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
     }

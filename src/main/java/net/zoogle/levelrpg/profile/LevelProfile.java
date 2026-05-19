@@ -899,7 +899,7 @@ public class LevelProfile {
             }
             case LOCKED_PREREQUISITE -> {
                 res.success = false;
-                res.message = "Missing prerequisite: " + String.join(", ", nodeSnapshot.missingRequirements());
+                res.message = "Missing prerequisite: " + nodeSnapshot.node().requirement().describeForDebug();
                 return res;
             }
             case LOCKED_INSIGHT -> {

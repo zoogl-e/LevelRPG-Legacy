@@ -12,10 +12,10 @@ group = mod_group_id
 repositories {
     mavenLocal()
     // NeoForged official
-    maven { url "https://maven.neoforged.net/releases" }
+    maven { url = "https://maven.neoforged.net/releases" }
     // GeckoLib official Cloudsmith Maven (hosts 4.x for NeoForge/Fabric/Forge)
     maven {
-        url "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/"
+        url = "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/"
         content {
             includeGroup "software.bernie.geckolib"
         }
@@ -225,7 +225,7 @@ publishing {
     }
     repositories {
         maven {
-            url "file://${project.projectDir}/repo"
+            url = "file://${project.projectDir}/repo"
         }
     }
 }
@@ -251,10 +251,6 @@ def bumpMinorVersion = { String ver ->
 }
 
 tasks.register('bumpVersion') {
-    onlyIf {
-        // Only bump during an explicit jar or build that produces the jar
-        gradle.startParameter.taskNames.any { it.toLowerCase() in ['jar','build','assemble','publish','publishmavenjavapublicationtolocalmaven'] }
-    }
     doLast {
         File propsFile = file('gradle.properties')
         if (!propsFile.exists()) return
@@ -282,9 +278,6 @@ tasks.register('bumpVersion') {
         println "[AutoVersion] Bumped mod_version from ${current} to ${next}"
     }
 }
-
-// Ensure version is bumped before jar is actually created
-tasks.named('jar') { dependsOn 'bumpVersion' }
 
 if (enchiridionBuildTasksAvailable) {
     ['prepareClientRun', 'prepareClientLatestSaveRun', 'prepareServerRun', 'prepareGameTestServerRun', 'prepareDataRun'].each { taskName ->

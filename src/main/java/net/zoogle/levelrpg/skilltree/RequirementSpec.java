@@ -34,6 +34,22 @@ public record RequirementSpec(
         return nodes.isEmpty();
     }
 
+    public boolean isSimpleAll() {
+        return mode == Mode.ALL;
+    }
+
+    public String describeForDebug() {
+        if (nodes.isEmpty()) {
+            return "none";
+        }
+        String joined = String.join(", ", nodes);
+        return switch (mode) {
+            case ALL -> "all of: " + joined;
+            case ANY -> "any of: " + joined;
+            case AT_LEAST -> "at least " + count + " of: " + joined;
+        };
+    }
+
     public boolean isSatisfied(Set<String> unlockedNodeIds) {
         if (nodes.isEmpty()) {
             return true;

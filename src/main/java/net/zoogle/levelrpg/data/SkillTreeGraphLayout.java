@@ -10,7 +10,8 @@ import java.util.Objects;
 
 /**
  * Resolves graph coordinates for discipline tree nodes. Explicit {@link SkillTreeCanonicalDefinition.Node#layoutX()}
- * / {@code layoutY} win; otherwise a layered layout is derived from prerequisite edges.
+ * / {@code layoutY} win; semantic layout metadata is used next; otherwise a layered layout is derived
+ * from prerequisite edges.
  */
 public final class SkillTreeGraphLayout {
     /** Sentinel: use automatic layout for this axis (both axes must be auto to trigger). */
@@ -18,6 +19,12 @@ public final class SkillTreeGraphLayout {
     public static final int NODE_SLOT = 32;
     public static final int LAYER_SPACING_X = 140;
     public static final int ROW_SPACING_Y = 88;
+    /** Horizontal distance between named semantic branches before centering around zero. */
+    public static final int SEMANTIC_BRANCH_SPACING = 220;
+    /** Horizontal offset applied by {@code layout.lane} within a branch. */
+    public static final int SEMANTIC_LANE_SPACING = 80;
+    /** Vertical distance between semantic {@code layout.tier} levels. */
+    public static final int SEMANTIC_TIER_SPACING = 80;
 
     private SkillTreeGraphLayout() {}
 
@@ -30,7 +37,7 @@ public final class SkillTreeGraphLayout {
             return placed;
         }
         List<String> ids = tree.orderedNodeIds();
-        List<String> needAuto = new ArrayList<>();
+        List<String> needSemanticOrAuto = new ArrayList<>();
         for (String id : ids) {
             SkillTreeCanonicalDefinition.Node node = tree.nodes().get(id);
             if (node == null) {
@@ -38,6 +45,26 @@ public final class SkillTreeGraphLayout {
             }
             if (node.layoutX() != AUTO && node.layoutY() != AUTO) {
                 placed.put(id, new int[]{node.layoutX(), node.layoutY()});
+            } else {
+                needSemanticOrAuto.add(id);
+            }
+        }
+        if (needSemanticOrAuto.isEmpty()) {
+            return placed;
+        }
+
+        Map<String, Integer> branchIndexes = semanticBranchIndexes(tree, needSemanticOrAuto);
+        List<String> needAuto = new ArrayList<>();
+        for (String id : needSemanticOrAuto) {
+            SkillTreeCanonicalDefinition.Node node = tree.nodes().get(id);
+            if (node == null) {
+                continue;
+            }
+            SkillTreeNodeLayout layout = node.layout();
+            if (layout.hasSemanticPosition()) {
+                int x = semanticBranchX(layout.branch(), branchIndexes) + layout.semanticLane() * SEMANTIC_LANE_SPACING;
+                int y = -layout.semanticTier() * SEMANTIC_TIER_SPACING;
+                placed.put(id, new int[]{x, y});
             } else {
                 needAuto.add(id);
             }
@@ -97,6 +124,33 @@ public final class SkillTreeGraphLayout {
             }
         }
         return placed;
+    }
+
+    private static Map<String, Integer> semanticBranchIndexes(SkillTreeCanonicalDefinition tree, List<String> nodeIds) {
+        Map<String, Integer> indexes = new LinkedHashMap<>();
+        for (String id : nodeIds) {
+            SkillTreeCanonicalDefinition.Node node = tree.nodes().get(id);
+            if (node == null || !node.layout().hasSemanticPosition()) {
+                continue;
+            }
+            String branch = node.layout().branch();
+            if (branch.isBlank()) {
+                continue;
+            }
+            if (!indexes.containsKey(branch)) {
+                indexes.put(branch, indexes.size());
+            }
+        }
+        return indexes;
+    }
+
+    private static int semanticBranchX(String branch, Map<String, Integer> branchIndexes) {
+        if (branch == null || branch.isBlank()) {
+            return 0;
+        }
+        int count = Math.max(1, branchIndexes.size());
+        int index = branchIndexes.getOrDefault(branch, 0);
+        return index * SEMANTIC_BRANCH_SPACING - ((count - 1) * SEMANTIC_BRANCH_SPACING) / 2;
     }
 
     public static int[] boundsOf(Map<String, int[]> positions) {

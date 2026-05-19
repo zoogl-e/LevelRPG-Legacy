@@ -63,12 +63,7 @@ public final class SkillTreeTooltipRenderer {
         int y = node.centerY(transform) - boxHeight / 2;
         y = Math.max(6, Math.min(y, screenHeight - boxHeight - 6));
 
-        graphics.fill(x, y, x + WIDTH, y + boxHeight, 0xF0181410);
-        graphics.fill(x + 1, y + 1, x + WIDTH - 1, y + boxHeight - 1, 0xF032271B);
-        graphics.hLine(x, x + WIDTH - 1, y, 0xFFE0B86A);
-        graphics.hLine(x, x + WIDTH - 1, y + boxHeight - 1, 0xFF5D4630);
-        graphics.vLine(x, y, y + boxHeight - 1, 0xFFE0B86A);
-        graphics.vLine(x + WIDTH - 1, y, y + boxHeight - 1, 0xFF5D4630);
+        drawMinecraftPanel(graphics, x, y, WIDTH, boxHeight);
 
         int drawY = y + PADDING;
         for (Component line : wrapped) {
@@ -80,6 +75,17 @@ public final class SkillTreeTooltipRenderer {
             }
             drawY += 2;
         }
+    }
+
+    private static void drawMinecraftPanel(GuiGraphics graphics, int x, int y, int width, int height) {
+        graphics.fill(x + 3, y + 3, x + width + 3, y + height + 3, 0x99000000);
+        graphics.fill(x, y, x + width, y + height, 0xF021211D);
+        graphics.fill(x + 2, y + 2, x + width - 2, y + height - 2, 0xF0393328);
+        graphics.fill(x + 4, y + 4, x + width - 4, y + height - 4, 0xF0181816);
+        graphics.hLine(x + 1, x + width - 2, y + 1, 0xFF8A7A55);
+        graphics.vLine(x + 1, y + 1, y + height - 2, 0xFF8A7A55);
+        graphics.hLine(x + 1, x + width - 2, y + height - 2, 0xFF262018);
+        graphics.vLine(x + width - 2, y + 1, y + height - 2, 0xFF262018);
     }
 
     private static MutableComponent statusText(SkillNodeStatus status, SkillTreeNodeDefinition node) {

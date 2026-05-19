@@ -6,6 +6,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import net.minecraft.core.BlockPos;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -35,17 +36,20 @@ import net.zoogle.levelrpg.progression.MasteryLeveling;
 import net.zoogle.levelrpg.progression.SkillPointProgression;
 import net.zoogle.levelrpg.progression.DisciplineInvestmentProgression;
 import net.zoogle.levelrpg.progression.DisciplineInvestmentSource;
+import net.zoogle.levelrpg.skilltree.RequirementSpec;
 import net.zoogle.levelrpg.skilltree.effect.PlayerSkillEffectQuery;
 import net.zoogle.levelrpg.technique.PlayerTechniqueData;
 import net.zoogle.levelrpg.technique.PlayerTechniques;
 import net.zoogle.levelrpg.technique.TechniqueDefinition;
 import net.zoogle.levelrpg.technique.TechniqueRegistry;
 import net.zoogle.levelrpg.registry.LevelRpgBlocks;
+import net.zoogle.levelrpg.world.IndexChamberManager;
 import net.zoogle.levelrpg.world.IndexPlacementData;
 import net.zoogle.levelrpg.bounty.BountyService;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -230,7 +234,16 @@ public class LevelCommands {
                                                 .executes(ctx -> unbindArchetype(ctx, EntityArgument.getPlayer(ctx, "player"))))))
                         .then(Commands.literal("index")
                                 .then(Commands.literal("locate")
-                                        .executes(this::indexLocate)))
+                                        .executes(this::indexLocate))
+                                .then(Commands.literal("chamber")
+                                        .then(Commands.literal("force_place")
+                                                .executes(this::indexChamberForcePlace))
+                                        .then(Commands.literal("status")
+                                                .executes(this::indexChamberStatus))
+                                        .then(Commands.literal("dump_vanilla_data")
+                                                .executes(this::indexChamberDumpVanillaData))
+                                        .then(Commands.literal("reconfigure_vanilla")
+                                                .executes(this::indexChamberReconfigureVanilla))))
                         .then(Commands.literal("bounty")
                                 .then(Commands.literal("active")
                                         .executes(ctx -> bountyActive(ctx, getCallingPlayer(ctx)))
@@ -729,23 +742,104 @@ public class LevelCommands {
         }
 
         IndexPlacementData data = IndexPlacementData.get(overworld);
-        if (!data.placed() || data.originalIndexPos() == null) {
-            ctx.getSource().sendSuccess(() -> Component.literal("No original Index has been placed yet."), false);
+        var pos = data.locatePos();
+        if (!data.chamberPlaced() || pos == null) {
+            ctx.getSource().sendSuccess(() -> Component.literal("No Index Chamber has been placed yet."), false);
             return 0;
         }
 
-        var pos = data.originalIndexPos();
+        String target = data.chamberActivated() ? "Active Index" : "Index Chamber Vault";
         ctx.getSource().sendSuccess(() -> Component.literal(
-                "Original Index: " + pos.getX() + " " + pos.getY() + " " + pos.getZ()
+                target + ": " + pos.getX() + " " + pos.getY() + " " + pos.getZ()
         ), false);
 
         BlockState stateAtSavedPos = overworld.getBlockState(pos);
-        if (!stateAtSavedPos.is(LevelRpgBlocks.THE_INDEX.get())) {
+        if (data.chamberActivated() && !stateAtSavedPos.is(LevelRpgBlocks.THE_INDEX.get())) {
             ctx.getSource().sendSuccess(() -> Component.literal(
-                    "Saved original Index position exists, but the block is missing or changed."
+                    "Saved active Index position exists, but the block is missing or changed."
             ), false);
         }
         return 1;
+    }
+
+    private int indexChamberForcePlace(CommandContext<CommandSourceStack> ctx) {
+        ServerLevel level = ctx.getSource().getLevel();
+        if (level.dimension() != Level.OVERWORLD) {
+            ctx.getSource().sendFailure(Component.literal("Index Chamber force-place must be run in the Overworld."));
+            return 0;
+        }
+        BlockPos anchor = BlockPos.containing(ctx.getSource().getPosition());
+        IndexChamberManager.ForcePlaceResult result = IndexChamberManager.forcePlaceNear(level, anchor);
+        if (!result.placed()) {
+            ctx.getSource().sendFailure(Component.literal(result.message()));
+            return 0;
+        }
+        ctx.getSource().sendSuccess(() -> Component.literal(result.message()), true);
+        return 1;
+    }
+
+    private int indexChamberStatus(CommandContext<CommandSourceStack> ctx) {
+        ServerLevel overworld = ctx.getSource().getServer().getLevel(Level.OVERWORLD);
+        if (overworld == null) {
+            ctx.getSource().sendFailure(Component.literal("Could not resolve server/Overworld."));
+            return 0;
+        }
+        IndexPlacementData data = IndexPlacementData.get(overworld);
+        ctx.getSource().sendSuccess(() -> Component.literal("Index Chamber status:"), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("chamberPlaced=" + data.chamberPlaced()), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("chamberActivated=" + data.chamberActivated()), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("trialCompleted=" + data.trialCompleted()), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("trialRewardDropped=" + data.trialRewardDropped()), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("placementTier=" + data.placementTier()), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("chamberOrigin=" + formatPos(data.chamberOrigin())), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("vaultPos=" + formatPos(data.vaultPos())), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("trialSpawnerPos=" + formatPos(data.trialSpawnerPos())), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("trialSpawnerCount=" + data.trialSpawnerPositions().size()), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("finalTrialSpawnerPos=" + formatPos(data.finalTrialSpawnerPos())), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("dormantCorePos=" + formatPos(data.dormantCorePos())), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("activeIndexPos=" + formatPos(data.activeIndexPos())), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("barrierCount=" + data.barrierPositions().size()), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("lightMarkerCount=" + data.lightMarkerPositions().size()), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("powerMarkerCount=" + data.activationPowerMarkerPositions().size()), false);
+        return 1;
+    }
+
+    private int indexChamberDumpVanillaData(CommandContext<CommandSourceStack> ctx) {
+        ServerLevel overworld = ctx.getSource().getServer().getLevel(Level.OVERWORLD);
+        if (overworld == null) {
+            ctx.getSource().sendFailure(Component.literal("Could not resolve server/Overworld."));
+            return 0;
+        }
+        var lines = IndexChamberManager.dumpVanillaBlockData(overworld);
+        for (String line : lines) {
+            ctx.getSource().sendSuccess(() -> Component.literal(abbreviate(line, 240)), false);
+        }
+        return lines.size();
+    }
+
+    private int indexChamberReconfigureVanilla(CommandContext<CommandSourceStack> ctx) {
+        ServerLevel overworld = ctx.getSource().getServer().getLevel(Level.OVERWORLD);
+        if (overworld == null) {
+            ctx.getSource().sendFailure(Component.literal("Could not resolve server/Overworld."));
+            return 0;
+        }
+        if (!IndexChamberManager.reconfigureVanillaBlocks(overworld)) {
+            ctx.getSource().sendFailure(Component.literal("No Index Chamber has been placed yet."));
+            return 0;
+        }
+        ctx.getSource().sendSuccess(() -> Component.literal("Reconfigured vanilla Index Chamber vault/trial spawner."), true);
+        return 1;
+    }
+
+    private static String formatPos(BlockPos pos) {
+        return pos == null ? "null" : pos.getX() + " " + pos.getY() + " " + pos.getZ();
+    }
+
+    private static String abbreviate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, Math.max(0, maxLength - 3)) + "...";
     }
 
     private int bountyClear(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
@@ -1222,16 +1316,138 @@ public class LevelCommands {
         if (!visiting.add(nodeId)) {
             return "Cycle in discipline tree prerequisites at: " + nodeId;
         }
-        for (String prerequisiteId : node.requires()) {
+        try {
+            String failure = buildRequirementUnlockOrder(tree, node.requirement(), alreadyUnlocked, visiting, planned, unlockOrder);
+            if (failure != null) {
+                return failure + " for '" + nodeId + "' (" + node.requirement().describeForDebug() + ")";
+            }
+            planned.add(nodeId);
+            unlockOrder.add(nodeId);
+            return null;
+        } finally {
+            visiting.remove(nodeId);
+        }
+    }
+
+    private static String buildRequirementUnlockOrder(
+            net.zoogle.levelrpg.data.SkillTreeCanonicalDefinition tree,
+            RequirementSpec requirement,
+            Set<String> alreadyUnlocked,
+            Set<String> visiting,
+            Set<String> planned,
+            ArrayList<String> unlockOrder
+    ) {
+        RequirementSpec spec = requirement == null ? RequirementSpec.EMPTY : requirement;
+        if (spec.isEmpty() || spec.isSatisfied(combinedUnlocked(alreadyUnlocked, planned))) {
+            return null;
+        }
+        return switch (spec.mode()) {
+            case ALL -> buildAllRequirementUnlockOrder(tree, spec.nodes(), alreadyUnlocked, visiting, planned, unlockOrder);
+            case ANY -> buildAnyRequirementUnlockOrder(tree, spec.nodes(), alreadyUnlocked, visiting, planned, unlockOrder);
+            case AT_LEAST -> buildAtLeastRequirementUnlockOrder(tree, spec.nodes(), spec.count(), alreadyUnlocked, visiting, planned, unlockOrder);
+        };
+    }
+
+    private static String buildAllRequirementUnlockOrder(
+            net.zoogle.levelrpg.data.SkillTreeCanonicalDefinition tree,
+            List<String> prerequisiteIds,
+            Set<String> alreadyUnlocked,
+            Set<String> visiting,
+            Set<String> planned,
+            ArrayList<String> unlockOrder
+    ) {
+        for (String prerequisiteId : prerequisiteIds) {
             String failure = buildUnlockOrder(tree, prerequisiteId, alreadyUnlocked, visiting, planned, unlockOrder);
             if (failure != null) {
                 return failure;
             }
         }
-        visiting.remove(nodeId);
-        planned.add(nodeId);
-        unlockOrder.add(nodeId);
         return null;
+    }
+
+    private static String buildAnyRequirementUnlockOrder(
+            net.zoogle.levelrpg.data.SkillTreeCanonicalDefinition tree,
+            List<String> prerequisiteIds,
+            Set<String> alreadyUnlocked,
+            Set<String> visiting,
+            Set<String> planned,
+            ArrayList<String> unlockOrder
+    ) {
+        String lastFailure = null;
+        for (String prerequisiteId : prerequisiteIds) {
+            HashSet<String> trialPlanned = new HashSet<>(planned);
+            HashSet<String> trialVisiting = new HashSet<>(visiting);
+            ArrayList<String> trialOrder = new ArrayList<>(unlockOrder);
+            String failure = buildUnlockOrder(tree, prerequisiteId, alreadyUnlocked, trialVisiting, trialPlanned, trialOrder);
+            if (failure == null) {
+                planned.clear();
+                planned.addAll(trialPlanned);
+                unlockOrder.clear();
+                unlockOrder.addAll(trialOrder);
+                return null;
+            }
+            lastFailure = failure;
+        }
+        return "Cannot plan any acceptable prerequisite from [" + String.join(", ", prerequisiteIds) + "]"
+                + (lastFailure == null ? "" : ": " + lastFailure);
+    }
+
+    private static String buildAtLeastRequirementUnlockOrder(
+            net.zoogle.levelrpg.data.SkillTreeCanonicalDefinition tree,
+            List<String> prerequisiteIds,
+            int requiredCount,
+            Set<String> alreadyUnlocked,
+            Set<String> visiting,
+            Set<String> planned,
+            ArrayList<String> unlockOrder
+    ) {
+        String lastFailure = null;
+        for (String prerequisiteId : prerequisiteIds) {
+            if (countSatisfied(prerequisiteIds, alreadyUnlocked, planned) >= requiredCount) {
+                return null;
+            }
+            HashSet<String> trialPlanned = new HashSet<>(planned);
+            HashSet<String> trialVisiting = new HashSet<>(visiting);
+            ArrayList<String> trialOrder = new ArrayList<>(unlockOrder);
+            String failure = buildUnlockOrder(tree, prerequisiteId, alreadyUnlocked, trialVisiting, trialPlanned, trialOrder);
+            if (failure == null) {
+                planned.clear();
+                planned.addAll(trialPlanned);
+                unlockOrder.clear();
+                unlockOrder.addAll(trialOrder);
+            } else {
+                lastFailure = failure;
+            }
+        }
+        int satisfied = countSatisfied(prerequisiteIds, alreadyUnlocked, planned);
+        if (satisfied >= requiredCount) {
+            return null;
+        }
+        return "Cannot plan enough prerequisites; need " + requiredCount + " of ["
+                + String.join(", ", prerequisiteIds) + "], can satisfy " + satisfied
+                + (lastFailure == null ? "" : ": " + lastFailure);
+    }
+
+    private static Set<String> combinedUnlocked(Set<String> alreadyUnlocked, Set<String> planned) {
+        HashSet<String> combined = new HashSet<>();
+        if (alreadyUnlocked != null) {
+            combined.addAll(alreadyUnlocked);
+        }
+        if (planned != null) {
+            combined.addAll(planned);
+        }
+        return combined;
+    }
+
+    private static int countSatisfied(List<String> prerequisiteIds, Set<String> alreadyUnlocked, Set<String> planned) {
+        Set<String> combined = combinedUnlocked(alreadyUnlocked, planned);
+        int satisfied = 0;
+        for (String prerequisiteId : prerequisiteIds) {
+            if (combined.contains(prerequisiteId)) {
+                satisfied++;
+            }
+        }
+        return satisfied;
     }
 
     private static boolean hasDelving(LevelProfile profile, String nodeId) {

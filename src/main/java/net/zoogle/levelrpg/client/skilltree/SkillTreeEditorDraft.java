@@ -66,6 +66,7 @@ public final class SkillTreeEditorDraft {
                 continue;
             }
             node.branch = stringValue(nodeJson, "branch", node.branch);
+            node.applyLayoutMetadata(nodeJson);
             node.iconKey = stringValue(nodeJson, "icon", stringValue(nodeJson, "iconKey", node.iconKey));
             node.visibility = NodeVisibilityMode.fromJson(stringValue(nodeJson, "visibility", node.visibility.jsonName()));
             node.type = NodeType.fromJson(stringValue(nodeJson, "type", node.type.jsonName()));
@@ -149,6 +150,7 @@ public final class SkillTreeEditorDraft {
         if (node != null) {
             node.x = x;
             node.y = y;
+            node.layoutManualPosition = node.hasLayoutObject || node.hasSemanticLayout();
         }
     }
 
@@ -294,24 +296,36 @@ public final class SkillTreeEditorDraft {
             root.addProperty("summary", description);
         }
         JsonArray arr = new JsonArray();
+        Map<String, JsonObject> existingNodes = existingNodesById(existingRoot);
         for (DraftNode node : nodes.values()) {
-            JsonObject n = new JsonObject();
+            JsonObject n = existingNodes.containsKey(node.id) ? existingNodes.get(node.id).deepCopy() : new JsonObject();
             n.addProperty("id", node.id);
             n.addProperty("title", node.title);
             n.addProperty("description", node.description);
             n.addProperty("type", node.type.jsonName());
-            if (!node.branch.isBlank()) {
+            if (!node.shouldWriteLayoutObject() && !node.branch.isBlank()) {
                 n.addProperty("branch", node.branch);
+            } else {
+                n.remove("branch");
             }
             n.addProperty("cost", node.cost);
             n.addProperty("requiredRank", node.requiredRank);
-            n.addProperty("layoutX", node.x);
-            n.addProperty("layoutY", node.y);
+            if (node.shouldWriteLayoutObject()) {
+                n.add("layout", node.layoutToJson(n.has("layout") && n.get("layout").isJsonObject() ? n.getAsJsonObject("layout") : null));
+                n.remove("layoutX");
+                n.remove("layoutY");
+            } else {
+                n.addProperty("layoutX", node.x);
+                n.addProperty("layoutY", node.y);
+                n.remove("layout");
+            }
             if (!node.iconKey.isBlank()) {
                 n.addProperty("icon", node.iconKey);
             }
+            // "requirement" is the primary schema. "requires" is legacy compatibility and is only
+            // generated when it is equivalent, so old loaders cannot contradict richer editor data.
             n.add("requirement", requirementToJson(node.requirement));
-            if (!node.requirement.nodes().isEmpty()) {
+            if (node.requirement.isSimpleAll() && !node.requirement.nodes().isEmpty()) {
                 JsonArray legacyRequires = new JsonArray();
                 for (String requirement : node.requirement.nodes()) {
                     legacyRequires.add(requirement);
@@ -338,6 +352,24 @@ public final class SkillTreeEditorDraft {
         }
         root.add("nodes", arr);
         return root;
+    }
+
+    private static Map<String, JsonObject> existingNodesById(JsonObject existingRoot) {
+        LinkedHashMap<String, JsonObject> byId = new LinkedHashMap<>();
+        if (existingRoot == null || !existingRoot.has("nodes") || !existingRoot.get("nodes").isJsonArray()) {
+            return byId;
+        }
+        for (JsonElement element : existingRoot.getAsJsonArray("nodes")) {
+            if (!element.isJsonObject()) {
+                continue;
+            }
+            JsonObject node = element.getAsJsonObject();
+            String id = stringValue(node, "id", "");
+            if (!id.isBlank()) {
+                byId.put(id, node);
+            }
+        }
+        return byId;
     }
 
     private boolean hasCycle(String nodeId, Set<String> visiting, Set<String> visited) {
@@ -374,6 +406,13 @@ public final class SkillTreeEditorDraft {
             return fallback;
         }
         return json.get(key).getAsString();
+    }
+
+    private static Integer optionalInt(JsonObject json, String key, Integer fallback) {
+        if (json == null || !json.has(key) || json.get(key).isJsonNull()) {
+            return fallback;
+        }
+        return json.get(key).getAsInt();
     }
 
     private static RequirementSpec requirementFromJson(JsonObject json, String objectKey, String legacyKey, RequirementSpec fallback) {
@@ -594,6 +633,11 @@ public final class SkillTreeEditorDraft {
         private final boolean hidden;
         private NodeType type;
         private String branch;
+        private boolean hasLayoutObject;
+        private String layoutBranch;
+        private Integer layoutTier;
+        private Integer layoutLane;
+        private boolean layoutManualPosition;
         private String iconKey;
         private List<SkillNodeEffect> effects;
 
@@ -611,6 +655,7 @@ public final class SkillTreeEditorDraft {
             this.hidden = hidden;
             this.type = type == null ? NodeType.TRAIT : type;
             this.branch = branch == null ? "" : branch;
+            this.layoutBranch = "";
             this.iconKey = iconKey == null ? "" : iconKey;
             this.effects = effects == null ? List.of() : List.copyOf(effects);
         }
@@ -690,6 +735,79 @@ public final class SkillTreeEditorDraft {
 
         public String icon() {
             return iconKey;
+        }
+
+        public String layoutDebug() {
+            if (!hasLayoutObject && !hasSemanticLayout()) {
+                return "legacy x/y";
+            }
+            ArrayList<String> parts = new ArrayList<>();
+            if (!layoutBranch.isBlank()) {
+                parts.add("branch=" + layoutBranch);
+            }
+            if (layoutTier != null) {
+                parts.add("tier=" + layoutTier);
+            }
+            if (layoutLane != null) {
+                parts.add("lane=" + layoutLane);
+            }
+            parts.add(layoutManualPosition ? "manual x/y" : "semantic");
+            return String.join(", ", parts);
+        }
+
+        private void applyLayoutMetadata(JsonObject nodeJson) {
+            if (nodeJson == null || !nodeJson.has("layout") || !nodeJson.get("layout").isJsonObject()) {
+                return;
+            }
+            JsonObject layout = nodeJson.getAsJsonObject("layout");
+            hasLayoutObject = true;
+            layoutBranch = stringValue(layout, "branch", layoutBranch);
+            if (!layoutBranch.isBlank()) {
+                branch = layoutBranch;
+            }
+            layoutTier = optionalInt(layout, "tier", layoutTier);
+            layoutLane = optionalInt(layout, "lane", layoutLane);
+            layoutManualPosition = layout.has("x") && layout.has("y");
+        }
+
+        private boolean hasSemanticLayout() {
+            return !layoutBranch.isBlank() || layoutTier != null || layoutLane != null;
+        }
+
+        private boolean shouldWriteLayoutObject() {
+            return hasLayoutObject || hasSemanticLayout();
+        }
+
+        private JsonObject layoutToJson(JsonObject existingLayout) {
+            JsonObject layout = new JsonObject();
+            if (existingLayout != null) {
+                for (Map.Entry<String, JsonElement> entry : existingLayout.entrySet()) {
+                    layout.add(entry.getKey(), entry.getValue().deepCopy());
+                }
+            }
+            if (!layoutBranch.isBlank()) {
+                layout.addProperty("branch", layoutBranch);
+            } else {
+                layout.remove("branch");
+            }
+            if (layoutTier != null) {
+                layout.addProperty("tier", layoutTier);
+            } else {
+                layout.remove("tier");
+            }
+            if (layoutLane != null) {
+                layout.addProperty("lane", layoutLane);
+            } else {
+                layout.remove("lane");
+            }
+            if (layoutManualPosition) {
+                layout.addProperty("x", x);
+                layout.addProperty("y", y);
+            } else {
+                layout.remove("x");
+                layout.remove("y");
+            }
+            return layout;
         }
     }
 

@@ -116,7 +116,7 @@ public final class SkillTreeProgression {
         if (investedDisciplineLevel < requiredLevelFor(tree, node)) {
             return NodeStatus.LOCKED_SKILL_LEVEL;
         }
-        if (!missingRequirements.isEmpty()) {
+        if (!node.requirement().isSatisfied(inscribedNodes)) {
             return NodeStatus.LOCKED_PREREQUISITE;
         }
         if (insight < node.normalizedCost()) {

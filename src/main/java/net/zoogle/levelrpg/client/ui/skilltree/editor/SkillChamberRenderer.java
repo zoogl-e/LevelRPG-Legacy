@@ -26,12 +26,15 @@ public final class SkillChamberRenderer {
             int viewportX,
             int viewportY,
             int viewportW,
-            int viewportH
+            int viewportH,
+            boolean isPlayerView
     ) {
         SkillChamberViewState.Viewport viewport = new SkillChamberViewState.Viewport(viewportX, viewportY, viewportW, viewportH);
         graphics.enableScissor(viewportX, viewportY, viewportX + viewportW, viewportY + viewportH);
-        drawChamberBackground(graphics, viewport);
-        drawRotationHints(graphics, font, chamber, viewport);
+        if (!isPlayerView) {
+            drawChamberBackground(graphics, viewport);
+        }
+        drawRotationHints(graphics, font, chamber, viewport, isPlayerView);
         graphics.disableScissor();
     }
 
@@ -43,8 +46,6 @@ public final class SkillChamberRenderer {
         // Warm parchment substrate (ink-on-paper direction).
         graphics.fill(x, y, x + w, y + h, 0xE8D8C1A0);
         graphics.fill(x + 1, y + 1, x + w - 1, y + h - 1, 0xEFDCC8AE);
-
-        // Intentionally no inner translucent frame; keep viewport open for tree/grid readability.
     }
 
     private static void drawSkillSpokes(GuiGraphics graphics, SkillChamberViewState chamber, SkillChamberViewState.Viewport viewport) {
@@ -91,12 +92,13 @@ public final class SkillChamberRenderer {
         graphics.vLine(x + w, y, y + h, 0xFF735633);
     }
 
-    private static void drawRotationHints(GuiGraphics graphics, Font font, SkillChamberViewState chamber, SkillChamberViewState.Viewport viewport) {
+    private static void drawRotationHints(GuiGraphics graphics, Font font, SkillChamberViewState chamber, SkillChamberViewState.Viewport viewport, boolean isPlayerView) {
         String left = "< A " + label(chamber.getPreviousSkill());
         String right = label(chamber.getNextSkill()) + " D >";
         int y = viewport.y() + viewport.height() - 17;
-        graphics.drawString(font, left, viewport.x() + 28, y, 0xFF5A4020, false);
-        graphics.drawString(font, right, viewport.x() + viewport.width() - 28 - font.width(right), y, 0xFF5A4020, false);
+        int color = isPlayerView ? 0xFFAAB5C4 : 0xFF5A4020;
+        graphics.drawString(font, left, viewport.x() + 28, y, color, isPlayerView);
+        graphics.drawString(font, right, viewport.x() + viewport.width() - 28 - font.width(right), y, color, isPlayerView);
     }
 
     private static void drawOctagon(GuiGraphics graphics, int centerX, int centerY, int radius, int color, int thickness) {

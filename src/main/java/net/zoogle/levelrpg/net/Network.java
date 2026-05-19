@@ -28,6 +28,8 @@ import net.zoogle.levelrpg.net.payload.OpenIndexInvestmentScreenPayload;
 import net.zoogle.levelrpg.net.payload.OpenSkillTreeEditorScreenPayload;
 import net.zoogle.levelrpg.net.payload.RecklessChargeStatePayload;
 import net.zoogle.levelrpg.net.payload.SelectTechniqueSlotPayload;
+import net.zoogle.levelrpg.net.payload.AssignTechniqueSlotPayload;
+import net.zoogle.levelrpg.net.payload.IndexChamberGuideTargetPayload;
 import net.zoogle.levelrpg.net.payload.SetHandsUpGuardingPayload;
 import net.zoogle.levelrpg.net.payload.RequestForwardFrenzyPayload;
 import net.zoogle.levelrpg.net.payload.RequestFistPunchPayload;
@@ -191,6 +193,14 @@ public class Network {
                 SyncFinesseWeakSpotPayload.TYPE,
                 SyncFinesseWeakSpotPayload.STREAM_CODEC,
                 (payload, context) -> context.enqueueWork(() -> FinesseUnarmedCombat.applyWeakSpotSync(payload))
+        );
+        registrar.playToClient(
+                IndexChamberGuideTargetPayload.TYPE,
+                IndexChamberGuideTargetPayload.STREAM_CODEC,
+                (payload, context) -> context.enqueueWork(() -> {
+                    net.minecraft.core.BlockPos pos = net.minecraft.core.BlockPos.of(payload.dormantCorePos());
+                    net.zoogle.levelrpg.client.IndexChamberCrystalGuideParticles.applyGuideTarget(payload.active(), pos);
+                })
         );
         registrar.playToServer(
                 RequestProfileSyncPayload.TYPE,
@@ -416,6 +426,23 @@ public class Network {
                 }
         );
         registrar.playToServer(
+                AssignTechniqueSlotPayload.TYPE,
+                AssignTechniqueSlotPayload.STREAM_CODEC,
+                (payload, context) -> {
+                    if (context.player() instanceof ServerPlayer player) {
+                        LevelProfile profile = LevelProfile.get(player);
+                        int oneBasedSlot = payload.slot() + 1; // payload is 0-based; API expects 1-based
+                        if (payload.techniqueId() == null || payload.techniqueId().isBlank()) {
+                            PlayerTechniques.clear(player, profile, oneBasedSlot);
+                        } else {
+                            try {
+                                PlayerTechniques.assign(player, profile, oneBasedSlot, ResourceLocation.parse(payload.techniqueId()));
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                }
+        );
+        registrar.playToServer(
                 RequestShieldBashPayload.TYPE,
                 RequestShieldBashPayload.STREAM_CODEC,
                 (payload, context) -> {
@@ -570,5 +597,27 @@ public class Network {
             return;
         }
         target.connection.send(new ClientboundCustomPayloadPacket(OpenIndexInvestmentScreenPayload.INSTANCE));
+    }
+
+    private static void handleClientPayload(Object payload) {
+        if (net.neoforged.fml.loading.FMLEnvironment.dist != net.neoforged.api.distmarker.Dist.CLIENT || payload == null) {
+            return;
+        }
+        try {
+            Class<?> handlers = Class.forName("net.zoogle.levelrpg.client.ClientPayloadHandlers");
+            handlers.getMethod("handle", payload.getClass()).invoke(null, payload);
+        } catch (ReflectiveOperationException ignored) {
+            // Client-side dispatch; silently swallow unknown payload types.
+        }
+    }
+
+    public static void syncIndexChamberGuideTarget(ServerPlayer target, net.minecraft.core.BlockPos dormantCorePos, boolean active) {
+        if (target == null) {
+            return;
+        }
+        IndexChamberGuideTargetPayload payload = active && dormantCorePos != null
+                ? IndexChamberGuideTargetPayload.active(dormantCorePos)
+                : IndexChamberGuideTargetPayload.clear();
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(target, payload);
     }
 }

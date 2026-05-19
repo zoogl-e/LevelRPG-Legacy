@@ -32,12 +32,12 @@ public class Config {
             .define("progression.allowBookDisciplineInvestment", false);
 
     private static final ModConfigSpec.BooleanValue GENERATE_INDEX_NEAR_SPAWN = BUILDER
-            .comment("If true, place one original The Index block near Overworld spawn.")
+            .comment("If true, place one underground Index Chamber structure near Overworld spawn.")
             .define("progression.generateIndexNearSpawn", true);
 
     private static final ModConfigSpec.IntValue INDEX_SPAWN_SEARCH_RADIUS = BUILDER
-            .comment("Horizontal search radius (in blocks) around spawn for Index placement.")
-            .defineInRange("progression.indexSpawnSearchRadius", 16, 0, 128);
+            .comment("Legacy setting retained for config compatibility. Index Chamber v1 searches 48-160 blocks from spawn.")
+            .defineInRange("progression.indexSpawnSearchRadius", 160, 0, 256);
 
     private static final ModConfigSpec.BooleanValue AWARD_ESSENCE_FROM_ADVANCEMENTS = BUILDER
             .comment("If true, completed vanilla advancements can award one-time Essence.")

@@ -62,38 +62,23 @@ public final class SkillTreeRegistry {
                 case OBFUSCATED -> NodeVisibilityMode.OBFUSCATED;
                 default -> NodeVisibilityMode.VISIBLE;
             };
-            List<String> parents = node.requires();
-            if (hidden) {
-                builder.hiddenNodeWithMetadata(
-                        node.id(),
-                        node.title(),
-                        node.description(),
-                        position[0],
-                        position[1],
-                        node.normalizedRequiredRank(),
-                        node.normalizedCost(),
-                        "trait",
-                        node.iconKey(),
-                        parents.toArray(String[]::new)
-                );
-            } else {
-                builder.rawNode(new SkillTreeNodeDefinition(
-                        node.id(),
-                        node.title(),
-                        node.description(),
-                        position[0],
-                        position[1],
-                        node.normalizedRequiredRank(),
-                        node.normalizedCost(),
-                        RequirementSpec.all(parents),
-                        null,
-                        visibility,
-                        "trait",
-                        node.iconKey(),
-                        node.effects(),
-                        false
-                ));
-            }
+            String type = node.type() == null || node.type().isBlank() ? "trait" : node.type();
+            builder.rawNode(new SkillTreeNodeDefinition(
+                    node.id(),
+                    node.title(),
+                    node.description(),
+                    position[0],
+                    position[1],
+                    node.normalizedRequiredRank(),
+                    node.normalizedCost(),
+                    node.requirement(),
+                    node.revealRequirement(),
+                    visibility,
+                    type,
+                    node.iconKey(),
+                    node.effects(),
+                    hidden
+            ));
         }
         SkillTreePresentationDefinition adapted = builder.build();
         ADAPTED_CACHE.put(skillId, adapted);

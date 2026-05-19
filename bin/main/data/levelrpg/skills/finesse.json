@@ -1,5 +1,0 @@
-{
-  "id": "levelrpg:finesse",
-  "display": { "name": "Finesse", "color": "#2ECC71", "icon": "", "notes": "Mobility, positioning, bows as expression" },
-  "xpCurve": "levelrpg:default"
-}

@@ -1,4 +1,6 @@
 {
-  "parent": "levelrpg:block/the_index"
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "levelrpg:block/the_index"
+  }
 }
-

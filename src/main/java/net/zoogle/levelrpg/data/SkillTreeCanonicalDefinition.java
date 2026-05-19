@@ -1,6 +1,7 @@
 package net.zoogle.levelrpg.data;
 
 import net.minecraft.resources.ResourceLocation;
+import net.zoogle.levelrpg.skilltree.RequirementSpec;
 import net.zoogle.levelrpg.skilltree.effect.SkillNodeEffect;
 
 import java.util.ArrayList;
@@ -38,11 +39,11 @@ public record SkillTreeCanonicalDefinition(
 
     public List<String> missingRequirements(String nodeId, java.util.Set<String> unlockedNodes) {
         Node node = nodes.get(nodeId);
-        if (node == null || node.requires().isEmpty()) {
+        if (node == null || node.requirement().isSatisfied(unlockedNodes)) {
             return List.of();
         }
         ArrayList<String> missing = new ArrayList<>();
-        for (String requirement : node.requires()) {
+        for (String requirement : node.requirement().nodes()) {
             if (!unlockedNodes.contains(requirement)) {
                 missing.add(requirement);
             }
@@ -53,9 +54,16 @@ public record SkillTreeCanonicalDefinition(
     public record Node(
             String id,
             int cost,
+            /**
+             * Legacy compatibility view for old {@code "requires": [...]} data. New JSON should use
+             * {@code "requirement"} so non-ALL modes survive canonical loading and presentation adaptation.
+             */
             List<String> requires,
+            RequirementSpec requirement,
+            RequirementSpec revealRequirement,
             int requiredRank,
             String branch,
+            SkillTreeNodeLayout layout,
             /** Node kind string from JSON (e.g. core, trait, technique, axiom, manifestation); legacy {@code keystone}/{@code mastery} normalized at load. */
             String type,
             String title,
@@ -72,10 +80,33 @@ public record SkillTreeCanonicalDefinition(
             SkillTreeNodeVisibility visibility,
             List<SkillNodeEffect> effects
     ) {
+        public Node(
+                String id,
+                int cost,
+                List<String> requires,
+                int requiredRank,
+                String branch,
+                String type,
+                String title,
+                String description,
+                int layoutX,
+                int layoutY,
+                String iconKey,
+                SkillTreeNodeVisibility visibility,
+                List<SkillNodeEffect> effects
+        ) {
+            this(id, cost, requires, RequirementSpec.all(requires), null, requiredRank, branch, SkillTreeNodeLayout.EMPTY, type, title, description, layoutX, layoutY, iconKey, visibility, effects);
+        }
+
         public Node {
             id = normalize(id);
             requires = requires == null ? List.of() : List.copyOf(requires);
-            branch = branch == null ? "" : branch;
+            requirement = requirement == null ? RequirementSpec.all(requires) : requirement;
+            if (requires.isEmpty() && !requirement.nodes().isEmpty()) {
+                requires = requirement.nodes();
+            }
+            layout = layout == null ? SkillTreeNodeLayout.EMPTY : layout;
+            branch = branch == null || branch.isBlank() ? layout.branch() : branch;
             type = type == null ? "" : type;
             title = title == null ? "" : title;
             description = description == null ? "" : description;
@@ -90,6 +121,10 @@ public record SkillTreeCanonicalDefinition(
 
         public int normalizedRequiredRank() {
             return Math.max(0, requiredRank);
+        }
+
+        public List<String> requires() {
+            return requirement.nodes();
         }
     }
 

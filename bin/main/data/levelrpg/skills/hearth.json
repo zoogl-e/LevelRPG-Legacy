@@ -1,5 +1,0 @@
-{
-  "id": "levelrpg:hearth",
-  "display": { "name": "Hearth", "color": "#E67E22", "icon": "", "notes": "Food, cooking, brewing, sustenance, caretaker" },
-  "xpCurve": "levelrpg:default"
-}
